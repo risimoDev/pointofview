@@ -1,0 +1,67 @@
+# VPS: /etc/nginx/sites-available/viziai.conf
+# TLS terminates here; everything proxies to the home server (10.9.0.2)
+# over WireGuard. Certs: certbot --nginx -d <domain> -d s3.<domain>
+
+# ── main app ────────────────────────────────────────────────
+server {
+    listen 80;
+    server_name xn----7sbbhzo1afsm0d.xn--p1ai;
+    location /.well-known/acme-challenge/ { root /var/www/html; }
+    location / { return 301 https://$host$request_uri; }
+}
+
+server {
+    listen 443 ssl http2;
+    server_name xn----7sbbhzo1afsm0d.xn--p1ai;
+
+    ssl_certificate     /etc/letsencrypt/live/xn----7sbbhzo1afsm0d.xn--p1ai/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/xn----7sbbhzo1afsm0d.xn--p1ai/privkey.pem;
+
+    client_max_body_size 200m;
+
+    location / {
+        proxy_pass http://10.9.0.2:80;
+        proxy_http_version 1.1;
+        # WebSocket (live events, go2rtc WebRTC signaling)
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $http_upgrade;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+}
+
+# ── MinIO (presigned clip/snapshot URLs) ────────────────────
+server {
+    listen 80;
+    server_name s3.xn----7sbbhzo1afsm0d.xn--p1ai;
+    location /.well-known/acme-challenge/ { root /var/www/html; }
+    location / { return 301 https://$host$request_uri; }
+}
+
+server {
+    listen 443 ssl http2;
+    server_name s3.xn----7sbbhzo1afsm0d.xn--p1ai;
+
+    ssl_certificate     /etc/letsencrypt/live/xn----7sbbhzo1afsm0d.xn--p1ai/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/xn----7sbbhzo1afsm0d.xn--p1ai/privkey.pem;
+
+    # S3 signature includes the Host header — pass it unchanged
+    ignore_invalid_headers off;
+    client_max_body_size 0;
+    proxy_buffering off;
+
+    location / {
+        proxy_pass http://10.9.0.2:9000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 300;
+        proxy_http_version 1.1;
+        chunked_transfer_encoding off;
+    }
+}

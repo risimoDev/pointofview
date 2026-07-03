@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Operator-console dark is the product default. Teal is the brand accent;
+     `accent` stays a quiet hover surface so shadcn hovers don't flood teal. */
+  :root,
+  .dark {
+    --background: 222 26% 7%;
+    --foreground: 210 22% 92%;
+    --card: 222 22% 10%;
+    --card-foreground: 210 22% 92%;
+    --popover: 222 24% 9%;
+    --popover-foreground: 210 22% 92%;
+
+    --primary: 172 66% 45%;            /* teal — fills CTAs */
+    --primary-foreground: 222 47% 8%;
+    --brand: 172 70% 47%;
+    --brand-foreground: 222 47% 7%;
+
+    --secondary: 217 19% 16%;
+    --secondary-foreground: 210 20% 92%;
+    --muted: 217 19% 15%;
+    --muted-foreground: 215 16% 60%;
+    --accent: 217 19% 18%;             /* quiet hover surface, not brand */
+    --accent-foreground: 210 22% 95%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 217 19% 17%;
+    --input: 217 19% 20%;
+    --ring: 172 66% 45%;
+    --radius: 0.625rem;
+  }
+
+  /* Opt-in light theme for analytics/reports; product ships dark. */
+  .light {
+    --background: 210 30% 99%;
+    --foreground: 222 30% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 30% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 30% 12%;
+    --primary: 172 64% 38%;
+    --primary-foreground: 0 0% 100%;
+    --brand: 172 64% 38%;
+    --brand-foreground: 0 0% 100%;
+    --secondary: 215 25% 95%;
+    --secondary-foreground: 222 30% 12%;
+    --muted: 215 25% 95%;
+    --muted-foreground: 215 16% 42%;
+    --accent: 215 25% 94%;
+    --accent-foreground: 222 30% 12%;
+    --destructive: 0 72% 48%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 215 20% 88%;
+    --input: 215 20% 88%;
+    --ring: 172 64% 38%;
+  }
+
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: 'ss01', 'cv01', 'tnum';
+  }
+}

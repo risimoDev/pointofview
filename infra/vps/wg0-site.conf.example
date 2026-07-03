@@ -1,0 +1,19 @@
+# Camera site (ПВЗ): WG client on the site router (Keenetic/MikroTik/OpenWrt)
+# or a mini-PC. The camera itself stays in the site LAN; the router
+# forwards RTSP :554 from its WG address to the camera.
+
+[Interface]
+Address = 10.9.0.11/32
+PrivateKey = <SITE_PRIVATE_KEY>
+
+[Peer]
+PublicKey = <VPS_PUBLIC_KEY>
+Endpoint = <VPS_PUBLIC_IP>:51820
+# only tunnel traffic to the platform subnet, not the site's internet
+AllowedIPs = 10.9.0.0/24
+PersistentKeepalive = 25
+
+# MikroTik example (camera LAN 192.168.88.64):
+#   /ip firewall nat add chain=dstnat dst-address=10.9.0.11 protocol=tcp \
+#       dst-port=554 action=dst-nat to-addresses=192.168.88.64 to-ports=554
+# Then go2rtc pulls rtsp://user:pass@10.9.0.11:554/...

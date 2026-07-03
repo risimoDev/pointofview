@@ -1,0 +1,9 @@
+# torch installed separately in Dockerfile (CUDA vs CPU wheel index)
+ultralytics==8.3.*
+supervision==0.25.*
+opencv-python-headless==4.11.*
+numpy==2.1.*
+redis==5.2.*
+httpx==0.28.*
+pydantic==2.10.*
+pydantic-settings==2.7.*

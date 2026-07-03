@@ -1,0 +1,203 @@
+name: viziai
+
+# Production stack for the home GPU server (Ubuntu).
+# Public traffic enters through the VPS (TLS) and reaches the local nginx
+# over WireGuard. Nothing except nginx:80, minio:9000 and go2rtc (host net)
+# listens on the host; postgres/redis stay on the docker network only.
+#
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+
+services:
+  postgres:
+    image: timescale/timescaledb-ha:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pg_data:/home/postgres/pgdata/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    # 9000 is proxied from the VPS (s3.<domain>) for presigned URLs;
+    # restrict with ufw to the WireGuard subnet
+    ports:
+      - "9000:9000"
+    volumes:
+      - ${DATA_ROOT}/minio:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  go2rtc:
+    image: alexxit/go2rtc:latest
+    restart: unless-stopped
+    network_mode: host
+    # host net: reaches cameras in the WireGuard subnet directly
+    environment:
+      TZ: ${TZ}
+      VPS_PUBLIC_IP: ${VPS_PUBLIC_IP}
+    volumes:
+      - ./go2rtc/go2rtc.prod.yaml:/config/go2rtc.yaml:ro
+      - ${DATA_ROOT}/archive:/archive
+
+  api:
+    build: ../api
+    restart: unless-stopped
+    environment: &api_env
+      TZ: ${TZ}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+      GO2RTC_URL: http://host.docker.internal:1984
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT}
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET_CLIPS: ${MINIO_BUCKET_CLIPS}
+      MINIO_BUCKET_SNAPSHOTS: ${MINIO_BUCKET_SNAPSHOTS}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      CLIP_PRE_ROLL_SEC: ${CLIP_PRE_ROLL_SEC}
+      CLIP_POST_ROLL_SEC: ${CLIP_POST_ROLL_SEC}
+      CLIP_WATERMARK: ${CLIP_WATERMARK}
+      ARCHIVE_ROOT: /archive
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      minio: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000/api/v1/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  worker-clips:
+    build: ../api
+    restart: unless-stopped
+    command: ["npm", "run", "worker:clips"]
+    environment: *api_env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ${DATA_ROOT}/archive:/archive:ro
+    depends_on:
+      redis: { condition: service_healthy }
+      minio: { condition: service_healthy }
+
+  worker-alerts:
+    build: ../api
+    restart: unless-stopped
+    command: ["npm", "run", "worker:alerts"]
+    environment: *api_env
+    depends_on:
+      redis: { condition: service_healthy }
+      minio: { condition: service_healthy }
+
+  web:
+    build:
+      context: ..
+      dockerfile: web/Dockerfile
+      args:
+        NEXT_PUBLIC_WS_URL: ${PUBLIC_WS_URL}
+        API_URL: http://api:3000
+        GO2RTC_URL: http://host.docker.internal:1984
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - api
+
+  analyzer:
+    build: ../analyzer
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ}
+      REDIS_URL: redis://redis:6379
+      TENANT_ID: ${TENANT_ID}
+      ANALYZER_DEVICE: cuda
+      YOLO_MODEL: ${YOLO_MODEL}
+      DEFAULT_FRAME_SKIP: ${DEFAULT_FRAME_SKIP}
+      INTERNAL_API_URL: http://api:3000
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+    volumes:
+      - yolo_cache:/root/.cache
+    depends_on:
+      redis: { condition: service_healthy }
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # 24/7 archive recorder (needed for clips); enable with --profile recorder
+  recorder:
+    build: ../analyzer
+    restart: unless-stopped
+    profiles: ["recorder"]
+    command: ["python", "-m", "analyzer.ingest.recorder"]
+    environment:
+      TZ: ${TZ}
+      REDIS_URL: redis://redis:6379
+      TENANT_ID: ${TENANT_ID}
+      ARCHIVE_ROOT: /archive
+      SEGMENT_SECONDS: ${SEGMENT_SECONDS}
+      INTERNAL_API_URL: http://api:3000
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+    volumes:
+      - ${DATA_ROOT}/archive:/archive
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    # single local entrypoint; the VPS proxies https://<domain> → this :80
+    # over WireGuard. Restrict with ufw to the WG subnet.
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/locations.inc:/etc/nginx/locations.inc:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - api
+      - web
+
+volumes:
+  pg_data:
+  redis_data:
+  yolo_cache:

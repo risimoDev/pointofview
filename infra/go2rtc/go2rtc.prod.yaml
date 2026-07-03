@@ -1,0 +1,19 @@
+api:
+  listen: ":1984"        # REST + web UI (proxied via nginx /go2rtc/)
+
+webrtc:
+  listen: ":8555"
+  candidates:
+    # VPS forwards tcp/udp :8555 to this host over WireGuard,
+    # so browsers connect to the VPS public address
+    - ${VPS_PUBLIC_IP}:8555
+
+rtsp:
+  listen: ":8554"
+
+log:
+  level: info
+
+# Cameras are added dynamically via the go2rtc API (POST /api/streams)
+# during onboarding. Sources are RTSP addresses in the WG subnet 10.9.0.0/24.
+streams: {}

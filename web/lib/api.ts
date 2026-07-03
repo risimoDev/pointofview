@@ -1,0 +1,352 @@
+import {
+  CamerasSchema,
+  EventsPageSchema,
+  ZoneSchema,
+  type Camera,
+  type EventsPage,
+  type Zone,
+} from '@shared/events.schema'
+import { z } from 'zod'
+
+// JWT lives in an httpOnly cookie; this route handler echoes it back so the
+// client can attach Authorization headers and the WebSocket token.
+let tokenPromise: Promise<string> | null = null
+
+export async function getToken(): Promise<string> {
+  if (!tokenPromise) {
+    tokenPromise = fetch('/api/auth/token', { credentials: 'include' }).then(async (r) => {
+      if (!r.ok) throw new Error('unauthenticated')
+      const { token } = (await r.json()) as { token: string }
+      return token
+    })
+  }
+  return tokenPromise
+}
+
+export function resetToken(): void {
+  tokenPromise = null
+}
+
+async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const token = await getToken()
+  const res = await fetch(path, {
+    ...init,
+    headers: { ...init.headers, Authorization: `Bearer ${token}` },
+  })
+  if (res.status === 401) {
+    resetToken()
+    throw new Error('unauthorized')
+  }
+  return res
+}
+
+async function apiJson<T>(path: string, schema: z.ZodType<T>, init?: RequestInit): Promise<T> {
+  const res = await apiFetch(path, init)
+  if (!res.ok) throw new Error(`${path}: ${res.status}`)
+  return schema.parse(await res.json())
+}
+
+export interface EventsFilter {
+  camera_id?: string | undefined
+  type?: string | undefined
+  severity?: string | undefined
+  from?: string | undefined
+  to?: string | undefined
+  cursor?: string | undefined
+  limit?: number | undefined
+}
+
+export async function getEvents(filter: EventsFilter): Promise<EventsPage> {
+  const qs = new URLSearchParams()
+  for (const [k, v] of Object.entries(filter)) {
+    if (v !== undefined && v !== '') qs.set(k, String(v))
+  }
+  return apiJson(`/api/v1/events?${qs.toString()}`, EventsPageSchema)
+}
+
+export async function getCameras(): Promise<Camera[]> {
+  const data = await apiJson('/api/v1/cameras', CamerasSchema)
+  return data.items
+}
+
+export async function createCamera(input: {
+  site_id: string; name: string; source_type: string
+  url_main?: string | null; url_sub?: string | null; config?: Record<string, unknown>
+}): Promise<void> {
+  const res = await apiFetch('/api/v1/cameras', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
+  })
+  if (!res.ok) throw new Error(`createCamera: ${res.status}`)
+}
+
+export async function updateCamera(id: string, patch: {
+  name?: string; url_main?: string | null; url_sub?: string | null
+  status?: string; config?: Record<string, unknown>
+}): Promise<void> {
+  const res = await apiFetch(`/api/v1/cameras/${id}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch),
+  })
+  if (!res.ok) throw new Error(`updateCamera: ${res.status}`)
+}
+
+export async function deleteCamera(id: string): Promise<void> {
+  const res = await apiFetch(`/api/v1/cameras/${id}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error(`deleteCamera: ${res.status}`)
+}
+
+export async function getSnapshotObjectUrl(cameraId: string): Promise<string> {
+  const res = await apiFetch(`/api/v1/cameras/${cameraId}/snapshot`)
+  if (!res.ok) throw new Error(`snapshot: ${res.status}`)
+  return URL.createObjectURL(await res.blob())
+}
+
+const CreateZoneResult = ZoneSchema
+export interface CreateZoneInput {
+  name: string
+  kind: Zone['kind']
+  polygon: [number, number][]
+  config?: Record<string, unknown>
+  active?: boolean
+}
+
+export async function createZone(cameraId: string, input: CreateZoneInput): Promise<Zone> {
+  return apiJson(`/api/v1/cameras/${cameraId}/zones`, CreateZoneResult, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+}
+
+export async function requestClip(eventId: string): Promise<void> {
+  const res = await apiFetch(`/api/v1/events/${eventId}/clip`, { method: 'POST' })
+  if (res.status !== 202 && !res.ok) throw new Error(`clip request: ${res.status}`)
+}
+
+const TicketSchema = z.object({ ticket: z.string() })
+export async function getWsTicket(): Promise<string> {
+  return (await apiJson('/api/v1/ws-ticket', TicketSchema)).ticket
+}
+
+const ClipUrlSchema = z.object({ url: z.string() })
+export async function getClipUrl(eventId: string): Promise<string | null> {
+  const res = await apiFetch(`/api/v1/events/${eventId}/clip`)
+  if (res.status === 409) return null // not ready yet
+  if (!res.ok) throw new Error(`clip: ${res.status}`)
+  return ClipUrlSchema.parse(await res.json()).url
+}
+
+// ── Feature flags ─────────────────────────────────────────────
+const FeatureSchema = z.object({
+  feature: z.string(),
+  enabled: z.boolean(),
+  config: z.record(z.unknown()),
+})
+const FeaturesSchema = z.object({ items: z.array(FeatureSchema) })
+export type Feature = z.infer<typeof FeatureSchema>
+
+export async function getFeatures(): Promise<Feature[]> {
+  return (await apiJson('/api/v1/features', FeaturesSchema)).items
+}
+
+export async function setFeature(
+  feature: string,
+  enabled: boolean,
+  config: Record<string, unknown> = {},
+): Promise<void> {
+  const res = await apiFetch(`/api/v1/features/${feature}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enabled, config }),
+  })
+  if (!res.ok) throw new Error(`setFeature: ${res.status}`)
+}
+
+// ── Live occupancy (counter plugin) ───────────────────────────
+const OccupancySchema = z.object({
+  items: z.array(z.object({
+    cameraId: z.string(),
+    occupancy: z.number(),
+    visitors: z.number(),
+    ts: z.number(),
+  })),
+})
+export type Occupancy = z.infer<typeof OccupancySchema>['items'][number]
+
+export async function getOccupancy(): Promise<Occupancy[]> {
+  return (await apiJson('/api/v1/occupancy', OccupancySchema)).items
+}
+
+// ── Role (decoded from the JWT payload; UX gating only) ───────
+export async function getRole(): Promise<string | null> {
+  try {
+    const token = await getToken()
+    const payload = token.split('.')[1]
+    if (!payload) return null
+    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
+    return (JSON.parse(json) as { role?: string }).role ?? null
+  } catch {
+    return null
+  }
+}
+
+// ── Super-admin: diagnostics ──────────────────────────────────
+const HealthSchema = z.object({
+  services: z.record(z.string()),
+  streams: z.object({
+    events: z.object({ name: z.string(), length: z.number() }),
+    failed: z.object({ name: z.string(), length: z.number() }),
+    group: z.object({ name: z.string(), pending: z.number(), lag: z.number() }).nullable(),
+  }),
+  ts: z.number(),
+})
+export type Health = z.infer<typeof HealthSchema>
+
+export async function getHealth(): Promise<Health> {
+  return apiJson('/api/v1/admin/health', HealthSchema)
+}
+
+const DeadLetterSchema = z.object({
+  items: z.array(z.object({ id: z.string(), data: z.string(), error: z.string() })),
+})
+export type DeadLetterEntry = z.infer<typeof DeadLetterSchema>['items'][number]
+
+export async function getDeadLetter(count = 50): Promise<DeadLetterEntry[]> {
+  return (await apiJson(`/api/v1/admin/dead-letter?count=${count}`, DeadLetterSchema)).items
+}
+
+export async function replayDeadLetter(id: string): Promise<void> {
+  const res = await apiFetch(`/api/v1/admin/dead-letter/${encodeURIComponent(id)}/replay`, {
+    method: 'POST',
+  })
+  if (!res.ok) throw new Error(`replay: ${res.status}`)
+}
+
+// ── Super-admin: organization (sites + users) ─────────────────
+const AdminSiteSchema = z.object({
+  id: z.string(), tenantId: z.string(), name: z.string(),
+  address: z.string().nullable(), timezone: z.string(),
+})
+const AdminSitesSchema = z.object({ items: z.array(AdminSiteSchema) })
+export type AdminSite = z.infer<typeof AdminSiteSchema>
+
+export async function getSites(): Promise<AdminSite[]> {
+  return (await apiJson('/api/v1/admin/sites', AdminSitesSchema)).items
+}
+export async function createSite(input: {
+  name: string; address?: string | null; timezone?: string
+}): Promise<void> {
+  const res = await apiFetch('/api/v1/admin/sites', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
+  })
+  if (!res.ok) throw new Error(`createSite: ${res.status}`)
+}
+
+const AdminUserSchema = z.object({
+  id: z.string(), email: z.string(), role: z.string(), allowedCameraIds: z.array(z.string()),
+})
+const AdminUsersSchema = z.object({ items: z.array(AdminUserSchema) })
+export type AdminUser = z.infer<typeof AdminUserSchema>
+
+export async function getUsers(): Promise<AdminUser[]> {
+  return (await apiJson('/api/v1/admin/users', AdminUsersSchema)).items
+}
+export async function createUser(input: {
+  email: string; password: string; role: string
+}): Promise<void> {
+  const res = await apiFetch('/api/v1/admin/users', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
+  })
+  if (!res.ok) throw new Error(`createUser: ${res.status}`)
+}
+export async function updateUser(
+  id: string, patch: { role?: string; password?: string },
+): Promise<void> {
+  const res = await apiFetch(`/api/v1/admin/users/${id}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch),
+  })
+  if (!res.ok) throw new Error(`updateUser: ${res.status}`)
+}
+export async function deleteUser(id: string): Promise<void> {
+  const res = await apiFetch(`/api/v1/admin/users/${id}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error(`deleteUser: ${res.status}`)
+}
+
+// ── Super-admin: alert rules ──────────────────────────────────
+const AlertRuleSchema = z.object({
+  id: z.string(),
+  eventType: z.string(),
+  channels: z.array(z.record(z.unknown())),
+  cooldownSeconds: z.number(),
+  enabled: z.boolean(),
+})
+const AlertRulesSchema = z.object({ items: z.array(AlertRuleSchema) })
+export type AlertRule = z.infer<typeof AlertRuleSchema>
+
+export interface AlertRuleInput {
+  event_type: string
+  channels: Record<string, unknown>[]
+  cooldown_seconds: number
+  enabled: boolean
+}
+
+export async function getAlertRules(): Promise<AlertRule[]> {
+  return (await apiJson('/api/v1/admin/alert-rules', AlertRulesSchema)).items
+}
+export async function createAlertRule(input: AlertRuleInput): Promise<void> {
+  const res = await apiFetch('/api/v1/admin/alert-rules', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
+  })
+  if (!res.ok) throw new Error(`createAlertRule: ${res.status}`)
+}
+export async function updateAlertRule(id: string, patch: Partial<AlertRuleInput>): Promise<void> {
+  const res = await apiFetch(`/api/v1/admin/alert-rules/${id}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch),
+  })
+  if (!res.ok) throw new Error(`updateAlertRule: ${res.status}`)
+}
+export async function deleteAlertRule(id: string): Promise<void> {
+  const res = await apiFetch(`/api/v1/admin/alert-rules/${id}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error(`deleteAlertRule: ${res.status}`)
+}
+
+// ── Super-admin: video-test event simulation ──────────────────
+export async function simulateEvent(input: {
+  camera_id: string; type: string; severity?: string
+  zone_id?: string | null; meta?: Record<string, unknown>
+}): Promise<void> {
+  const res = await apiFetch('/api/v1/admin/simulate/event', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
+  })
+  if (!res.ok) throw new Error(`simulateEvent: ${res.status}`)
+}
+
+// ── Super-admin: maintenance ──────────────────────────────────
+const AuditSchema = z.object({
+  items: z.array(z.object({
+    id: z.string(), action: z.string(),
+    resourceType: z.string().nullable(), resourceId: z.string().nullable(),
+    createdAt: z.string(),
+  })),
+})
+export type AuditEntry = z.infer<typeof AuditSchema>['items'][number]
+export async function getAudit(count = 50): Promise<AuditEntry[]> {
+  return (await apiJson(`/api/v1/admin/audit?count=${count}`, AuditSchema)).items
+}
+
+const ResyncSchema = z.object({ cameras: z.number(), features: z.number(), zones: z.number() })
+export async function resync(): Promise<z.infer<typeof ResyncSchema>> {
+  const res = await apiFetch('/api/v1/admin/resync', { method: 'POST' })
+  if (!res.ok) throw new Error(`resync: ${res.status}`)
+  return ResyncSchema.parse(await res.json())
+}
+
+export async function clearDeadLetter(): Promise<number> {
+  const res = await apiFetch('/api/v1/admin/dead-letter/clear', { method: 'POST' })
+  if (!res.ok) throw new Error(`clearDeadLetter: ${res.status}`)
+  return z.object({ cleared: z.number() }).parse(await res.json()).cleared
+}
+
+const TimescaleSchema = z.object({ event: z.object({ chunks: z.number(), compressed: z.number() }) })
+export async function getTimescale(): Promise<z.infer<typeof TimescaleSchema>> {
+  return apiJson('/api/v1/admin/timescale', TimescaleSchema)
+}

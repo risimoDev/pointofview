@@ -1,0 +1,382 @@
+{
+  "C:\\Projects\\aipvzanalityc\\.claude\\settings.local.json": {
+    "mtime": 1781567575.7104614,
+    "ast_hash": "f663129136b0eecfb3351516ff06563f",
+    "semantic_hash": "f663129136b0eecfb3351516ff06563f"
+  },
+  "C:\\Projects\\aipvzanalityc\\analyzer\\__init__.py": {
+    "mtime": 1781131054.38707,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Projects\\aipvzanalityc\\analyzer\\config.py": {
+    "mtime": 1781132222.669054,
+    "ast_hash": "fd548cdf984a79c5e9741e0b5d701306",
+    "semantic_hash": "fd548cdf984a79c5e9741e0b5d701306"
+  },
+  "C:\\Projects\\aipvzanalityc\\analyzer\\detect\\__init__.py": {
+    "mtime": 1781131056.6690578,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Projects\\aipvzanalityc\\analyzer\\detect\\worker.py": {
+    "mtime": 1781131318.6247911,
+    "ast_hash": "5f2fb611fd8d40c6946d04d97650503a",
+    "semantic_hash": "5f2fb611fd8d40c6946d04d97650503a"
+  },
+  "C:\\Projects\\aipvzanalityc\\analyzer\\ingest\\__init__.py": {
+    "mtime": 1781131055.4133172,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Projects\\aipvzanalityc\\analyzer\\ingest\\recorder.py": {
+    "mtime": 1781133763.8788402,
+    "ast_hash": "34d4392abe188492fd5d3aaf28d77bd3",
+    "semantic_hash": "34d4392abe188492fd5d3aaf28d77bd3"
+  },
+  "C:\\Projects\\aipvzanalityc\\analyzer\\ingest\\video_source.py": {
+    "mtime": 1781131031.7319844,
+    "ast_hash": "c9ae911a3d3badb86ce9de6739e6caf4",
+    "semantic_hash": "c9ae911a3d3badb86ce9de6739e6caf4"
+  },
+  "C:\\Projects\\aipvzanalityc\\analyzer\\zones\\__init__.py": {
+    "mtime": 1781131227.6190917,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Projects\\aipvzanalityc\\analyzer\\zones\\engine.py": {
+    "mtime": 1781131261.3096778,
+    "ast_hash": "3a7f9c87d3c6757241df6f7a5e3aa4a8",
+    "semantic_hash": "3a7f9c87d3c6757241df6f7a5e3aa4a8"
+  },
+  "C:\\Projects\\aipvzanalityc\\api\\db\\migrate.ts": {
+    "mtime": 1781130843.2433138,
+    "ast_hash": "2c4dfd5f94063320067407eaf46f9afc",
+    "semantic_hash": "2c4dfd5f94063320067407eaf46f9afc"
+  },
+  "C:\\Projects\\aipvzanalityc\\api\\db\\schema.ts": {
+    "mtime": 1781133734.1074271,
+    "ast_hash": "1fbf1496b0d6b752805f1e2c649ededd",
+    "semantic_hash": "1fbf1496b0d6b752805f1e2c649ededd"
+  },
+  "C:\\Projects\\aipvzanalityc\\api\\drizzle.config.ts": {
+    "mtime": 1781130844.2692478,
+    "ast_hash": "fb0b0b056652ccdf48d942c85d746291",
+    "semantic_hash": "fb0b0b056652ccdf48d942c85d746291"
+  },
+  "C:\\Projects\\aipvzanalityc\\api\\package.json": {
+    "mtime": 1781133855.3173342,
+    "ast_hash": "04993c2d76a68b057e69064aa4d9af27",
+    "semantic_hash": "04993c2d76a68b057e69064aa4d9af27"
+  },
+  "C:\\Projects\\aipvzanalityc\\api\\src\\config.ts": {
+    "mtime": 1781132383.3161983,
+    "ast_hash": "bf29463e364f1a1ddb2f8d5413ed6124",
+    "semantic_hash": "bf29463e364f1a1ddb2f8d5413ed6124"
+  },
+  "C:\\Projects\\aipvzanalityc\\api\\src\\db\\client.ts": {
+    "mtime": 1781131661.8151536,
+    "ast_hash": "d057a4e9ca0f51bef8627b1e42617485",
+    "semantic_hash": "d057a4e9ca0f51bef8627b1e42617485"
+  },
+  "C:\\Projects\\aipvzanalityc\\api\\src\\index.ts": {
+    "mtime": 1781133805.6050334,
+    "ast_hash": "0a0f508fc8c704902199cdce6a684801",
+    "semantic_hash": "0a0f508fc8c704902199cdce6a684801"
+  },
+  "C:\\Projects\\aipvzanalityc\\api\\src\\minio.ts": {
+    "mtime": 1781132137.8894212,
+    "ast_hash": "3ce03b043190dfdfee503a82ff3b1d07",
+    "semantic_hash": "3ce03b043190dfdfee503a82ff3b1d07"
+  },
+  "C:\\Projects\\aipvzanalityc\\api\\src\\plugins\\auth.ts": {
+    "mtime": 1781131681.2936711,
+    "ast_hash": "dceffef8bf00ddb35f81a628f483fbe3",
+    "semantic_hash": "dceffef8bf00ddb35f81a628f483fbe3"
+  },
+  "C:\\Projects\\aipvzanalityc\\api\\src\\queues.ts": {
+    "mtime": 1781132389.4654157,
+    "ast_hash": "4ef5512d745fc2abebb743ee2f01ef6e",
+    "semantic_hash": "4ef5512d745fc2abebb743ee2f01ef6e"
+  },
+  "C:\\Projects\\aipvzanalityc\\api\\src\\redis.ts": {
+    "mtime": 1781131663.2190523,
+    "ast_hash": "60a69b1e3c9a928f7dd08f18691a29d1",
+    "semantic_hash": "60a69b1e3c9a928f7dd08f18691a29d1"
+  },
+  "C:\\Projects\\aipvzanalityc\\api\\src\\routes\\analytics.ts": {
+    "mtime": 1781131753.472216,
+    "ast_hash": "d0de27cb88e3cc73f942dad6384b3ce4",
+    "semantic_hash": "d0de27cb88e3cc73f942dad6384b3ce4"
+  },
+  "C:\\Projects\\aipvzanalityc\\api\\src\\routes\\auth.ts": {
+    "mtime": 1781131712.0477152,
+    "ast_hash": "cd82c865767112290a0994bf1a0ba20f",
+    "semantic_hash": "cd82c865767112290a0994bf1a0ba20f"
+  },
+  "C:\\Projects\\aipvzanalityc\\api\\src\\routes\\cameras.ts": {
+    "mtime": 1781133753.7235017,
+    "ast_hash": "7f3530406578c73ecda3855b922c3cf4",
+    "semantic_hash": "7f3530406578c73ecda3855b922c3cf4"
+  },
+  "C:\\Projects\\aipvzanalityc\\api\\src\\routes\\events.ts": {
+    "mtime": 1781133791.1320906,
+    "ast_hash": "66c140b565c84f6c03224b7483d9f225",
+    "semantic_hash": "66c140b565c84f6c03224b7483d9f225"
+  },
+  "C:\\Projects\\aipvzanalityc\\api\\src\\routes\\internal.ts": {
+    "mtime": 1781132203.4989946,
+    "ast_hash": "7e196c6196efe39c2be44b45d638c424",
+    "semantic_hash": "7e196c6196efe39c2be44b45d638c424"
+  },
+  "C:\\Projects\\aipvzanalityc\\api\\src\\schemas.ts": {
+    "mtime": 1781133736.447872,
+    "ast_hash": "b81c64008d99f1c7fbe0421982243607",
+    "semantic_hash": "b81c64008d99f1c7fbe0421982243607"
+  },
+  "C:\\Projects\\aipvzanalityc\\api\\src\\streams\\event_consumer.ts": {
+    "mtime": 1781132412.323679,
+    "ast_hash": "ccd3a8e682ddc100424973bc11664f06",
+    "semantic_hash": "ccd3a8e682ddc100424973bc11664f06"
+  },
+  "C:\\Projects\\aipvzanalityc\\api\\src\\workers\\alerts.worker.ts": {
+    "mtime": 1781132447.368909,
+    "ast_hash": "07640e5d16e4dcd195ec7dc891cb662d",
+    "semantic_hash": "07640e5d16e4dcd195ec7dc891cb662d"
+  },
+  "C:\\Projects\\aipvzanalityc\\api\\src\\workers\\clips.worker.ts": {
+    "mtime": 1781132167.8924465,
+    "ast_hash": "6ee90c3f735f9d75ad00df13c0cb2f87",
+    "semantic_hash": "6ee90c3f735f9d75ad00df13c0cb2f87"
+  },
+  "C:\\Projects\\aipvzanalityc\\api\\src\\ws\\events.ts": {
+    "mtime": 1781131762.5523484,
+    "ast_hash": "1e50d079c49d251e754f262d60636939",
+    "semantic_hash": "1e50d079c49d251e754f262d60636939"
+  },
+  "C:\\Projects\\aipvzanalityc\\api\\tsconfig.json": {
+    "mtime": 1781131657.200775,
+    "ast_hash": "bbc5e8c80ed9cece90dec3970fa7392b",
+    "semantic_hash": "bbc5e8c80ed9cece90dec3970fa7392b"
+  },
+  "C:\\Projects\\aipvzanalityc\\infra\\nginx\\locations.inc": {
+    "mtime": 1781133976.673106,
+    "ast_hash": "6ed456829e24ca975398e10e023f9ee0",
+    "semantic_hash": "6ed456829e24ca975398e10e023f9ee0"
+  },
+  "C:\\Projects\\aipvzanalityc\\infra\\postgres\\init.sql": {
+    "mtime": 1781133731.280017,
+    "ast_hash": "ccc6e8d1ade264752777fb10c36f3548",
+    "semantic_hash": "ccc6e8d1ade264752777fb10c36f3548"
+  },
+  "C:\\Projects\\aipvzanalityc\\scripts\\deploy.sh": {
+    "mtime": 1781133915.6601167,
+    "ast_hash": "73649239e6f8cd2964d422bbe0ed3a70",
+    "semantic_hash": "73649239e6f8cd2964d422bbe0ed3a70"
+  },
+  "C:\\Projects\\aipvzanalityc\\scripts\\init.sh": {
+    "mtime": 1781133901.3702624,
+    "ast_hash": "bc7fe89cc04342d80476525114d16120",
+    "semantic_hash": "bc7fe89cc04342d80476525114d16120"
+  },
+  "C:\\Projects\\aipvzanalityc\\scripts\\install.sh": {
+    "mtime": 1781133881.9071243,
+    "ast_hash": "715939a2dc626805f3cd1c3e1b8b9385",
+    "semantic_hash": "715939a2dc626805f3cd1c3e1b8b9385"
+  },
+  "C:\\Projects\\aipvzanalityc\\scripts\\update.sh": {
+    "mtime": 1781133926.5707967,
+    "ast_hash": "4a0799dd62567c3063f8c2d31bbdb752",
+    "semantic_hash": "4a0799dd62567c3063f8c2d31bbdb752"
+  },
+  "C:\\Projects\\aipvzanalityc\\shared\\events.schema.json": {
+    "mtime": 1781131077.5588908,
+    "ast_hash": "548f125ab627a55ff3d4607078e26ed2",
+    "semantic_hash": "548f125ab627a55ff3d4607078e26ed2"
+  },
+  "C:\\Projects\\aipvzanalityc\\shared\\events.schema.ts": {
+    "mtime": 1781133738.726031,
+    "ast_hash": "0016fe55eb08f7c15dcb89023b5c2299",
+    "semantic_hash": "0016fe55eb08f7c15dcb89023b5c2299"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\app\\(auth)\\login\\page.tsx": {
+    "mtime": 1781133075.6639435,
+    "ast_hash": "0ce8b1fdc9270b3c3ff44c881dda7e5a",
+    "semantic_hash": "0ce8b1fdc9270b3c3ff44c881dda7e5a"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\app\\api\\auth\\login\\route.ts": {
+    "mtime": 1781132996.223838,
+    "ast_hash": "ddeadb2c94ae3c422680bac2961cece7",
+    "semantic_hash": "ddeadb2c94ae3c422680bac2961cece7"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\app\\api\\auth\\logout\\route.ts": {
+    "mtime": 1781132999.5921674,
+    "ast_hash": "e9b374292cd6b892270afb5dd2951818",
+    "semantic_hash": "e9b374292cd6b892270afb5dd2951818"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\app\\api\\auth\\token\\route.ts": {
+    "mtime": 1781132998.5605626,
+    "ast_hash": "b5ca700a8a82266b3a3acd81954a0f2d",
+    "semantic_hash": "b5ca700a8a82266b3a3acd81954a0f2d"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\app\\dashboard\\page.tsx": {
+    "mtime": 1781133080.8839264,
+    "ast_hash": "ac30e15b8516bfd45c0005baf8dbc63b",
+    "semantic_hash": "ac30e15b8516bfd45c0005baf8dbc63b"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\app\\events\\page.tsx": {
+    "mtime": 1781133082.3135397,
+    "ast_hash": "d70c13c01dfa4397af49faba78c65789",
+    "semantic_hash": "d70c13c01dfa4397af49faba78c65789"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\app\\layout.tsx": {
+    "mtime": 1781133074.2764976,
+    "ast_hash": "e22924d8df7f25dc8dd12f3a1a2e37a4",
+    "semantic_hash": "e22924d8df7f25dc8dd12f3a1a2e37a4"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\app\\page.tsx": {
+    "mtime": 1781133101.0709803,
+    "ast_hash": "c937a664312b4314a489a4b445b1d81f",
+    "semantic_hash": "c937a664312b4314a489a4b445b1d81f"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\app\\providers.tsx": {
+    "mtime": 1781133073.088354,
+    "ast_hash": "8b9afae7145833fc8ea5c5020fa452f0",
+    "semantic_hash": "8b9afae7145833fc8ea5c5020fa452f0"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\app\\settings\\cameras\\[id]\\zones\\page.tsx": {
+    "mtime": 1781133083.7580698,
+    "ast_hash": "fc2b0033214b15a2a9504754fe823fde",
+    "semantic_hash": "fc2b0033214b15a2a9504754fe823fde"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\components\\event-log.tsx": {
+    "mtime": 1781133089.1898785,
+    "ast_hash": "f464191cb8668ac366568d671f615c59",
+    "semantic_hash": "f464191cb8668ac366568d671f615c59"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\components\\ui\\badge.tsx": {
+    "mtime": 1781132769.6711962,
+    "ast_hash": "00156bc4c4893a09367233eeaf761247",
+    "semantic_hash": "00156bc4c4893a09367233eeaf761247"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\components\\ui\\button.tsx": {
+    "mtime": 1781132760.2567687,
+    "ast_hash": "4de829b30f32a0b1451890671203ffe5",
+    "semantic_hash": "4de829b30f32a0b1451890671203ffe5"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\components\\ui\\input.tsx": {
+    "mtime": 1781132762.888426,
+    "ast_hash": "8b29f7c0c77e8e53b6488598434f2a8f",
+    "semantic_hash": "8b29f7c0c77e8e53b6488598434f2a8f"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\components\\ui\\label.tsx": {
+    "mtime": 1781132765.2908144,
+    "ast_hash": "e8cc6d41e1097403055cc19664e50360",
+    "semantic_hash": "e8cc6d41e1097403055cc19664e50360"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\components\\ui\\select.tsx": {
+    "mtime": 1781132791.6654341,
+    "ast_hash": "615722d9279cdfd8653bfbbfe75309dd",
+    "semantic_hash": "615722d9279cdfd8653bfbbfe75309dd"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\components\\ui\\table.tsx": {
+    "mtime": 1781132776.5965369,
+    "ast_hash": "8e7dda6cfefcb709dbb350a4438bf487",
+    "semantic_hash": "8e7dda6cfefcb709dbb350a4438bf487"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\components\\ui\\toggle-group.tsx": {
+    "mtime": 1781132797.1110725,
+    "ast_hash": "6dc3a7016b21e606fe3d0b224ffee47c",
+    "semantic_hash": "6dc3a7016b21e606fe3d0b224ffee47c"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\components\\video-grid.tsx": {
+    "mtime": 1781133090.4294245,
+    "ast_hash": "82e24c178b4da02c47f6ded523e56d88",
+    "semantic_hash": "82e24c178b4da02c47f6ded523e56d88"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\components\\zone-editor.tsx": {
+    "mtime": 1781133091.9254327,
+    "ast_hash": "3b1ec877f6faf7dbd2599884266b3bc6",
+    "semantic_hash": "3b1ec877f6faf7dbd2599884266b3bc6"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\hooks\\use-clip-request.ts": {
+    "mtime": 1781132849.966602,
+    "ast_hash": "82b6cefecce858f09f86e130d4c01aad",
+    "semantic_hash": "82b6cefecce858f09f86e130d4c01aad"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\hooks\\use-event-stream.ts": {
+    "mtime": 1781133823.7177935,
+    "ast_hash": "e248c85d0539a5cf875f95a9b468a8df",
+    "semantic_hash": "e248c85d0539a5cf875f95a9b468a8df"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\lib\\api.ts": {
+    "mtime": 1781133811.1852586,
+    "ast_hash": "ef7b938d101d301595505efa3c3c97b5",
+    "semantic_hash": "ef7b938d101d301595505efa3c3c97b5"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\lib\\utils.ts": {
+    "mtime": 1781132749.5212872,
+    "ast_hash": "29a85703c58a9889341b1eb10dac5f05",
+    "semantic_hash": "29a85703c58a9889341b1eb10dac5f05"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\middleware.ts": {
+    "mtime": 1781132983.509343,
+    "ast_hash": "d3c59d40317aae4d89327006bc40bd7f",
+    "semantic_hash": "d3c59d40317aae4d89327006bc40bd7f"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\next-env.d.ts": {
+    "mtime": 1781133102.2340748,
+    "ast_hash": "a64595e6014adce3002d3bf762d2dbeb",
+    "semantic_hash": "a64595e6014adce3002d3bf762d2dbeb"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\next.config.ts": {
+    "mtime": 1781132729.3819938,
+    "ast_hash": "bf65a084afcdc4db53a923460cdf10b0",
+    "semantic_hash": "bf65a084afcdc4db53a923460cdf10b0"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\package.json": {
+    "mtime": 1781132722.4312513,
+    "ast_hash": "2b111932a7b81e0ebeac74f3b166d3af",
+    "semantic_hash": "2b111932a7b81e0ebeac74f3b166d3af"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\postcss.config.mjs": {
+    "mtime": 1781132730.406469,
+    "ast_hash": "ef3ba2a81ba19f8ea5ddf625521e96f0",
+    "semantic_hash": "ef3ba2a81ba19f8ea5ddf625521e96f0"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\store\\events.store.ts": {
+    "mtime": 1781132834.873391,
+    "ast_hash": "34d12ddbd14b6ffd1b1eab200100d8a0",
+    "semantic_hash": "34d12ddbd14b6ffd1b1eab200100d8a0"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\tailwind.config.ts": {
+    "mtime": 1781132741.3260388,
+    "ast_hash": "9f01856478f12636a1eccddbf5d283b1",
+    "semantic_hash": "9f01856478f12636a1eccddbf5d283b1"
+  },
+  "C:\\Projects\\aipvzanalityc\\web\\tsconfig.json": {
+    "mtime": 1781132726.628927,
+    "ast_hash": "07b45fba27f22fbee82d02b1b8f31bbb",
+    "semantic_hash": "07b45fba27f22fbee82d02b1b8f31bbb"
+  },
+  "C:\\Projects\\aipvzanalityc\\CLAUDE.md": {
+    "mtime": 1781131824.853623,
+    "ast_hash": "b04844c6cc8a01689aa1d8aa8658405e",
+    "semantic_hash": "b04844c6cc8a01689aa1d8aa8658405e"
+  },
+  "C:\\Projects\\aipvzanalityc\\analyzer\\requirements.txt": {
+    "mtime": 1781132227.7180834,
+    "ast_hash": "ec100aab7fa9b8afe5cb205b78b39d42",
+    "semantic_hash": "ec100aab7fa9b8afe5cb205b78b39d42"
+  },
+  "C:\\Projects\\aipvzanalityc\\infra\\docker-compose.dev.yml": {
+    "mtime": 1781130692.261034,
+    "ast_hash": "5a1dee4e08838a32776c57b9d8dcd5c7",
+    "semantic_hash": "5a1dee4e08838a32776c57b9d8dcd5c7"
+  },
+  "C:\\Projects\\aipvzanalityc\\infra\\go2rtc\\go2rtc.yaml": {
+    "mtime": 1781130702.568775,
+    "ast_hash": "9f70af30c8c04885e25cbcb2ab945216",
+    "semantic_hash": "9f70af30c8c04885e25cbcb2ab945216"
+  }
+}

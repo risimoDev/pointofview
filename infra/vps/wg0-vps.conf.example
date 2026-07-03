@@ -1,0 +1,31 @@
+# VPS: /etc/wireguard/wg0.conf — WireGuard hub.
+# Peers: home GPU server (10.9.0.2) + camera sites (10.9.0.11+).
+# Keys: wg genkey | tee privatekey | wg pubkey > publickey
+
+[Interface]
+Address = 10.9.0.1/24
+ListenPort = 51820
+PrivateKey = sB4uquaBL5Bz7F0CXO3ZfwFvwkWa/XQxaGEdFHw5C0s=
+
+# route between peers + expose go2rtc WebRTC (:8555) at the public IP
+PostUp = sysctl -w net.ipv4.ip_forward=1
+PostUp = iptables -A FORWARD -i wg0 -j ACCEPT
+PostUp = iptables -A FORWARD -o wg0 -j ACCEPT
+PostUp = iptables -t nat -A PREROUTING -p tcp --dport 8555 -j DNAT --to-destination 10.9.0.2:8555
+PostUp = iptables -t nat -A PREROUTING -p udp --dport 8555 -j DNAT --to-destination 10.9.0.2:8555
+PostUp = iptables -t nat -A POSTROUTING -o wg0 -j MASQUERADE
+PostDown = iptables -D FORWARD -i wg0 -j ACCEPT
+PostDown = iptables -D FORWARD -o wg0 -j ACCEPT
+PostDown = iptables -t nat -D PREROUTING -p tcp --dport 8555 -j DNAT --to-destination 10.9.0.2:8555
+PostDown = iptables -t nat -D PREROUTING -p udp --dport 8555 -j DNAT --to-destination 10.9.0.2:8555
+PostDown = iptables -t nat -D POSTROUTING -o wg0 -j MASQUERADE
+
+# ── home GPU server ─────────────────────────────────────────
+[Peer]
+PublicKey = mvjP1gNLQCa2lDzWGirLmY55PrqVrzcIrw0YdTM9LEw=
+AllowedIPs = 10.9.0.2/32
+
+# ── camera site (ПВЗ №1): router or camera with WG client ──
+# [Peer]
+# PublicKey = <SITE1_PUBLIC_KEY>
+# AllowedIPs = 10.9.0.11/32

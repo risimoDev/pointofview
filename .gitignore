@@ -1,0 +1,75 @@
+# === Node.js / TypeScript (api, web) ===
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+*.tsbuildinfo
+
+# === Next.js (web) ===
+.next/
+out/
+next-env.d.ts
+
+# === Build output ===
+dist/
+build/
+
+# === Python (analyzer) ===
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# === Environment / secrets ===
+.env
+.env.*
+!.env.example
+!.env.prod.example
+
+# === Model weights ===
+*.pt
+*.onnx
+*.engine
+*.trt
+
+# === Runtime data / volumes ===
+data/
+volumes/
+clips/
+snapshots/
+minio-data/
+postgres-data/
+redis-data/
+*.log
+
+# === Video artifacts (recorded/exported, not source) ===
+*.mp4
+*.mkv
+*.avi
+*.mov
+
+# === Offline driver blob (79MB of .deb) ===
+/_r8168-driver-offline
+*.deb
+
+# === Tooling ===
+/.claude
+graphify-out/cache/
+graphify-out/cost.json
+
+# === IDE ===
+.vscode/
+.idea/
+*.swp
+
+# === OS ===
+.DS_Store
+Thumbs.db
+desktop.ini
+_r8168-driver-offline/binutils_2.42-4ubuntu2.10_amd64.deb

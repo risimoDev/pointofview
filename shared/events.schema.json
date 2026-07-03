@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://viziai/shared/events.schema.json",
+  "title": "ViziAI Redis Stream messages",
+  "definitions": {
+    "Bbox": {
+      "type": "object",
+      "required": ["x1", "y1", "x2", "y2"],
+      "additionalProperties": false,
+      "properties": {
+        "x1": { "type": "number" },
+        "y1": { "type": "number" },
+        "x2": { "type": "number" },
+        "y2": { "type": "number" }
+      }
+    },
+    "TrackEvent": {
+      "type": "object",
+      "description": "analyzer → Redis Stream `track_events`",
+      "required": [
+        "stream", "tenant_id", "camera_id", "track_id",
+        "bbox", "class_id", "confidence", "zone_id", "dwell_sec", "ts"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "stream": { "const": "track_events" },
+        "tenant_id": { "type": "string", "format": "uuid" },
+        "camera_id": { "type": "string", "format": "uuid" },
+        "track_id": { "type": "integer" },
+        "bbox": { "$ref": "#/definitions/Bbox" },
+        "class_id": { "type": "integer" },
+        "confidence": { "type": "number" },
+        "zone_id": { "type": ["string", "null"], "format": "uuid" },
+        "dwell_sec": { "type": "number" },
+        "ts": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Event": {
+      "type": "object",
+      "description": "zone_engine/plugins → Redis Stream `events`",
+      "required": [
+        "stream", "tenant_id", "site_id", "camera_id", "type", "severity", "ts_start"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "stream": { "const": "events" },
+        "tenant_id": { "type": "string", "format": "uuid" },
+        "site_id": { "type": "string", "format": "uuid" },
+        "camera_id": { "type": "string", "format": "uuid" },
+        "zone_id": { "type": ["string", "null"], "format": "uuid" },
+        "type": {
+          "type": "string",
+          "enum": [
+            "zone_entry", "zone_exit", "queue_alert", "ppe_violation",
+            "repack_event", "shelf_violation", "crowd", "unknown_person"
+          ]
+        },
+        "severity": { "type": "string", "enum": ["info", "warn", "critical"] },
+        "track_id": { "type": ["integer", "null"] },
+        "confidence": { "type": ["number", "null"] },
+        "bbox": { "$ref": "#/definitions/Bbox" },
+        "meta": { "type": "object" },
+        "ts_start": { "type": "string", "format": "date-time" },
+        "ts_end": { "type": ["string", "null"], "format": "date-time" }
+      }
+    }
+  }
+}

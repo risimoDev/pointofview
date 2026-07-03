@@ -1,0 +1,20 @@
+api:
+  listen: ":1984"        # REST + web UI
+
+webrtc:
+  listen: ":8555"        # WebRTC TCP candidate
+  candidates:
+    - 10.8.0.1:8555      # адрес сервера в WireGuard-подсети
+
+rtsp:
+  listen: ":8554"        # приём RTSP pull от камер через WireGuard
+
+log:
+  level: info
+
+# Камеры добавляются динамически через API go2rtc (POST /api/streams)
+# при онбординге. Источник — RTSP в подсети 10.8.0.0/24.
+# Пример статической записи:
+streams: {}
+#   cam_demo:
+#     - rtsp://10.8.0.10:554/Streaming/Channels/102   # sub-поток для AI

@@ -1,0 +1,37 @@
+# CUDA build (RTX 3080). For CPU-only:
+#   docker build --build-arg BASE_IMAGE=python:3.12-slim \
+#                --build-arg TORCH_VARIANT=cpu --build-arg INSTALL_PYTHON=0 .
+ARG BASE_IMAGE=nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
+FROM ${BASE_IMAGE}
+
+ARG TORCH_VARIANT=cu124       # cu124 | cpu
+ARG INSTALL_PYTHON=1          # 1 on CUDA/ubuntu base, 0 on python:* base
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
+# OpenCV/FFmpeg runtime libs; Python 3.12 via deadsnakes on ubuntu base
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates curl ffmpeg libgl1 libglib2.0-0 && \
+    if [ "$INSTALL_PYTHON" = "1" ]; then \
+        apt-get install -y --no-install-recommends software-properties-common && \
+        add-apt-repository -y ppa:deadsnakes/ppa && apt-get update && \
+        apt-get install -y --no-install-recommends python3.12 python3.12-dev && \
+        curl -sS https://bootstrap.pypa.io/get-pip.py | python3.12 ; \
+    fi && \
+    rm -rf /var/lib/apt/lists/*
+
+# `python` → 3.12 regardless of base
+RUN ln -sf "$(command -v python3.12 || command -v python3)" /usr/local/bin/python
+
+WORKDIR /app
+COPY requirements.txt .
+RUN python -m pip install --upgrade pip && \
+    python -m pip install torch --index-url "https://download.pytorch.org/whl/${TORCH_VARIANT}" && \
+    python -m pip install -r requirements.txt
+
+COPY . /app/analyzer
+ENV PYTHONPATH=/app \
+    ANALYZER_DEVICE=cuda
+
+CMD ["python", "-m", "analyzer.detect.worker"]

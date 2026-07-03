@@ -1,0 +1,16 @@
+# context for web/Dockerfile (built from repo root)
+**/node_modules
+**/.next
+**/.env
+**/.env.*
+**/__pycache__
+.git
+.claude
+.mypy_cache
+graphify-out
+*.pptx
+make_presentation.js
+infra
+api
+analyzer
+scripts

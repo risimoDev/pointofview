@@ -79,6 +79,13 @@ for svc in worker-clips worker-alerts web analyzer; do
   fi
 done
 
+# api/web just got new container IPs — nginx caches upstream DNS, so it needs
+# an explicit reload or it keeps talking to the old (now-dead) addresses.
+if has nginx; then
+  info "Reloading nginx (picks up new api/web container IPs)"
+  $COMPOSE exec -T nginx nginx -t && $COMPOSE exec -T nginx nginx -s reload
+fi
+
 # 5. status --------------------------------------------------------------------
 $COMPOSE ps
 info "Update complete"

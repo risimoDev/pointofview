@@ -53,6 +53,16 @@ fi
 info "Starting services"
 $COMPOSE up -d --remove-orphans
 
+# nginx.conf/locations.inc are bind-mounted — docker compose does not detect
+# host-file edits as a service change, so an already-running nginx container
+# keeps serving its old in-memory config (and stale upstream DNS) forever
+# unless explicitly reloaded here.
+SERVICES="$($COMPOSE config --services)"
+if grep -qx nginx <<< "$SERVICES"; then
+  info "Reloading nginx config"
+  $COMPOSE exec -T nginx nginx -t && $COMPOSE exec -T nginx nginx -s reload
+fi
+
 # 4. healthcheck wait --------------------------------------------------------
 wait_healthy() {
   local svc="$1" cid

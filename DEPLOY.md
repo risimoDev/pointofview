@@ -189,6 +189,19 @@ docker exec viziai-postgres-1 pg_dump -U viziai viziai | gzip > /mnt/data/backup
 
 **Мониторинг:** на VPS поставь Uptime Kuma (docker) и мониторь `https://<домен>/api/v1/health` + пинг 10.9.0.2 — алерт в Telegram, если дом ушёл в оффлайн.
 
+**WireGuard-сторож (домашний сервер).** На некоторых домашних провайдерах NAT тихо
+сбрасывает маппинг UDP-порта: интерфейс `wg0` остаётся «поднят», `wg show` видит
+пира, но реальные пакеты перестают ходить, пока туннель не перезапустишь вручную.
+`scripts/wg-watchdog.sh` пингует VPS и сам перезапускает `wg-quick@wg0`, если тот
+не отвечает:
+```bash
+sudo cp scripts/wg-watchdog.sh /usr/local/bin/wg-watchdog.sh
+sudo chmod +x /usr/local/bin/wg-watchdog.sh
+(crontab -l 2>/dev/null; echo "*/2 * * * * /usr/local/bin/wg-watchdog.sh") | sudo crontab -
+# проверка, что сработало (после его первого запуска):
+journalctl -t wg-watchdog --no-pager -n 20
+```
+
 ## 7. Если пока остаёшься на Windows + WSL2 (не рекомендуется для прода)
 
 Работает, но прими меры:

@@ -69,8 +69,14 @@ for i in $(seq 1 60); do
 done
 
 # 5. migrations --------------------------------------------------------------------
-info "Running database migrations"
-$COMPOSE run --rm api npm run migrate
+# Schema lives in infra/postgres/init.sql (applied automatically on first
+# postgres start). Migrations are plain idempotent SQL files applied via psql;
+# `npm run migrate` (drizzle) is not used — db/migrations was never generated.
+info "Applying SQL migrations"
+for f in infra/postgres/migrations/*.sql; do
+  info "  $(basename "$f")"
+  $COMPOSE exec -T postgres psql -v ON_ERROR_STOP=1 -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" < "$f"
+done
 
 # 6. seed (optional) -----------------------------------------------------------------
 if [[ $DO_SEED -eq 1 ]]; then

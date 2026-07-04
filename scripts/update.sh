@@ -59,8 +59,13 @@ info "Building:$APP_SVCS"
 $COMPOSE build $APP_SVCS
 
 # 3. safe migrations BEFORE rollout ------------------------------------------
-info "Running migrations"
-$COMPOSE run --rm api npm run migrate
+# Idempotent SQL files; postgres keeps running throughout the update.
+info "Applying SQL migrations"
+set -a; source "$([[ "$MODE" == prod ]] && echo infra/.env.prod || echo infra/.env)"; set +a
+for f in infra/postgres/migrations/*.sql; do
+  info "  $(basename "$f")"
+  $COMPOSE exec -T postgres psql -v ON_ERROR_STOP=1 -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" < "$f"
+done
 
 # 4. rolling restart (datastores untouched) -----------------------------------
 info "Restarting api"

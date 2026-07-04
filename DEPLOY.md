@@ -175,7 +175,7 @@ docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod --pro
 ## 6. Проверки и эксплуатация
 
 ```bash
-curl https://viziai.example.ru/api/v1/health          # {"status":"ok"}
+curl https://xn----7sbbhzo1afsm0d.xn--p1ai/api/v1/health          # {"status":"ok"}
 # логин в браузере, дашборд, live-видео (WebRTC через VPS:8555)
 docker compose -f docker-compose.prod.yml logs -f analyzer   # детекции идут
 ```

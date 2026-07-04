@@ -102,38 +102,22 @@ Certbot сам настроит автопродление (`systemctl list-time
 
 Установка самой ОС (флешка, BIOS, разметка диска, SSH) — отдельная инструкция: [INSTALL_UBUNTU_SERVER.md](INSTALL_UBUNTU_SERVER.md).
 
-### 4.1 Система и драйверы
+### 4.1 Система и драйверы — `scripts/install.sh`
+
+Всё провижининг-железо (Docker + compose, NVIDIA Container Toolkit, драйвер NVIDIA
+если его нет, ротация docker-логов, ufw-правила из §4.3, WireGuard-пакет,
+`/mnt/data/{archive,minio,backups}`) ставится одним скриптом:
 
 ```bash
 sudo apt update && sudo apt -y upgrade
-sudo ubuntu-drivers install                # nvidia-driver-5xx
-sudo reboot
-nvidia-smi                                 # должна показать RTX 3070
-
-# Docker
-curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker $USER && newgrp docker
-
-# NVIDIA Container Toolkit (GPU в контейнерах)
-curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | \
-  sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
-curl -sL https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
-  sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
-  sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
-sudo apt update && sudo apt -y install nvidia-container-toolkit
-sudo nvidia-ctk runtime configure --runtime=docker
-sudo systemctl restart docker
-docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi   # проверка
-
-# ротация docker-логов (иначе json-логи забьют NVMe)
-sudo tee /etc/docker/daemon.json > /dev/null <<'EOF'
-{ "log-driver": "json-file", "log-opts": { "max-size": "50m", "max-file": "3" } }
-EOF
-sudo systemctl restart docker
-
-# данные
-sudo mkdir -p /mnt/data/{minio,archive}
+git clone <repo> viziai && cd viziai
+sudo ./scripts/install.sh
+# если скрипт ставил драйвер NVIDIA — перезагрузись и проверь:
+nvidia-smi                                                                  # RTX 3070 видна
+docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi   # GPU виден из контейнера
 ```
+
+После скрипта перелогинься (или `newgrp docker`), чтобы заработала группа docker.
 
 В BIOS: **Restore AC Power Loss = Power On** (сервер сам поднимется после отключения света), отключить sleep.
 
@@ -150,33 +134,37 @@ ping 10.9.0.1        # VPS отвечает — туннель работает
 
 ### 4.3 Файрвол
 
-```bash
-sudo ufw allow OpenSSH
-# сервисы платформы доступны только из WG-подсети (VPS-прокси и камеры)
-sudo ufw allow from 10.9.0.0/24 to any port 80 proto tcp
-sudo ufw allow from 10.9.0.0/24 to any port 9000 proto tcp
-sudo ufw allow from 10.9.0.0/24 to any port 8555
-sudo ufw allow from 10.9.0.0/24 to any port 1984 proto tcp
-sudo ufw enable
-```
+Уже настроен скриптом `install.sh` (§4.1): наружу открыт только SSH, а порты
+платформы (80, 9000, 8555, 1984) доступны только из WG-подсети `10.9.0.0/24` —
+трафик приходит через VPS. Проверка: `sudo ufw status verbose`.
 
-(WebRTC :8555 приходит с VPS уже как форвард через wg0, публично ПК не торчит.)
+Если правишь вручную — правила лежат в `scripts/install.sh` (секция firewall).
 
-### 4.4 Запуск стека
+### 4.4 Запуск стека — `scripts/init.sh` + `scripts/deploy.sh`
+
+Скрипты сами определяют режим: если существует `infra/.env.prod` — работают
+с `docker-compose.prod.yml`, иначе с dev-файлом (флаги `--prod`/`--dev` форсируют).
 
 ```bash
-git clone <repo> viziai && cd viziai/infra
-cp .env.prod.example .env.prod
-nano .env.prod    # домен, VPS_PUBLIC_IP, пароли (openssl rand -hex 32), TELEGRAM_BOT_TOKEN
+cd ~/viziai
+cp infra/.env.prod.example infra/.env.prod
+nano infra/.env.prod   # домен, VPS_PUBLIC_IP, пароли (openssl rand -hex 32), TELEGRAM_BOT_TOKEN
 
-docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
-docker compose -f docker-compose.prod.yml --env-file .env.prod ps    # все healthy
+# первичная инициализация: build, миграции, сид, MinIO-бакеты, проверка CUDA
+./scripts/init.sh --seed     # --seed один раз: супер-пользователь и демо-тенант; смени пароли после входа!
 
-# первый раз: сид (супер-пользователь и т.д.) — потом сменить пароли!
-docker exec -i viziai-postgres-1 psql -U viziai -d viziai < postgres/seed.dev.sql
+# запуск всего стека + ожидание healthcheck'ов
+./scripts/deploy.sh
 ```
 
-Архивный рекордер (когда есть большой диск): добавь `--profile recorder` к команде up.
+`deploy.sh` можно запускать повторно сколько угодно — он пересобирает изменившиеся
+образы и поднимает то, что не запущено (`--build` для пересборки с нуля,
+`--pull` чтобы сначала сделать `git pull`).
+
+Архивный рекордер (когда есть большой диск) запускается отдельно:
+```bash
+docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod --profile recorder up -d recorder
+```
 
 ## 5. Подключение камеры ПВЗ
 
@@ -192,7 +180,7 @@ curl https://viziai.example.ru/api/v1/health          # {"status":"ok"}
 docker compose -f docker-compose.prod.yml logs -f analyzer   # детекции идут
 ```
 
-**Обновление:** `git pull && docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build`
+**Обновление:** `./scripts/update.sh` — сам делает `git pull`, пересобирает только приложения (api/web/analyzer/воркеры), прогоняет миграции и перезапускает их по одному, не трогая postgres/redis/minio. Полный перезапуск с нуля: `./scripts/deploy.sh --pull --build`.
 
 **Бэкапы (cron на домашнем сервере, копировать на VPS или в облако):**
 ```bash

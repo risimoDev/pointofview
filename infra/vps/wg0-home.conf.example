@@ -3,11 +3,11 @@
 
 [Interface]
 Address = 10.9.0.2/24
-PrivateKey = <HOME_SERVER_PRIVATE_KEY>
+PrivateKey = ePaDV2tU2XsLk3FonMBsQkmvcLWfujEWGYKeOGp7RUg=
 
 [Peer]
-PublicKey = <VPS_PUBLIC_KEY>
-Endpoint = <VPS_PUBLIC_IP>:51820
+PublicKey = DUK2xYhWPXmW2YZ2e5hwLoGRoHdE6FT9wFaO/xJiXXo=
+Endpoint = 170.168.1.138:51820
 # whole WG subnet routes through the VPS (cameras included)
 AllowedIPs = 10.9.0.0/24
 # home server is behind NAT: keep the tunnel open

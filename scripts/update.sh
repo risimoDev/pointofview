@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Rolling update without touching the datastores.
+# Rolling update without touching the datastores (postgres/redis/minio keep running).
+# Mode auto-detect: prod if infra/.env.prod exists, else dev.
+# Flags: --prod | --dev
 set -euo pipefail
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
@@ -10,11 +12,31 @@ err()  { echo -e "${RED}[x]${NC} $*" >&2; }
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-COMPOSE="docker compose -f infra/docker-compose.dev.yml --env-file infra/.env"
+MODE=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --prod) MODE=prod; shift ;;
+    --dev)  MODE=dev;  shift ;;
+    *) err "Unknown arg: $1"; exit 1 ;;
+  esac
+done
+if [[ -z "$MODE" ]]; then
+  [[ -f infra/.env.prod ]] && MODE=prod || MODE=dev
+fi
+
+if [[ "$MODE" == "prod" ]]; then
+  COMPOSE="docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod"
+else
+  COMPOSE="docker compose -f infra/docker-compose.dev.yml --env-file infra/.env"
+fi
+info "Mode: $MODE"
+
+SERVICES="$($COMPOSE config --services)"
+has() { grep -qx "$1" <<< "$SERVICES"; }
 
 wait_api() {
   local cid; cid="$($COMPOSE ps -q api)"
-  for i in $(seq 1 60); do
+  for i in $(seq 1 90); do
     local s; s="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$cid" 2>/dev/null || echo unknown)"
     case "$s" in healthy|running) info "api: $s"; return 0 ;; unhealthy|exited|dead) err "api: $s"; docker logs "$cid" --tail 50; return 1 ;; esac
     sleep 1
@@ -28,24 +50,30 @@ git pull origin main
 git log -1 --oneline
 
 # 2. build app images --------------------------------------------------------
-info "Building api web analyzer"
-$COMPOSE build api web analyzer
+APP_SVCS=""
+for svc in api web analyzer worker-clips worker-alerts; do
+  has "$svc" && APP_SVCS="$APP_SVCS $svc"
+done
+info "Building:$APP_SVCS"
+# shellcheck disable=SC2086
+$COMPOSE build $APP_SVCS
 
-# 3-5. rolling restart (datastores untouched) --------------------------------
+# 3. safe migrations BEFORE rollout ------------------------------------------
+info "Running migrations"
+$COMPOSE run --rm api npm run migrate
+
+# 4. rolling restart (datastores untouched) -----------------------------------
 info "Restarting api"
 $COMPOSE up -d --no-deps api
 wait_api || exit 1
 
-info "Restarting web"
-$COMPOSE up -d --no-deps web
+for svc in worker-clips worker-alerts web analyzer; do
+  if has "$svc"; then
+    info "Restarting $svc"
+    $COMPOSE up -d --no-deps "$svc"
+  fi
+done
 
-info "Restarting analyzer"
-$COMPOSE up -d --no-deps analyzer
-
-# 6. safe migrations ---------------------------------------------------------
-info "Running migrations"
-$COMPOSE exec -T api npm run migrate
-
-# 7. status ------------------------------------------------------------------
+# 5. status --------------------------------------------------------------------
 $COMPOSE ps
 info "Update complete"

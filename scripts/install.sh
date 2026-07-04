@@ -14,7 +14,16 @@ if [[ $EUID -ne 0 ]]; then err "Run as root: sudo $0"; exit 1; fi
 info "apt update + base tools"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
-apt-get install -y curl git make ufw fail2ban wireguard ca-certificates gnupg lsb-release
+apt-get install -y curl git make ufw fail2ban ca-certificates gnupg lsb-release software-properties-common
+
+# AmneziaWG (WireGuard-compatible protocol with traffic obfuscation) instead of
+# vanilla WireGuard — some ISPs run DPI that specifically detects and kills
+# plain WireGuard's rekey handshake every ~2 minutes. Config format and keys
+# are compatible; see DEPLOY.md §2/§4.2 for the awg0.conf setup.
+info "Installing AmneziaWG"
+add-apt-repository -y ppa:amnezia/ppa
+apt-get update -y
+apt-get install -y amneziawg
 
 # 2. Docker Engine + compose plugin ------------------------------------------
 if ! command -v docker >/dev/null 2>&1; then

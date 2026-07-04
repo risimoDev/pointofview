@@ -170,24 +170,24 @@
     "semantic_hash": ""
   },
   "scripts/deploy.sh": {
-    "mtime": 1781133915.6601167,
-    "ast_hash": "73649239e6f8cd2964d422bbe0ed3a70",
-    "semantic_hash": "73649239e6f8cd2964d422bbe0ed3a70"
+    "mtime": 1783124688.759821,
+    "ast_hash": "96af9d396521b23e81cac514a91814ca",
+    "semantic_hash": ""
   },
   "scripts/init.sh": {
-    "mtime": 1781133901.3702624,
-    "ast_hash": "bc7fe89cc04342d80476525114d16120",
-    "semantic_hash": "bc7fe89cc04342d80476525114d16120"
+    "mtime": 1783124666.4568126,
+    "ast_hash": "13a4be8993416d7b03751da8adb10a8a",
+    "semantic_hash": ""
   },
   "scripts/install.sh": {
-    "mtime": 1781133881.9071243,
-    "ast_hash": "715939a2dc626805f3cd1c3e1b8b9385",
-    "semantic_hash": "715939a2dc626805f3cd1c3e1b8b9385"
+    "mtime": 1783124638.5062773,
+    "ast_hash": "69e06f5ecfcd2aebfa2c232aa5a8c1d9",
+    "semantic_hash": ""
   },
   "scripts/update.sh": {
-    "mtime": 1781133926.5707967,
-    "ast_hash": "4a0799dd62567c3063f8c2d31bbdb752",
-    "semantic_hash": "4a0799dd62567c3063f8c2d31bbdb752"
+    "mtime": 1783124709.706122,
+    "ast_hash": "400171a07cd16550a29328c81b52a797",
+    "semantic_hash": ""
   },
   "shared/events.schema.json": {
     "mtime": 1781131077.5588908,
@@ -520,8 +520,8 @@
     "semantic_hash": ""
   },
   "DEPLOY.md": {
-    "mtime": 1783032508.8799212,
-    "ast_hash": "fb1ff0ffb984d6045a82e77ddc0c47be",
+    "mtime": 1783124792.3616176,
+    "ast_hash": "c2b707c8acadbc0430818387abce6e6e",
     "semantic_hash": ""
   },
   "STATUS.md": {
@@ -537,6 +537,11 @@
   "infra/go2rtc/go2rtc.prod.yaml": {
     "mtime": 1783032391.5466504,
     "ast_hash": "a2306fdae3fdb97f649f95ea255284c2",
+    "semantic_hash": ""
+  },
+  "INSTALL_UBUNTU_SERVER.md": {
+    "mtime": 1783034164.0729382,
+    "ast_hash": "9bd152a04071c409daeeddf7bc5c9e15",
     "semantic_hash": ""
   }
 }

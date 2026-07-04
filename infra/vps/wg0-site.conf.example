@@ -1,10 +1,26 @@
-# Camera site (ПВЗ): WG client on the site router (Keenetic/MikroTik/OpenWrt)
-# or a mini-PC. The camera itself stays in the site LAN; the router
-# forwards RTSP :554 from its WG address to the camera.
+# Camera site (ПВЗ): AmneziaWG client on the site router (Keenetic/MikroTik/
+# OpenWrt with amneziawg package/app, or a mini-PC) or a mini-PC. The camera
+# itself stays in the site LAN; the router forwards RTSP :554 from its WG
+# address to the camera.
+#
+# Jc/Jmin/Jmax/S1-S4/H1-H4 must be IDENTICAL to the VPS hub config
+# (wg0-vps.conf.example) — copy them verbatim, do not regenerate.
 
 [Interface]
 Address = 10.9.0.11/32
 PrivateKey = <SITE_PRIVATE_KEY>
+
+Jc = 8
+Jmin = 50
+Jmax = 1000
+S1 = 63
+S2 = 87
+S3 = 120
+S4 = 88
+H1 = 1268669336
+H2 = 1181444535
+H3 = 1492208221
+H4 = 1793099654
 
 [Peer]
 PublicKey = <VPS_PUBLIC_KEY>
@@ -17,3 +33,7 @@ PersistentKeepalive = 25
 #   /ip firewall nat add chain=dstnat dst-address=10.9.0.11 protocol=tcp \
 #       dst-port=554 action=dst-nat to-addresses=192.168.88.64 to-ports=554
 # Then go2rtc pulls rtsp://user:pass@10.9.0.11:554/...
+#
+# ВАЖНО: встроенный WireGuard в RouterOS (MikroTik) НЕ поддерживает параметры
+# Jc/Jmin/../H4 — если у точки провайдер тоже режет ванильный WireGuard,
+# нужен OpenWrt с пакетом amneziawg или мини-ПК рядом с роутером.

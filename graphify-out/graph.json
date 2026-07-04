@@ -429,7 +429,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "datetime",
-      "community": 5,
+      "community": 20,
       "norm_label": "datetime"
     },
     {
@@ -1519,7 +1519,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "zones_engine_point_in_polygon",
-      "community": 0,
+      "community": 5,
       "norm_label": "_point_in_polygon()"
     },
     {
@@ -1549,7 +1549,7 @@
       "source_location": "L60",
       "_origin": "ast",
       "id": "zones_engine_trackevent_bbox_dict",
-      "community": 0,
+      "community": 5,
       "norm_label": ".bbox_dict()"
     },
     {
@@ -1629,7 +1629,7 @@
       "source_location": "L133",
       "_origin": "ast",
       "id": "zones_engine_zoneengine_init",
-      "community": 5,
+      "community": 0,
       "norm_label": ".__init__()"
     },
     {
@@ -1639,7 +1639,7 @@
       "source_location": "L133",
       "_origin": "ast",
       "id": "analyzer_zones_engine_py_redis",
-      "community": 5,
+      "community": 0,
       "norm_label": "redis"
     },
     {
@@ -1649,7 +1649,7 @@
       "source_location": "L133",
       "_origin": "ast",
       "id": "analyzer_zones_engine_py_settings",
-      "community": 5,
+      "community": 0,
       "norm_label": "settings"
     },
     {
@@ -1689,7 +1689,7 @@
       "source_location": "L169",
       "_origin": "ast",
       "id": "zones_engine_zoneengine_process",
-      "community": 0,
+      "community": 5,
       "norm_label": ".process()"
     },
     {
@@ -1729,7 +1729,7 @@
       "source_location": "L251",
       "_origin": "ast",
       "id": "zones_engine_zoneengine_emit",
-      "community": 0,
+      "community": 5,
       "norm_label": ".emit()"
     },
     {
@@ -1759,7 +1759,7 @@
       "source_location": "L272",
       "_origin": "ast",
       "id": "zones_engine_zoneengine_event",
-      "community": 0,
+      "community": 5,
       "norm_label": "._event()"
     },
     {
@@ -1769,7 +1769,7 @@
       "source_location": "L280",
       "_origin": "ast",
       "id": "zones_engine_zoneengine_exit_event",
-      "community": 0,
+      "community": 5,
       "norm_label": "._exit_event()"
     },
     {
@@ -1789,7 +1789,7 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "zones_engine_rationale_27",
-      "community": 0,
+      "community": 5,
       "norm_label": "ray casting. poly = normalized [(x,y), ...]."
     },
     {
@@ -1999,7 +1999,7 @@
       "source_location": "L196",
       "_origin": "ast",
       "id": "db_schema_camera",
-      "community": 21,
+      "community": 22,
       "norm_label": "camera"
     },
     {
@@ -2009,7 +2009,7 @@
       "source_location": "L198",
       "_origin": "ast",
       "id": "db_schema_zone",
-      "community": 22,
+      "community": 29,
       "norm_label": "zone"
     },
     {
@@ -2019,7 +2019,7 @@
       "source_location": "L200",
       "_origin": "ast",
       "id": "db_schema_event",
-      "community": 9,
+      "community": 13,
       "norm_label": "event"
     },
     {
@@ -2029,7 +2029,7 @@
       "source_location": "L202",
       "_origin": "ast",
       "id": "db_schema_alertrule",
-      "community": 14,
+      "community": 29,
       "norm_label": "alertrule"
     },
     {
@@ -2039,7 +2039,7 @@
       "source_location": "L204",
       "_origin": "ast",
       "id": "db_schema_appuser",
-      "community": 29,
+      "community": 13,
       "norm_label": "appuser"
     },
     {
@@ -2059,7 +2059,7 @@
       "source_location": "L208",
       "_origin": "ast",
       "id": "db_schema_archivesegment",
-      "community": 13,
+      "community": 21,
       "norm_label": "archivesegment"
     },
     {
@@ -2609,7 +2609,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_audit_writeaudit",
-      "community": 22,
+      "community": 29,
       "norm_label": "writeaudit()"
     },
     {
@@ -2619,7 +2619,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_config",
-      "community": 13,
+      "community": 21,
       "norm_label": "config.ts"
     },
     {
@@ -2629,7 +2629,7 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_config_envschema",
-      "community": 13,
+      "community": 21,
       "norm_label": "envschema"
     },
     {
@@ -2639,7 +2639,7 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "src_config_config",
-      "community": 13,
+      "community": 21,
       "norm_label": "config"
     },
     {
@@ -2749,7 +2749,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "plugins_auth",
-      "community": 13,
+      "community": 18,
       "norm_label": "auth.ts"
     },
     {
@@ -2759,7 +2759,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "plugins_auth_jwtpayload",
-      "community": 13,
+      "community": 18,
       "norm_label": "jwtpayload"
     },
     {
@@ -2769,7 +2769,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "plugins_auth_fastifyjwt",
-      "community": 13,
+      "community": 18,
       "norm_label": "fastifyjwt"
     },
     {
@@ -2779,7 +2779,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "plugins_auth_fastifyinstance",
-      "community": 13,
+      "community": 18,
       "norm_label": "fastifyinstance"
     },
     {
@@ -2789,7 +2789,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "plugins_auth_fastifyrequest",
-      "community": 13,
+      "community": 18,
       "norm_label": "fastifyrequest"
     },
     {
@@ -2799,7 +2799,7 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "plugins_auth_authplugin",
-      "community": 13,
+      "community": 18,
       "norm_label": "authplugin()"
     },
     {
@@ -2809,7 +2809,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_queues",
-      "community": 9,
+      "community": 23,
       "norm_label": "queues.ts"
     },
     {
@@ -2819,7 +2819,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_queues_clipjob",
-      "community": 9,
+      "community": 23,
       "norm_label": "clipjob"
     },
     {
@@ -2829,7 +2829,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_queues_bullconnection",
-      "community": 9,
+      "community": 23,
       "norm_label": "bullconnection"
     },
     {
@@ -2839,7 +2839,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_queues_clipsqueue",
-      "community": 9,
+      "community": 22,
       "norm_label": "clipsqueue"
     },
     {
@@ -2849,7 +2849,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "src_queues_alertjob",
-      "community": 9,
+      "community": 23,
       "norm_label": "alertjob"
     },
     {
@@ -2859,7 +2859,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_queues_alertsqueue",
-      "community": 9,
+      "community": 23,
       "norm_label": "alertsqueue"
     },
     {
@@ -2929,7 +2929,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "routes_admin_adminroutes",
-      "community": 22,
+      "community": 29,
       "norm_label": "adminroutes()"
     },
     {
@@ -2939,7 +2939,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "routes_analytics",
-      "community": 29,
+      "community": 13,
       "norm_label": "analytics.ts"
     },
     {
@@ -2949,7 +2949,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "routes_analytics_summaryrow",
-      "community": 29,
+      "community": 13,
       "norm_label": "summaryrow"
     },
     {
@@ -2959,7 +2959,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "routes_analytics_analyticsroutes",
-      "community": 29,
+      "community": 13,
       "norm_label": "analyticsroutes()"
     },
     {
@@ -2969,7 +2969,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "routes_auth",
-      "community": 29,
+      "community": 13,
       "norm_label": "auth.ts"
     },
     {
@@ -2979,7 +2979,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "routes_auth_authroutes",
-      "community": 29,
+      "community": 13,
       "norm_label": "authroutes()"
     },
     {
@@ -3039,7 +3039,7 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "routes_cameras_camerasroutes",
-      "community": 22,
+      "community": 29,
       "norm_label": "camerasroutes()"
     },
     {
@@ -3049,7 +3049,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "routes_events",
-      "community": 9,
+      "community": 22,
       "norm_label": "events.ts"
     },
     {
@@ -3059,7 +3059,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "routes_events_eventsroutes",
-      "community": 9,
+      "community": 22,
       "norm_label": "eventsroutes()"
     },
     {
@@ -3089,7 +3089,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "routes_features_featuresroutes",
-      "community": 22,
+      "community": 29,
       "norm_label": "featuresroutes()"
     },
     {
@@ -3099,7 +3099,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "routes_internal",
-      "community": 13,
+      "community": 21,
       "norm_label": "internal.ts"
     },
     {
@@ -3109,7 +3109,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "routes_internal_internalroutes",
-      "community": 13,
+      "community": 21,
       "norm_label": "internalroutes()"
     },
     {
@@ -3119,7 +3119,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_schemas",
-      "community": 29,
+      "community": 22,
       "norm_label": "schemas.ts"
     },
     {
@@ -3139,7 +3139,7 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_schemas_severityenum",
-      "community": 29,
+      "community": 22,
       "norm_label": "severityenum"
     },
     {
@@ -3149,7 +3149,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_schemas_sourcetypeenum",
-      "community": 29,
+      "community": 22,
       "norm_label": "sourcetypeenum"
     },
     {
@@ -3159,7 +3159,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_schemas_zonekindenum",
-      "community": 29,
+      "community": 22,
       "norm_label": "zonekindenum"
     },
     {
@@ -3169,7 +3169,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_schemas_featurekindenum",
-      "community": 29,
+      "community": 22,
       "norm_label": "featurekindenum"
     },
     {
@@ -3179,7 +3179,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_schemas_bboxschema",
-      "community": 29,
+      "community": 22,
       "norm_label": "bboxschema"
     },
     {
@@ -3189,7 +3189,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_schemas_eventmessageschema",
-      "community": 9,
+      "community": 23,
       "norm_label": "eventmessageschema"
     },
     {
@@ -3209,7 +3209,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_schemas_loginbody",
-      "community": 29,
+      "community": 13,
       "norm_label": "loginbody"
     },
     {
@@ -3219,7 +3219,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_schemas_eventsquery",
-      "community": 9,
+      "community": 22,
       "norm_label": "eventsquery"
     },
     {
@@ -3229,7 +3229,7 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "src_schemas_createcamerabody",
-      "community": 29,
+      "community": 22,
       "norm_label": "createcamerabody"
     },
     {
@@ -3269,7 +3269,7 @@
       "source_location": "L83",
       "_origin": "ast",
       "id": "src_schemas_summaryquery",
-      "community": 29,
+      "community": 13,
       "norm_label": "summaryquery"
     },
     {
@@ -3279,7 +3279,7 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "src_schemas_eventidparams",
-      "community": 9,
+      "community": 22,
       "norm_label": "eventidparams"
     },
     {
@@ -3309,7 +3309,7 @@
       "source_location": "L99",
       "_origin": "ast",
       "id": "src_schemas_segmentbody",
-      "community": 13,
+      "community": 21,
       "norm_label": "segmentbody"
     },
     {
@@ -3319,7 +3319,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "streams_event_consumer",
-      "community": 9,
+      "community": 23,
       "norm_label": "event_consumer.ts"
     },
     {
@@ -4056,7 +4056,7 @@
       "label": "wait_healthy()",
       "file_type": "code",
       "source_file": "scripts/deploy.sh",
-      "source_location": "L57",
+      "source_location": "L67",
       "metadata": {
         "language": "bash",
         "kind": "bash_function"
@@ -4317,6 +4317,34 @@
       "id": "scripts_update_wait_api",
       "community": 26,
       "norm_label": "wait_api()"
+    },
+    {
+      "label": "wg-watchdog.sh",
+      "file_type": "code",
+      "source_file": "scripts/wg-watchdog.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "file"
+      },
+      "_origin": "ast",
+      "id": "scripts_wg_watchdog",
+      "community": 43,
+      "norm_label": "wg-watchdog.sh"
+    },
+    {
+      "label": "wg-watchdog.sh script",
+      "file_type": "code",
+      "source_file": "scripts/wg-watchdog.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_entrypoint"
+      },
+      "_origin": "ast",
+      "id": "c_projects_aipvzanalityc_scripts_wg_watchdog_sh__entry",
+      "community": 43,
+      "norm_label": "wg-watchdog.sh script"
     },
     {
       "label": "events.schema.json",
@@ -5035,7 +5063,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "shared_events_schema_ts_shared_events_schema",
-      "community": 18,
+      "community": 17,
       "norm_label": "events.schema.ts"
     },
     {
@@ -5065,7 +5093,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "shared_events_schema_sourcetype",
-      "community": 18,
+      "community": 17,
       "norm_label": "sourcetype"
     },
     {
@@ -5075,7 +5103,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "shared_events_schema_camerastatus",
-      "community": 18,
+      "community": 17,
       "norm_label": "camerastatus"
     },
     {
@@ -5085,7 +5113,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "shared_events_schema_zonekind",
-      "community": 18,
+      "community": 17,
       "norm_label": "zonekind"
     },
     {
@@ -5095,7 +5123,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "shared_events_schema_bboxschema",
-      "community": 18,
+      "community": 17,
       "norm_label": "bboxschema"
     },
     {
@@ -5115,7 +5143,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "shared_events_schema_streamevent",
-      "community": 18,
+      "community": 17,
       "norm_label": "streamevent"
     },
     {
@@ -5125,7 +5153,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "shared_events_schema_apieventschema",
-      "community": 18,
+      "community": 17,
       "norm_label": "apieventschema"
     },
     {
@@ -5135,7 +5163,7 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "shared_events_schema_apievent",
-      "community": 18,
+      "community": 17,
       "norm_label": "apievent"
     },
     {
@@ -5145,7 +5173,7 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "shared_events_schema_eventspageschema",
-      "community": 18,
+      "community": 17,
       "norm_label": "eventspageschema"
     },
     {
@@ -5155,7 +5183,7 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "shared_events_schema_eventspage",
-      "community": 18,
+      "community": 17,
       "norm_label": "eventspage"
     },
     {
@@ -5165,7 +5193,7 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "shared_events_schema_cameraschema",
-      "community": 18,
+      "community": 17,
       "norm_label": "cameraschema"
     },
     {
@@ -5185,7 +5213,7 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "shared_events_schema_camerasschema",
-      "community": 18,
+      "community": 17,
       "norm_label": "camerasschema"
     },
     {
@@ -5195,7 +5223,7 @@
       "source_location": "L77",
       "_origin": "ast",
       "id": "shared_events_schema_zoneschema",
-      "community": 18,
+      "community": 17,
       "norm_label": "zoneschema"
     },
     {
@@ -5205,7 +5233,7 @@
       "source_location": "L86",
       "_origin": "ast",
       "id": "shared_events_schema_zone",
-      "community": 43,
+      "community": 10,
       "norm_label": "zone"
     },
     {
@@ -5225,7 +5253,7 @@
       "source_location": "L100",
       "_origin": "ast",
       "id": "shared_events_schema_fromapievent",
-      "community": 18,
+      "community": 17,
       "norm_label": "fromapievent()"
     },
     {
@@ -5355,7 +5383,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "cameras_page_camerarow",
-      "community": 12,
+      "community": 53,
       "norm_label": "camerarow()"
     },
     {
@@ -5375,7 +5403,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "web_app_admin_features_page_tsx_features_page",
-      "community": 12,
+      "community": 9,
       "norm_label": "page.tsx"
     },
     {
@@ -5385,7 +5413,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "features_page_fielddef",
-      "community": 12,
+      "community": 9,
       "norm_label": "fielddef"
     },
     {
@@ -5395,7 +5423,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "features_page_featuremeta",
-      "community": 12,
+      "community": 9,
       "norm_label": "featuremeta"
     },
     {
@@ -5405,7 +5433,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "features_page_feature_meta",
-      "community": 12,
+      "community": 9,
       "norm_label": "feature_meta"
     },
     {
@@ -5415,7 +5443,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "features_page_featurecard",
-      "community": 12,
+      "community": 9,
       "norm_label": "featurecard()"
     },
     {
@@ -5425,7 +5453,7 @@
       "source_location": "L135",
       "_origin": "ast",
       "id": "features_page_adminfeaturespage",
-      "community": 12,
+      "community": 9,
       "norm_label": "adminfeaturespage()"
     },
     {
@@ -5485,7 +5513,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "org_page",
-      "community": 15,
+      "community": 12,
       "norm_label": "page.tsx"
     },
     {
@@ -5495,7 +5523,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "org_page_roles",
-      "community": 15,
+      "community": 12,
       "norm_label": "roles"
     },
     {
@@ -5505,7 +5533,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "org_page_orgpage",
-      "community": 15,
+      "community": 12,
       "norm_label": "orgpage()"
     },
     {
@@ -5515,7 +5543,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "admin_page",
-      "community": 12,
+      "community": 53,
       "norm_label": "page.tsx"
     },
     {
@@ -5525,7 +5553,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "admin_page_statusdot",
-      "community": 12,
+      "community": 53,
       "norm_label": "statusdot()"
     },
     {
@@ -5535,7 +5563,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "admin_page_stat",
-      "community": 12,
+      "community": 53,
       "norm_label": "stat()"
     },
     {
@@ -5545,7 +5573,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "admin_page_diagnosticspage",
-      "community": 12,
+      "community": 53,
       "norm_label": "diagnosticspage()"
     },
     {
@@ -5785,7 +5813,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "zones_page",
-      "community": 43,
+      "community": 15,
       "norm_label": "page.tsx"
     },
     {
@@ -5795,7 +5823,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "zones_page_zonespage",
-      "community": 43,
+      "community": 15,
       "norm_label": "zonespage()"
     },
     {
@@ -5805,7 +5833,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "web_app_settings_cameras_page_tsx_cameras_page",
-      "community": 52,
+      "community": 53,
       "norm_label": "page.tsx"
     },
     {
@@ -5815,7 +5843,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "web_app_settings_cameras_page_tsx_cameras_page_statusstyle",
-      "community": 52,
+      "community": 53,
       "norm_label": "statusstyle"
     },
     {
@@ -5825,7 +5853,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "cameras_page_cameraspage",
-      "community": 52,
+      "community": 53,
       "norm_label": "cameraspage()"
     },
     {
@@ -5835,7 +5863,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "web_app_settings_features_page_tsx_features_page",
-      "community": 10,
+      "community": 9,
       "norm_label": "page.tsx"
     },
     {
@@ -5845,7 +5873,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "features_page_catalog",
-      "community": 10,
+      "community": 9,
       "norm_label": "catalog"
     },
     {
@@ -5855,7 +5883,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "features_page_featurespage",
-      "community": 10,
+      "community": 9,
       "norm_label": "featurespage()"
     },
     {
@@ -6025,7 +6053,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "ui_badge",
-      "community": 16,
+      "community": 53,
       "norm_label": "badge.tsx"
     },
     {
@@ -6035,7 +6063,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "ui_badge_badgevariants",
-      "community": 16,
+      "community": 53,
       "norm_label": "badgevariants"
     },
     {
@@ -6045,7 +6073,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "ui_badge_badgeprops",
-      "community": 16,
+      "community": 53,
       "norm_label": "badgeprops"
     },
     {
@@ -6055,7 +6083,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "ui_badge_badge",
-      "community": 16,
+      "community": 53,
       "norm_label": "badge()"
     },
     {
@@ -6065,7 +6093,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "ui_button",
-      "community": 12,
+      "community": 9,
       "norm_label": "button.tsx"
     },
     {
@@ -6075,7 +6103,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "ui_button_buttonvariants",
-      "community": 12,
+      "community": 9,
       "norm_label": "buttonvariants"
     },
     {
@@ -6085,7 +6113,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "ui_button_buttonprops",
-      "community": 12,
+      "community": 9,
       "norm_label": "buttonprops"
     },
     {
@@ -6095,7 +6123,7 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "ui_button_button",
-      "community": 12,
+      "community": 9,
       "norm_label": "button"
     },
     {
@@ -6345,7 +6373,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "components_zone_editor",
-      "community": 43,
+      "community": 15,
       "norm_label": "zone-editor.tsx"
     },
     {
@@ -6355,7 +6383,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "components_zone_editor_point",
-      "community": 43,
+      "community": 15,
       "norm_label": "point"
     },
     {
@@ -6365,7 +6393,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "components_zone_editor_kind",
-      "community": 43,
+      "community": 15,
       "norm_label": "kind"
     },
     {
@@ -6375,7 +6403,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "components_zone_editor_editzone",
-      "community": 43,
+      "community": 15,
       "norm_label": "editzone"
     },
     {
@@ -6385,7 +6413,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "components_zone_editor_zoneeditor",
-      "community": 43,
+      "community": 15,
       "norm_label": "zoneeditor()"
     },
     {
@@ -6475,7 +6503,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "lib_api_resettoken",
-      "community": 10,
+      "community": 12,
       "norm_label": "resettoken()"
     },
     {
@@ -6485,7 +6513,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "lib_api_apifetch",
-      "community": 10,
+      "community": 12,
       "norm_label": "apifetch()"
     },
     {
@@ -6525,7 +6553,7 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "lib_api_getcameras",
-      "community": 52,
+      "community": 53,
       "norm_label": "getcameras()"
     },
     {
@@ -6565,7 +6593,7 @@
       "source_location": "L97",
       "_origin": "ast",
       "id": "lib_api_getsnapshotobjecturl",
-      "community": 43,
+      "community": 15,
       "norm_label": "getsnapshotobjecturl()"
     },
     {
@@ -6575,7 +6603,7 @@
       "source_location": "L104",
       "_origin": "ast",
       "id": "lib_api_createzoneinput",
-      "community": 43,
+      "community": 10,
       "norm_label": "createzoneinput"
     },
     {
@@ -6585,7 +6613,7 @@
       "source_location": "L112",
       "_origin": "ast",
       "id": "lib_api_createzone",
-      "community": 43,
+      "community": 10,
       "norm_label": "createzone()"
     },
     {
@@ -6665,7 +6693,7 @@
       "source_location": "L145",
       "_origin": "ast",
       "id": "lib_api_feature",
-      "community": 10,
+      "community": 9,
       "norm_label": "feature"
     },
     {
@@ -6675,7 +6703,7 @@
       "source_location": "L147",
       "_origin": "ast",
       "id": "lib_api_getfeatures",
-      "community": 10,
+      "community": 9,
       "norm_label": "getfeatures()"
     },
     {
@@ -6685,7 +6713,7 @@
       "source_location": "L151",
       "_origin": "ast",
       "id": "lib_api_setfeature",
-      "community": 10,
+      "community": 9,
       "norm_label": "setfeature()"
     },
     {
@@ -6755,7 +6783,7 @@
       "source_location": "L204",
       "_origin": "ast",
       "id": "lib_api_gethealth",
-      "community": 10,
+      "community": 53,
       "norm_label": "gethealth()"
     },
     {
@@ -6785,7 +6813,7 @@
       "source_location": "L213",
       "_origin": "ast",
       "id": "lib_api_getdeadletter",
-      "community": 10,
+      "community": 53,
       "norm_label": "getdeadletter()"
     },
     {
@@ -6795,7 +6823,7 @@
       "source_location": "L217",
       "_origin": "ast",
       "id": "lib_api_replaydeadletter",
-      "community": 10,
+      "community": 53,
       "norm_label": "replaydeadletter()"
     },
     {
@@ -6845,7 +6873,7 @@
       "source_location": "L235",
       "_origin": "ast",
       "id": "lib_api_createsite",
-      "community": 10,
+      "community": 12,
       "norm_label": "createsite()"
     },
     {
@@ -6895,7 +6923,7 @@
       "source_location": "L253",
       "_origin": "ast",
       "id": "lib_api_createuser",
-      "community": 10,
+      "community": 12,
       "norm_label": "createuser()"
     },
     {
@@ -6905,7 +6933,7 @@
       "source_location": "L261",
       "_origin": "ast",
       "id": "lib_api_updateuser",
-      "community": 10,
+      "community": 12,
       "norm_label": "updateuser()"
     },
     {
@@ -6915,7 +6943,7 @@
       "source_location": "L269",
       "_origin": "ast",
       "id": "lib_api_deleteuser",
-      "community": 10,
+      "community": 12,
       "norm_label": "deleteuser()"
     },
     {
@@ -7095,7 +7123,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "lib_utils",
-      "community": 12,
+      "community": 53,
       "norm_label": "utils.ts"
     },
     {
@@ -7105,7 +7133,7 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "lib_utils_cn",
-      "community": 12,
+      "community": 53,
       "norm_label": "cn()"
     },
     {
@@ -8012,7 +8040,7 @@
       "label": "0. \u0427\u0442\u043e \u043d\u0443\u0436\u043d\u043e \u0437\u0430\u0440\u0430\u043d\u0435\u0435",
       "file_type": "document",
       "source_file": "DEPLOY.md",
-      "source_location": "L25",
+      "source_location": "L29",
       "_origin": "ast",
       "id": "deploy_0_\u0447\u0442\u043e_\u043d\u0443\u0436\u043d\u043e_\u0437\u0430\u0440\u0430\u043d\u0435\u0435",
       "community": 47,
@@ -8022,27 +8050,27 @@
       "label": "1. VPS: \u0431\u0430\u0437\u0430",
       "file_type": "document",
       "source_file": "DEPLOY.md",
-      "source_location": "L34",
+      "source_location": "L38",
       "_origin": "ast",
       "id": "deploy_1_vps_\u0431\u0430\u0437\u0430",
       "community": 47,
       "norm_label": "1. vps: \u0431\u0430\u0437\u0430"
     },
     {
-      "label": "2. VPS: WireGuard-\u0445\u0430\u0431",
+      "label": "2. VPS: WireGuard-\u0445\u0430\u0431 (AmneziaWG)",
       "file_type": "document",
       "source_file": "DEPLOY.md",
-      "source_location": "L53",
+      "source_location": "L58",
       "_origin": "ast",
-      "id": "deploy_2_vps_wireguard_\u0445\u0430\u0431",
+      "id": "deploy_2_vps_wireguard_\u0445\u0430\u0431_amneziawg",
       "community": 47,
-      "norm_label": "2. vps: wireguard-\u0445\u0430\u0431"
+      "norm_label": "2. vps: wireguard-\u0445\u0430\u0431 (amneziawg)"
     },
     {
       "label": "3. VPS: nginx + TLS",
       "file_type": "document",
       "source_file": "DEPLOY.md",
-      "source_location": "L72",
+      "source_location": "L89",
       "_origin": "ast",
       "id": "deploy_3_vps_nginx_tls",
       "community": 47,
@@ -8052,7 +8080,7 @@
       "label": "4. \u0414\u043e\u043c\u0430\u0448\u043d\u0438\u0439 \u0441\u0435\u0440\u0432\u0435\u0440: Ubuntu 24.04",
       "file_type": "document",
       "source_file": "DEPLOY.md",
-      "source_location": "L101",
+      "source_location": "L118",
       "_origin": "ast",
       "id": "deploy_4_\u0434\u043e\u043c\u0430\u0448\u043d\u0438\u0439_\u0441\u0435\u0440\u0432\u0435\u0440_ubuntu_24_04",
       "community": 47,
@@ -8062,27 +8090,27 @@
       "label": "4.1 \u0421\u0438\u0441\u0442\u0435\u043c\u0430 \u0438 \u0434\u0440\u0430\u0439\u0432\u0435\u0440\u044b \u2014 `scripts/install.sh`",
       "file_type": "document",
       "source_file": "DEPLOY.md",
-      "source_location": "L105",
+      "source_location": "L122",
       "_origin": "ast",
       "id": "deploy_4_1_\u0441\u0438\u0441\u0442\u0435\u043c\u0430_\u0438_\u0434\u0440\u0430\u0439\u0432\u0435\u0440\u044b_scripts_install_sh",
       "community": 47,
       "norm_label": "4.1 \u0441\u0438\u0441\u0442\u0435\u043c\u0430 \u0438 \u0434\u0440\u0430\u0438\u0432\u0435\u0440\u044b \u2014 `scripts/install.sh`"
     },
     {
-      "label": "4.2 WireGuard-\u043a\u043b\u0438\u0435\u043d\u0442",
+      "label": "4.2 WireGuard-\u043a\u043b\u0438\u0435\u043d\u0442 (AmneziaWG)",
       "file_type": "document",
       "source_file": "DEPLOY.md",
-      "source_location": "L124",
+      "source_location": "L141",
       "_origin": "ast",
-      "id": "deploy_4_2_wireguard_\u043a\u043b\u0438\u0435\u043d\u0442",
+      "id": "deploy_4_2_wireguard_\u043a\u043b\u0438\u0435\u043d\u0442_amneziawg",
       "community": 47,
-      "norm_label": "4.2 wireguard-\u043a\u043b\u0438\u0435\u043d\u0442"
+      "norm_label": "4.2 wireguard-\u043a\u043b\u0438\u0435\u043d\u0442 (amneziawg)"
     },
     {
       "label": "4.3 \u0424\u0430\u0439\u0440\u0432\u043e\u043b",
       "file_type": "document",
       "source_file": "DEPLOY.md",
-      "source_location": "L135",
+      "source_location": "L154",
       "_origin": "ast",
       "id": "deploy_4_3_\u0444\u0430\u0439\u0440\u0432\u043e\u043b",
       "community": 47,
@@ -8092,7 +8120,7 @@
       "label": "4.4 \u0417\u0430\u043f\u0443\u0441\u043a \u0441\u0442\u0435\u043a\u0430 \u2014 `scripts/init.sh` + `scripts/deploy.sh`",
       "file_type": "document",
       "source_file": "DEPLOY.md",
-      "source_location": "L143",
+      "source_location": "L162",
       "_origin": "ast",
       "id": "deploy_4_4_\u0437\u0430\u043f\u0443\u0441\u043a_\u0441\u0442\u0435\u043a\u0430_scripts_init_sh_scripts_deploy_sh",
       "community": 47,
@@ -8102,7 +8130,7 @@
       "label": "5. \u041f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0435 \u043a\u0430\u043c\u0435\u0440\u044b \u041f\u0412\u0417",
       "file_type": "document",
       "source_file": "DEPLOY.md",
-      "source_location": "L169",
+      "source_location": "L188",
       "_origin": "ast",
       "id": "deploy_5_\u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0435_\u043a\u0430\u043c\u0435\u0440\u044b_\u043f\u0432\u0437",
       "community": 47,
@@ -8112,7 +8140,7 @@
       "label": "6. \u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u0438 \u044d\u043a\u0441\u043f\u043b\u0443\u0430\u0442\u0430\u0446\u0438\u044f",
       "file_type": "document",
       "source_file": "DEPLOY.md",
-      "source_location": "L175",
+      "source_location": "L194",
       "_origin": "ast",
       "id": "deploy_6_\u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438_\u0438_\u044d\u043a\u0441\u043f\u043b\u0443\u0430\u0442\u0430\u0446\u0438\u044f",
       "community": 47,
@@ -8122,7 +8150,7 @@
       "label": "7. \u0415\u0441\u043b\u0438 \u043f\u043e\u043a\u0430 \u043e\u0441\u0442\u0430\u0451\u0448\u044c\u0441\u044f \u043d\u0430 Windows + WSL2 (\u043d\u0435 \u0440\u0435\u043a\u043e\u043c\u0435\u043d\u0434\u0443\u0435\u0442\u0441\u044f \u0434\u043b\u044f \u043f\u0440\u043e\u0434\u0430)",
       "file_type": "document",
       "source_file": "DEPLOY.md",
-      "source_location": "L192",
+      "source_location": "L222",
       "_origin": "ast",
       "id": "deploy_7_\u0435\u0441\u043b\u0438_\u043f\u043e\u043a\u0430_\u043e\u0441\u0442\u0430\u0451\u0448\u044c\u0441\u044f_\u043d\u0430_windows_wsl2_\u043d\u0435_\u0440\u0435\u043a\u043e\u043c\u0435\u043d\u0434\u0443\u0435\u0442\u0441\u044f_\u0434\u043b\u044f_\u043f\u0440\u043e\u0434\u0430",
       "community": 47,
@@ -18624,9 +18652,9 @@
       "source_file": "scripts/update.sh",
       "source_location": "L35",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_update",
-      "target": "scripts_update_has",
-      "confidence_score": 1.0
+      "target": "scripts_update_has"
     },
     {
       "relation": "defines",
@@ -18665,9 +18693,9 @@
       "source_location": "L20",
       "weight": 1.0,
       "context": "call",
+      "confidence_score": 1.0,
       "source": "c_projects_aipvzanalityc_scripts_update_sh__entry",
-      "target": "scripts_update_err",
-      "confidence_score": 1.0
+      "target": "scripts_update_err"
     },
     {
       "relation": "calls",
@@ -18676,9 +18704,9 @@
       "source_location": "L55",
       "weight": 1.0,
       "context": "call",
+      "confidence_score": 1.0,
       "source": "c_projects_aipvzanalityc_scripts_update_sh__entry",
-      "target": "scripts_update_has",
-      "confidence_score": 1.0
+      "target": "scripts_update_has"
     },
     {
       "relation": "calls",
@@ -18723,6 +18751,16 @@
       "confidence_score": 1.0,
       "source": "scripts_update_wait_api",
       "target": "scripts_update_err"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/wg-watchdog.sh",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "scripts_wg_watchdog",
+      "target": "c_projects_aipvzanalityc_scripts_wg_watchdog_sh__entry",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -24944,11 +24982,11 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "DEPLOY.md",
-      "source_location": "L53",
+      "source_location": "L58",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "deploy_\u0440\u0430\u0437\u0432\u0451\u0440\u0442\u044b\u0432\u0430\u043d\u0438\u0435_\u0434\u043e\u043c\u0430\u0448\u043d\u0438\u0439_\u043f\u043a_gpu_\u0441\u0435\u0440\u0432\u0435\u0440_vps_\u043f\u0443\u0431\u043b\u0438\u0447\u043d\u0430\u044f_\u0442\u043e\u0447\u043a\u0430_\u0432\u0445\u043e\u0434\u0430",
-      "target": "deploy_2_vps_wireguard_\u0445\u0430\u0431"
+      "target": "deploy_2_vps_wireguard_\u0445\u0430\u0431_amneziawg",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -25016,19 +25054,19 @@
       "source_file": "DEPLOY.md",
       "source_location": "L105",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "deploy_4_\u0434\u043e\u043c\u0430\u0448\u043d\u0438\u0439_\u0441\u0435\u0440\u0432\u0435\u0440_ubuntu_24_04",
-      "target": "deploy_4_1_\u0441\u0438\u0441\u0442\u0435\u043c\u0430_\u0438_\u0434\u0440\u0430\u0439\u0432\u0435\u0440\u044b_scripts_install_sh",
-      "confidence_score": 1.0
+      "target": "deploy_4_1_\u0441\u0438\u0441\u0442\u0435\u043c\u0430_\u0438_\u0434\u0440\u0430\u0439\u0432\u0435\u0440\u044b_scripts_install_sh"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "DEPLOY.md",
-      "source_location": "L118",
+      "source_location": "L141",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "deploy_4_\u0434\u043e\u043c\u0430\u0448\u043d\u0438\u0439_\u0441\u0435\u0440\u0432\u0435\u0440_ubuntu_24_04",
-      "target": "deploy_4_2_wireguard_\u043a\u043b\u0438\u0435\u043d\u0442"
+      "target": "deploy_4_2_wireguard_\u043a\u043b\u0438\u0435\u043d\u0442_amneziawg",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -25046,9 +25084,9 @@
       "source_file": "DEPLOY.md",
       "source_location": "L143",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "deploy_4_\u0434\u043e\u043c\u0430\u0448\u043d\u0438\u0439_\u0441\u0435\u0440\u0432\u0435\u0440_ubuntu_24_04",
-      "target": "deploy_4_4_\u0437\u0430\u043f\u0443\u0441\u043a_\u0441\u0442\u0435\u043a\u0430_scripts_init_sh_scripts_deploy_sh",
-      "confidence_score": 1.0
+      "target": "deploy_4_4_\u0437\u0430\u043f\u0443\u0441\u043a_\u0441\u0442\u0435\u043a\u0430_scripts_init_sh_scripts_deploy_sh"
     },
     {
       "relation": "contains",
@@ -25056,9 +25094,9 @@
       "source_file": "INSTALL_UBUNTU_SERVER.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "install_ubuntu_server",
-      "target": "install_ubuntu_server_\u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430_ubuntu_server_24_04_lts_\u043d\u0430_\u0434\u043e\u043c\u0430\u0448\u043d\u0438\u0439_\u043f\u043a_\u0441\u0435\u0440\u0432\u0435\u0440",
-      "confidence_score": 1.0
+      "target": "install_ubuntu_server_\u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430_ubuntu_server_24_04_lts_\u043d\u0430_\u0434\u043e\u043c\u0430\u0448\u043d\u0438\u0439_\u043f\u043a_\u0441\u0435\u0440\u0432\u0435\u0440"
     },
     {
       "relation": "contains",
@@ -25066,9 +25104,9 @@
       "source_file": "INSTALL_UBUNTU_SERVER.md",
       "source_location": "L9",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "install_ubuntu_server_\u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430_ubuntu_server_24_04_lts_\u043d\u0430_\u0434\u043e\u043c\u0430\u0448\u043d\u0438\u0439_\u043f\u043a_\u0441\u0435\u0440\u0432\u0435\u0440",
-      "target": "install_ubuntu_server_0_\u043f\u0435\u0440\u0435\u0434_\u043d\u0430\u0447\u0430\u043b\u043e\u043c_\u0447\u0435\u043a\u043b\u0438\u0441\u0442",
-      "confidence_score": 1.0
+      "target": "install_ubuntu_server_0_\u043f\u0435\u0440\u0435\u0434_\u043d\u0430\u0447\u0430\u043b\u043e\u043c_\u0447\u0435\u043a\u043b\u0438\u0441\u0442"
     },
     {
       "relation": "contains",
@@ -25076,9 +25114,9 @@
       "source_file": "INSTALL_UBUNTU_SERVER.md",
       "source_location": "L18",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "install_ubuntu_server_\u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430_ubuntu_server_24_04_lts_\u043d\u0430_\u0434\u043e\u043c\u0430\u0448\u043d\u0438\u0439_\u043f\u043a_\u0441\u0435\u0440\u0432\u0435\u0440",
-      "target": "install_ubuntu_server_1_\u0441\u043a\u0430\u0447\u0430\u0442\u044c_iso_\u043d\u0430_\u0440\u0430\u0431\u043e\u0447\u0435\u043c_dev_\u043f\u043a",
-      "confidence_score": 1.0
+      "target": "install_ubuntu_server_1_\u0441\u043a\u0430\u0447\u0430\u0442\u044c_iso_\u043d\u0430_\u0440\u0430\u0431\u043e\u0447\u0435\u043c_dev_\u043f\u043a"
     },
     {
       "relation": "contains",
@@ -25086,9 +25124,9 @@
       "source_file": "INSTALL_UBUNTU_SERVER.md",
       "source_location": "L31",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "install_ubuntu_server_\u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430_ubuntu_server_24_04_lts_\u043d\u0430_\u0434\u043e\u043c\u0430\u0448\u043d\u0438\u0439_\u043f\u043a_\u0441\u0435\u0440\u0432\u0435\u0440",
-      "target": "install_ubuntu_server_2_\u0437\u0430\u0433\u0440\u0443\u0437\u043e\u0447\u043d\u0430\u044f_\u0444\u043b\u0435\u0448\u043a\u0430_rufus",
-      "confidence_score": 1.0
+      "target": "install_ubuntu_server_2_\u0437\u0430\u0433\u0440\u0443\u0437\u043e\u0447\u043d\u0430\u044f_\u0444\u043b\u0435\u0448\u043a\u0430_rufus"
     },
     {
       "relation": "contains",
@@ -25096,9 +25134,9 @@
       "source_file": "INSTALL_UBUNTU_SERVER.md",
       "source_location": "L41",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "install_ubuntu_server_\u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430_ubuntu_server_24_04_lts_\u043d\u0430_\u0434\u043e\u043c\u0430\u0448\u043d\u0438\u0439_\u043f\u043a_\u0441\u0435\u0440\u0432\u0435\u0440",
-      "target": "install_ubuntu_server_3_\u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438_bios_gigabyte_h610m",
-      "confidence_score": 1.0
+      "target": "install_ubuntu_server_3_\u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438_bios_gigabyte_h610m"
     },
     {
       "relation": "contains",
@@ -25106,9 +25144,9 @@
       "source_file": "INSTALL_UBUNTU_SERVER.md",
       "source_location": "L58",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "install_ubuntu_server_\u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430_ubuntu_server_24_04_lts_\u043d\u0430_\u0434\u043e\u043c\u0430\u0448\u043d\u0438\u0439_\u043f\u043a_\u0441\u0435\u0440\u0432\u0435\u0440",
-      "target": "install_ubuntu_server_4_\u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430_\u043f\u043e_\u044d\u043a\u0440\u0430\u043d\u0430\u043c",
-      "confidence_score": 1.0
+      "target": "install_ubuntu_server_4_\u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430_\u043f\u043e_\u044d\u043a\u0440\u0430\u043d\u0430\u043c"
     },
     {
       "relation": "contains",
@@ -25116,9 +25154,9 @@
       "source_file": "INSTALL_UBUNTU_SERVER.md",
       "source_location": "L83",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "install_ubuntu_server_\u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430_ubuntu_server_24_04_lts_\u043d\u0430_\u0434\u043e\u043c\u0430\u0448\u043d\u0438\u0439_\u043f\u043a_\u0441\u0435\u0440\u0432\u0435\u0440",
-      "target": "install_ubuntu_server_5_\u043f\u0435\u0440\u0432\u044b\u0439_\u0432\u0445\u043e\u0434_\u0438_\u0431\u0430\u0437\u043e\u0432\u0430\u044f_\u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430",
-      "confidence_score": 1.0
+      "target": "install_ubuntu_server_5_\u043f\u0435\u0440\u0432\u044b\u0439_\u0432\u0445\u043e\u0434_\u0438_\u0431\u0430\u0437\u043e\u0432\u0430\u044f_\u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430"
     },
     {
       "relation": "contains",
@@ -25126,9 +25164,9 @@
       "source_file": "INSTALL_UBUNTU_SERVER.md",
       "source_location": "L185",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "install_ubuntu_server_\u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430_ubuntu_server_24_04_lts_\u043d\u0430_\u0434\u043e\u043c\u0430\u0448\u043d\u0438\u0439_\u043f\u043a_\u0441\u0435\u0440\u0432\u0435\u0440",
-      "target": "install_ubuntu_server_6_\u0433\u043e\u0442\u043e\u0432\u043e_\u0434\u0430\u043b\u044c\u0448\u0435_deploy_md",
-      "confidence_score": 1.0
+      "target": "install_ubuntu_server_6_\u0433\u043e\u0442\u043e\u0432\u043e_\u0434\u0430\u043b\u044c\u0448\u0435_deploy_md"
     },
     {
       "relation": "contains",
@@ -25136,9 +25174,9 @@
       "source_file": "INSTALL_UBUNTU_SERVER.md",
       "source_location": "L196",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "install_ubuntu_server_\u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430_ubuntu_server_24_04_lts_\u043d\u0430_\u0434\u043e\u043c\u0430\u0448\u043d\u0438\u0439_\u043f\u043a_\u0441\u0435\u0440\u0432\u0435\u0440",
-      "target": "install_ubuntu_server_\u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0435_\u0442\u0438\u043f\u043e\u0432\u044b\u0435_\u043f\u0440\u043e\u0431\u043b\u0435\u043c\u044b",
-      "confidence_score": 1.0
+      "target": "install_ubuntu_server_\u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0435_\u0442\u0438\u043f\u043e\u0432\u044b\u0435_\u043f\u0440\u043e\u0431\u043b\u0435\u043c\u044b"
     },
     {
       "relation": "contains",
@@ -25146,9 +25184,9 @@
       "source_file": "INSTALL_UBUNTU_SERVER.md",
       "source_location": "L92",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "install_ubuntu_server_5_\u043f\u0435\u0440\u0432\u044b\u0439_\u0432\u0445\u043e\u0434_\u0438_\u0431\u0430\u0437\u043e\u0432\u0430\u044f_\u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430",
-      "target": "install_ubuntu_server_5_1_\u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435_\u0438_\u0447\u0430\u0441\u043e\u0432\u043e\u0439_\u043f\u043e\u044f\u0441",
-      "confidence_score": 1.0
+      "target": "install_ubuntu_server_5_1_\u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435_\u0438_\u0447\u0430\u0441\u043e\u0432\u043e\u0439_\u043f\u043e\u044f\u0441"
     },
     {
       "relation": "contains",
@@ -25156,9 +25194,9 @@
       "source_file": "INSTALL_UBUNTU_SERVER.md",
       "source_location": "L100",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "install_ubuntu_server_5_\u043f\u0435\u0440\u0432\u044b\u0439_\u0432\u0445\u043e\u0434_\u0438_\u0431\u0430\u0437\u043e\u0432\u0430\u044f_\u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430",
-      "target": "install_ubuntu_server_5_2_\u043f\u043e\u0441\u0442\u043e\u044f\u043d\u043d\u044b\u0439_ip_\u0430\u0434\u0440\u0435\u0441",
-      "confidence_score": 1.0
+      "target": "install_ubuntu_server_5_2_\u043f\u043e\u0441\u0442\u043e\u044f\u043d\u043d\u044b\u0439_ip_\u0430\u0434\u0440\u0435\u0441"
     },
     {
       "relation": "contains",
@@ -25166,9 +25204,9 @@
       "source_file": "INSTALL_UBUNTU_SERVER.md",
       "source_location": "L127",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "install_ubuntu_server_5_\u043f\u0435\u0440\u0432\u044b\u0439_\u0432\u0445\u043e\u0434_\u0438_\u0431\u0430\u0437\u043e\u0432\u0430\u044f_\u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430",
-      "target": "install_ubuntu_server_5_3_ssh_\u043f\u043e_\u043a\u043b\u044e\u0447\u0443_\u0441_dev_\u043f\u043a",
-      "confidence_score": 1.0
+      "target": "install_ubuntu_server_5_3_ssh_\u043f\u043e_\u043a\u043b\u044e\u0447\u0443_\u0441_dev_\u043f\u043a"
     },
     {
       "relation": "contains",
@@ -25176,9 +25214,9 @@
       "source_file": "INSTALL_UBUNTU_SERVER.md",
       "source_location": "L150",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "install_ubuntu_server_5_\u043f\u0435\u0440\u0432\u044b\u0439_\u0432\u0445\u043e\u0434_\u0438_\u0431\u0430\u0437\u043e\u0432\u0430\u044f_\u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430",
-      "target": "install_ubuntu_server_5_4_\u043e\u0442\u043a\u043b\u044e\u0447\u0438\u0442\u044c_\u0441\u043e\u043d_\u0438_\u0441\u043f\u044f\u0449\u0438\u0435_\u043b\u043e\u0432\u0443\u0448\u043a\u0438",
-      "confidence_score": 1.0
+      "target": "install_ubuntu_server_5_4_\u043e\u0442\u043a\u043b\u044e\u0447\u0438\u0442\u044c_\u0441\u043e\u043d_\u0438_\u0441\u043f\u044f\u0449\u0438\u0435_\u043b\u043e\u0432\u0443\u0448\u043a\u0438"
     },
     {
       "relation": "contains",
@@ -25186,9 +25224,9 @@
       "source_file": "INSTALL_UBUNTU_SERVER.md",
       "source_location": "L156",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "install_ubuntu_server_5_\u043f\u0435\u0440\u0432\u044b\u0439_\u0432\u0445\u043e\u0434_\u0438_\u0431\u0430\u0437\u043e\u0432\u0430\u044f_\u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430",
-      "target": "install_ubuntu_server_5_5_\u0430\u0432\u0442\u043e\u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f_\u0431\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u043e\u0441\u0442\u0438_\u0431\u0435\u0437_\u0432\u043d\u0435\u0437\u0430\u043f\u043d\u044b\u0445_\u043f\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0437\u043e\u043a",
-      "confidence_score": 1.0
+      "target": "install_ubuntu_server_5_5_\u0430\u0432\u0442\u043e\u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f_\u0431\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u043e\u0441\u0442\u0438_\u0431\u0435\u0437_\u0432\u043d\u0435\u0437\u0430\u043f\u043d\u044b\u0445_\u043f\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0437\u043e\u043a"
     },
     {
       "relation": "contains",
@@ -25196,9 +25234,9 @@
       "source_file": "INSTALL_UBUNTU_SERVER.md",
       "source_location": "L168",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "install_ubuntu_server_5_\u043f\u0435\u0440\u0432\u044b\u0439_\u0432\u0445\u043e\u0434_\u0438_\u0431\u0430\u0437\u043e\u0432\u0430\u044f_\u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430",
-      "target": "install_ubuntu_server_5_6_\u0431\u044b\u0441\u0442\u0440\u0430\u044f_\u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430_\u0436\u0435\u043b\u0435\u0437\u0430",
-      "confidence_score": 1.0
+      "target": "install_ubuntu_server_5_6_\u0431\u044b\u0441\u0442\u0440\u0430\u044f_\u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430_\u0436\u0435\u043b\u0435\u0437\u0430"
     },
     {
       "relation": "contains",
@@ -25949,5 +25987,5 @@
       "source_file": "CLAUDE.md"
     }
   ],
-  "built_at_commit": "a18b95c43a535242aeb20904fdd136bdb5b0c86f"
+  "built_at_commit": "a171d70372f102789b24a8c1c9cf72994bbec603"
 }

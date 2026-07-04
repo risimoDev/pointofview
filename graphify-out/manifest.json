@@ -160,9 +160,9 @@
     "semantic_hash": "bbc5e8c80ed9cece90dec3970fa7392b"
   },
   "infra/nginx/locations.inc": {
-    "mtime": 1781133976.673106,
-    "ast_hash": "6ed456829e24ca975398e10e023f9ee0",
-    "semantic_hash": "6ed456829e24ca975398e10e023f9ee0"
+    "mtime": 1783165971.6686997,
+    "ast_hash": "62397661365abe99a952cea3da6b3584",
+    "semantic_hash": ""
   },
   "infra/postgres/init.sql": {
     "mtime": 1781749119.627969,
@@ -170,23 +170,23 @@
     "semantic_hash": ""
   },
   "scripts/deploy.sh": {
-    "mtime": 1783124688.759821,
-    "ast_hash": "96af9d396521b23e81cac514a91814ca",
+    "mtime": 1783167501.774773,
+    "ast_hash": "ecbfeb9d0b7f8017468dd3e8abebef27",
     "semantic_hash": ""
   },
   "scripts/init.sh": {
-    "mtime": 1783124666.4568126,
-    "ast_hash": "13a4be8993416d7b03751da8adb10a8a",
+    "mtime": 1783164361.3083396,
+    "ast_hash": "fa3d8670cc30ef703be0db9ed47c4ebb",
     "semantic_hash": ""
   },
   "scripts/install.sh": {
-    "mtime": 1783124638.5062773,
-    "ast_hash": "69e06f5ecfcd2aebfa2c232aa5a8c1d9",
+    "mtime": 1783175248.9623072,
+    "ast_hash": "2325505d954b509ddbb29c209a7e414e",
     "semantic_hash": ""
   },
   "scripts/update.sh": {
-    "mtime": 1783124709.706122,
-    "ast_hash": "400171a07cd16550a29328c81b52a797",
+    "mtime": 1783167553.8627498,
+    "ast_hash": "e8398514bedb3e005768161f4ea9cfba",
     "semantic_hash": ""
   },
   "shared/events.schema.json": {
@@ -520,8 +520,8 @@
     "semantic_hash": ""
   },
   "DEPLOY.md": {
-    "mtime": 1783124792.3616176,
-    "ast_hash": "c2b707c8acadbc0430818387abce6e6e",
+    "mtime": 1783176390.92009,
+    "ast_hash": "be2d936790cd9b1a1114349b0edbe327",
     "semantic_hash": ""
   },
   "STATUS.md": {
@@ -542,6 +542,11 @@
   "INSTALL_UBUNTU_SERVER.md": {
     "mtime": 1783034164.0729382,
     "ast_hash": "9bd152a04071c409daeeddf7bc5c9e15",
+    "semantic_hash": ""
+  },
+  "scripts/wg-watchdog.sh": {
+    "mtime": 1783171644.246272,
+    "ast_hash": "5ac7d94bae405431dffb8091fe93a120",
     "semantic_hash": ""
   }
 }

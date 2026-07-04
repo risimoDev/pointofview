@@ -1,9 +1,24 @@
-# Home GPU server: /etc/wireguard/wg0.conf — client of the VPS hub.
-# Enable: systemctl enable --now wg-quick@wg0
+# Home GPU server: /etc/amnezia/amneziawg/awg0.conf — client of the VPS hub.
+# Enable: systemctl enable --now awg-quick@awg0
+#
+# Jc/Jmin/Jmax/S1-S4/H1-H4 must be IDENTICAL to the VPS hub config
+# (wg0-vps.conf.example) — copy them verbatim, do not regenerate.
 
 [Interface]
 Address = 10.9.0.2/24
 PrivateKey = ePaDV2tU2XsLk3FonMBsQkmvcLWfujEWGYKeOGp7RUg=
+
+Jc = 8
+Jmin = 50
+Jmax = 1000
+S1 = 63
+S2 = 87
+S3 = 120
+S4 = 88
+H1 = 1268669336
+H2 = 1181444535
+H3 = 1492208221
+H4 = 1793099654
 
 [Peer]
 PublicKey = DUK2xYhWPXmW2YZ2e5hwLoGRoHdE6FT9wFaO/xJiXXo=

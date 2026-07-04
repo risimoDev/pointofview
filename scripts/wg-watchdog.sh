@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
-# WireGuard watchdog for the home server.
+# AmneziaWG watchdog for the home server (superseded vanilla WireGuard —
+# the ISP's DPI was killing the wg0 rekey handshake every ~2 minutes).
 #
-# Residential NAT/CGNAT can silently drop the UDP port mapping after a period
-# of low traffic. When that happens wg0 stays "up" (interface exists, wg show
-# reports a peer) but no packets actually get through until the tunnel is
-# restarted — PersistentKeepalive alone doesn't reliably recover from this on
-# some ISPs. This script pings the VPS peer and restarts wg-quick@wg0 if it's
-# unreachable. Run every 1-2 minutes via cron (see install instructions below).
+# Even with AmneziaWG, keep this as a safety net: if the tunnel still drops
+# for any reason (ISP change, router reboot, etc), this pings the VPS peer
+# and restarts awg-quick@awg0. Run every 1-2 minutes via cron.
 #
 # Install (as root):
 #   sudo cp scripts/wg-watchdog.sh /usr/local/bin/wg-watchdog.sh
@@ -15,15 +13,16 @@
 # Check it fired: journalctl -t wg-watchdog --no-pager -n 20
 set -euo pipefail
 
-PEER_IP="${1:-10.9.0.1}"   # VPS wg0 address
+PEER_IP="${1:-10.9.0.1}"   # VPS awg0 address
+IFACE="awg0"
 LOG_TAG="wg-watchdog"
 
 if ping -c2 -W3 "$PEER_IP" >/dev/null 2>&1; then
   exit 0
 fi
 
-logger -t "$LOG_TAG" "peer $PEER_IP unreachable — restarting wg-quick@wg0"
-systemctl restart wg-quick@wg0
+logger -t "$LOG_TAG" "peer $PEER_IP unreachable — restarting awg-quick@$IFACE"
+systemctl restart "awg-quick@$IFACE"
 sleep 3
 
 if ping -c2 -W3 "$PEER_IP" >/dev/null 2>&1; then

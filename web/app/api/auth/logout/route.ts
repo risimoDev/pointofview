@@ -1,7 +1,9 @@
-import { NextResponse, type NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
 
-export function POST(req: NextRequest): NextResponse {
-  const res = NextResponse.redirect(new URL('/login', req.url), { status: 303 })
+// Relative Location so the browser resolves it against the public origin,
+// not Next's internal bind address behind the reverse proxy (see login route).
+export function POST(): NextResponse {
+  const res = new NextResponse(null, { status: 303, headers: { Location: '/login' } })
   res.cookies.delete('token')
   return res
 }

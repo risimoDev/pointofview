@@ -14,7 +14,12 @@ location /api/v1/ws/ {
   proxy_read_timeout 3600s;
 }
 
-location /api {
+# Only /api/v1 is the backend's real prefix. /api/auth/login|logout|token are
+# Next.js's OWN server-side route handlers (they set the httpOnly cookie and
+# then call the backend themselves) — matching bare /api here would swallow
+# those before Next.js ever sees them and misroute them straight to Fastify,
+# which 404s since it doesn't know a route without /v1.
+location /api/v1 {
   set $upstream_api api:3000;
   proxy_pass http://$upstream_api;
   proxy_set_header Host $host;

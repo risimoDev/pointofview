@@ -174,10 +174,19 @@ class AnalyzerWorker:
             logger.exception("camera %s: consumer crashed", source.camera_id)
 
     async def run(self) -> None:
+        # Idle-wait for the first camera instead of exiting — otherwise a fresh
+        # deployment with zero cameras exits immediately and docker's
+        # restart policy turns that into a tight crash/restart loop.
         cameras = await self._load_cameras()
+        while not cameras:
+            logger.info(
+                "no cameras for tenant %s; idling, re-checking in %ss",
+                self.settings.tenant_id, self.settings.zone_refresh_seconds,
+            )
+            await asyncio.sleep(self.settings.zone_refresh_seconds)
+            cameras = await self._load_cameras()
+
         sources = [self._make_source(c) for c in cameras]
-        if not sources:
-            return
 
         await self.zones.load_zones([c.id for c in cameras])
         await self.plugins.load_features()

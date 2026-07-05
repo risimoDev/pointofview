@@ -79,11 +79,12 @@ for svc in worker-clips worker-alerts web analyzer; do
   fi
 done
 
-# api/web just got new container IPs — nginx caches upstream DNS, so it needs
-# an explicit reload or it keeps talking to the old (now-dead) addresses.
+# Recreate nginx: it picks up new api/web container IPs AND re-binds config
+# files that `git pull` replaced with a new inode (a plain reload would keep
+# serving the stale mounted file). See deploy.sh for the inode explanation.
 if has nginx; then
-  info "Reloading nginx (picks up new api/web container IPs)"
-  $COMPOSE exec -T nginx nginx -t && $COMPOSE exec -T nginx nginx -s reload
+  info "Recreating nginx (new upstream IPs + refreshed config files)"
+  $COMPOSE up -d --force-recreate nginx
 fi
 
 # 5. status --------------------------------------------------------------------

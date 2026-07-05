@@ -135,6 +135,12 @@ services:
     restart: unless-stopped
     environment:
       TZ: ${TZ}
+      # runtime env for the Next.js server-side route handlers
+      # (app/api/auth/*): the build ARG above only bakes next.config rewrites,
+      # but route.ts reads process.env.API_URL at request time — without this
+      # it falls back to localhost:3000 (nothing inside the web container) → 500
+      API_URL: http://api:3000
+      GO2RTC_URL: http://host.docker.internal:1984
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:

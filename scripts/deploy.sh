@@ -53,14 +53,14 @@ fi
 info "Starting services"
 $COMPOSE up -d --remove-orphans
 
-# nginx.conf/locations.inc are bind-mounted — docker compose does not detect
-# host-file edits as a service change, so an already-running nginx container
-# keeps serving its old in-memory config (and stale upstream DNS) forever
-# unless explicitly reloaded here.
+# nginx.conf/locations.inc are bind-mounted as single files. `git pull` replaces
+# them with a NEW inode, but the running container keeps the old inode mounted —
+# so `nginx -s reload` re-reads the stale file and a plain `up -d` sees no service
+# change. Force-recreate the container so it re-binds to the current file.
 SERVICES="$($COMPOSE config --services)"
 if grep -qx nginx <<< "$SERVICES"; then
-  info "Reloading nginx config"
-  $COMPOSE exec -T nginx nginx -t && $COMPOSE exec -T nginx nginx -s reload
+  info "Recreating nginx (re-binds config files after git pull)"
+  $COMPOSE up -d --force-recreate nginx
 fi
 
 # 4. healthcheck wait --------------------------------------------------------

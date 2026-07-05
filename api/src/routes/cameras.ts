@@ -37,10 +37,18 @@ async function syncCameras(app: { redis: Redis }, tenantId: string): Promise<voi
 }
 
 /** Register/replace a go2rtc stream named by camera id (for WHEP + snapshot). */
-async function registerGo2rtc(cameraId: string, src: string | null): Promise<void> {
+async function registerGo2rtc(
+  cameraId: string, src: string | null, sourceType?: string,
+): Promise<void> {
   if (!src) return
+  // A `file` source isn't a live stream: wrap it so go2rtc reads it via ffmpeg,
+  // transcodes to h264 (required for WebRTC) and loops endlessly at real-time
+  // rate. go2rtc must have the file mounted at the same path (its /data mount).
+  const streamSrc = sourceType === 'file'
+    ? `ffmpeg:${src}#video=h264#input=-re -stream_loop -1`
+    : src
   const url = `${config.GO2RTC_URL}/api/streams?name=${encodeURIComponent(cameraId)}`
-    + `&src=${encodeURIComponent(src)}`
+    + `&src=${encodeURIComponent(streamSrc)}`
   try {
     await fetch(url, { method: 'PUT' })
   } catch {
@@ -133,6 +141,7 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
     }).returning()
 
     await syncCameras(app, req.tenantId)
+    await registerGo2rtc(row!.id, savedUrl, 'file') // browser video + zone-editor snapshot
     await writeAudit({
       tenantId: req.tenantId, userId: req.userId, action: 'camera.upload',
       resourceType: 'camera', resourceId: row!.id, details: { name: row!.name },
@@ -161,7 +170,7 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
 
     await syncCameras(app, req.tenantId)
     // sub-stream feeds AI/snapshot; fall back to main
-    await registerGo2rtc(row!.id, row!.urlSub ?? row!.urlMain)
+    await registerGo2rtc(row!.id, row!.urlSub ?? row!.urlMain, row!.sourceType)
     await writeAudit({
       tenantId: req.tenantId, userId: req.userId, action: 'camera.create',
       resourceType: 'camera', resourceId: row!.id, details: { name: b.name },
@@ -192,7 +201,7 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
     }
     const [row] = await db.update(camera).set(patch).where(eq(camera.id, id)).returning()
     await syncCameras(app, req.tenantId)
-    await registerGo2rtc(row!.id, row!.urlSub ?? row!.urlMain)
+    await registerGo2rtc(row!.id, row!.urlSub ?? row!.urlMain, row!.sourceType)
     await writeAudit({
       tenantId: req.tenantId, userId: req.userId, action: 'camera.update',
       resourceType: 'camera', resourceId: id, details: patch,

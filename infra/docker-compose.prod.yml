@@ -67,6 +67,9 @@ services:
     volumes:
       - ./go2rtc/go2rtc.prod.yaml:/config/go2rtc.yaml:ro
       - ${DATA_ROOT}/archive:/archive
+      # uploaded test videos, same /data path api & analyzer use → go2rtc can
+      # serve `file` cameras as looping streams (browser video + snapshots)
+      - ${DATA_ROOT}/testvideo:/data:ro
 
   api:
     build: ../api

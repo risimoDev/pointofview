@@ -1,7 +1,7 @@
-# Graph Report - aipvzanalityc  (2026-07-06)
+# Graph Report - aipvzanalityc  (2026-07-05)
 
 ## Corpus Check
-- 103 files · ~38,736 words
+- 103 files · ~38,638 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `1e73c7d8`
+- Built from commit: `e71ea537`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -157,12 +157,12 @@ Cohesion: 0.20
 Nodes (10): CameraRow(), SOURCES, STATUSES, apiFetch(), createCamera(), deleteCamera(), resetToken(), updateCamera() (+2 more)
 
 ### Community 13 - "API Auth (JWT)"
-Cohesion: 0.19
-Nodes (7): AppUser, authRoutes(), FastifyInstance, main(), makeRedis(), LoginBody, WsHub
+Cohesion: 0.14
+Nodes (10): AppUser, ArchiveSegment, authRoutes(), internalRoutes(), FastifyInstance, main(), makeRedis(), LoginBody (+2 more)
 
 ### Community 14 - "Alerts Worker"
 Cohesion: 0.18
-Nodes (16): AlertRule, Notification, AlertJob, buildText(), Channel, Channels, escapeHtml(), EventCtx (+8 more)
+Nodes (16): Notification, Zone, AlertJob, buildText(), Channel, Channels, escapeHtml(), EventCtx (+8 more)
 
 ### Community 15 - "Zone Editor (Canvas)"
 Cohesion: 0.13
@@ -177,8 +177,8 @@ Cohesion: 0.07
 Nodes (32): EventLog(), severityVariant, CameraTile(), COLS, startWhep(), VideoGrid(), waitIceGathering(), DashboardPage() (+24 more)
 
 ### Community 18 - "Web Zod Schemas"
-Cohesion: 0.16
-Nodes (12): pool, ArchiveSegment, FastifyInstance, FastifyJWT, FastifyRequest, JwtPayload, internalRoutes(), Config (+4 more)
+Cohesion: 0.33
+Nodes (4): FastifyInstance, FastifyJWT, FastifyRequest, JwtPayload
 
 ### Community 19 - "API DB Client & Analytics"
 Cohesion: 0.12
@@ -189,12 +189,12 @@ Cohesion: 0.21
 Nodes (12): CameraConfig, Redis, Settings, AsyncClient, datetime, _load_cameras(), main(), main_async() (+4 more)
 
 ### Community 21 - "Clips Worker & MinIO"
-Cohesion: 0.31
-Nodes (8): ensureBucket(), minio, ClipJob, ffmpegEscape(), log(), main(), processClip(), runFfmpeg()
+Cohesion: 0.16
+Nodes (17): pool, eventsRoutes(), Config, EnvSchema, ensureBucket(), minio, alertsQueue, bullConnection (+9 more)
 
 ### Community 22 - "Cameras Routes & go2rtc Sync"
-Cohesion: 0.11
-Nodes (16): Camera, VIDEO_EXT, eventsRoutes(), clipsQueue, BboxSchema, CameraIdParams, CreateCameraBody, CreateZoneBody (+8 more)
+Cohesion: 0.14
+Nodes (12): Camera, VIDEO_EXT, BboxSchema, CameraIdParams, CreateCameraBody, CreateZoneBody, EventMessageSchema, EventTypeEnum (+4 more)
 
 ### Community 23 - "API Event Consumer (Redis)"
 Cohesion: 0.29
@@ -222,7 +222,7 @@ Nodes (4): init.sh script, err(), info(), warn()
 
 ### Community 29 - "WebSocket Hub"
 Cohesion: 0.15
-Nodes (14): db, AuditLog, Site, TenantFeature, Zone, adminRoutes(), AlertRuleBody, RoleEnum (+6 more)
+Nodes (14): db, AlertRule, AuditLog, Site, TenantFeature, adminRoutes(), AlertRuleBody, RoleEnum (+6 more)
 
 ### Community 30 - "Web Auth Middleware"
 Cohesion: 0.32

@@ -2029,7 +2029,7 @@
       "source_location": "L198",
       "_origin": "ast",
       "id": "db_schema_zone",
-      "community": 29,
+      "community": 14,
       "norm_label": "zone"
     },
     {
@@ -2049,7 +2049,7 @@
       "source_location": "L202",
       "_origin": "ast",
       "id": "db_schema_alertrule",
-      "community": 14,
+      "community": 29,
       "norm_label": "alertrule"
     },
     {
@@ -2079,7 +2079,7 @@
       "source_location": "L208",
       "_origin": "ast",
       "id": "db_schema_archivesegment",
-      "community": 18,
+      "community": 13,
       "norm_label": "archivesegment"
     },
     {
@@ -2649,7 +2649,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_config",
-      "community": 18,
+      "community": 21,
       "norm_label": "config.ts"
     },
     {
@@ -2659,7 +2659,7 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_config_envschema",
-      "community": 18,
+      "community": 21,
       "norm_label": "envschema"
     },
     {
@@ -2669,7 +2669,7 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "src_config_config",
-      "community": 18,
+      "community": 21,
       "norm_label": "config"
     },
     {
@@ -2679,7 +2679,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "db_client",
-      "community": 18,
+      "community": 21,
       "norm_label": "client.ts"
     },
     {
@@ -2689,7 +2689,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "db_client_pool",
-      "community": 18,
+      "community": 21,
       "norm_label": "pool"
     },
     {
@@ -2839,7 +2839,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_queues",
-      "community": 18,
+      "community": 21,
       "norm_label": "queues.ts"
     },
     {
@@ -2859,7 +2859,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_queues_bullconnection",
-      "community": 18,
+      "community": 21,
       "norm_label": "bullconnection"
     },
     {
@@ -2869,7 +2869,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_queues_clipsqueue",
-      "community": 22,
+      "community": 21,
       "norm_label": "clipsqueue"
     },
     {
@@ -2889,7 +2889,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_queues_alertsqueue",
-      "community": 18,
+      "community": 21,
       "norm_label": "alertsqueue"
     },
     {
@@ -3066,7 +3066,7 @@
       "label": "syncZones()",
       "file_type": "code",
       "source_file": "api/src/routes/cameras.ts",
-      "source_location": "L60",
+      "source_location": "L52",
       "_origin": "ast",
       "id": "routes_cameras_synczones",
       "community": 22,
@@ -3076,7 +3076,7 @@
       "label": "camerasRoutes()",
       "file_type": "code",
       "source_file": "api/src/routes/cameras.ts",
-      "source_location": "L74",
+      "source_location": "L66",
       "_origin": "ast",
       "id": "routes_cameras_camerasroutes",
       "community": 29,
@@ -3089,7 +3089,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "routes_events",
-      "community": 22,
+      "community": 21,
       "norm_label": "events.ts"
     },
     {
@@ -3099,7 +3099,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "routes_events_eventsroutes",
-      "community": 22,
+      "community": 21,
       "norm_label": "eventsroutes()"
     },
     {
@@ -3139,7 +3139,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "routes_internal",
-      "community": 18,
+      "community": 13,
       "norm_label": "internal.ts"
     },
     {
@@ -3149,7 +3149,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "routes_internal_internalroutes",
-      "community": 18,
+      "community": 13,
       "norm_label": "internalroutes()"
     },
     {
@@ -3169,7 +3169,7 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_schemas_eventtypeenum",
-      "community": 29,
+      "community": 22,
       "norm_label": "eventtypeenum"
     },
     {
@@ -3179,7 +3179,7 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_schemas_severityenum",
-      "community": 22,
+      "community": 29,
       "norm_label": "severityenum"
     },
     {
@@ -3259,7 +3259,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_schemas_eventsquery",
-      "community": 22,
+      "community": 21,
       "norm_label": "eventsquery"
     },
     {
@@ -3319,7 +3319,7 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "src_schemas_eventidparams",
-      "community": 22,
+      "community": 21,
       "norm_label": "eventidparams"
     },
     {
@@ -3349,7 +3349,7 @@
       "source_location": "L99",
       "_origin": "ast",
       "id": "src_schemas_segmentbody",
-      "community": 18,
+      "community": 13,
       "norm_label": "segmentbody"
     },
     {
@@ -3359,7 +3359,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "streams_event_consumer",
-      "community": 18,
+      "community": 21,
       "norm_label": "event_consumer.ts"
     },
     {
@@ -10266,9 +10266,9 @@
       "source_file": "analyzer/detect/worker.py",
       "source_location": "L195",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "detect_worker_analyzerworker",
-      "target": "detect_worker_analyzerworker_camera_supervisor"
+      "target": "detect_worker_analyzerworker_camera_supervisor",
+      "confidence_score": 1.0
     },
     {
       "relation": "method",
@@ -10356,9 +10356,9 @@
       "source_file": "analyzer/detect/worker.py",
       "source_location": "L203",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "detect_worker_analyzerworker",
-      "target": "detect_worker_analyzerworker_sync_sources"
+      "target": "detect_worker_analyzerworker_sync_sources",
+      "confidence_score": 1.0
     },
     {
       "relation": "uses",
@@ -10574,9 +10574,9 @@
       "source_file": "analyzer/detect/worker.py",
       "source_location": "L204",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "detect_worker_analyzerworker_sync_sources",
-      "target": "detect_worker_analyzerworker_load_cameras"
+      "target": "detect_worker_analyzerworker_load_cameras",
+      "confidence_score": 1.0
     },
     {
       "relation": "uses",
@@ -10700,9 +10700,9 @@
       "source_file": "analyzer/detect/worker.py",
       "source_location": "L211",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "detect_worker_analyzerworker_sync_sources",
-      "target": "detect_worker_analyzerworker_make_source"
+      "target": "detect_worker_analyzerworker_make_source",
+      "confidence_score": 1.0
     },
     {
       "relation": "references",
@@ -10990,9 +10990,9 @@
       "source_file": "analyzer/detect/worker.py",
       "source_location": "L216",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "detect_worker_analyzerworker_sync_sources",
-      "target": "detect_worker_analyzerworker_consume"
+      "target": "detect_worker_analyzerworker_consume",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -11001,9 +11001,9 @@
       "source_file": "analyzer/detect/worker.py",
       "source_location": "L185",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "detect_worker_analyzerworker_run",
-      "target": "detect_worker_analyzerworker_camera_supervisor"
+      "target": "detect_worker_analyzerworker_camera_supervisor",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -11034,9 +11034,9 @@
       "source_file": "analyzer/detect/worker.py",
       "source_location": "L198",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "detect_worker_analyzerworker_camera_supervisor",
-      "target": "detect_worker_analyzerworker_sync_sources"
+      "target": "detect_worker_analyzerworker_sync_sources",
+      "confidence_score": 1.0
     },
     {
       "relation": "rationale_for",
@@ -11044,9 +11044,9 @@
       "source_file": "analyzer/detect/worker.py",
       "source_location": "L226",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "detect_worker_rationale_226",
-      "target": "detect_worker_analyzerworker_refresh_features"
+      "target": "detect_worker_analyzerworker_refresh_features",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -15719,9 +15719,9 @@
       "source_file": "api/package.json",
       "source_location": "L19",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "api_package_dependencies",
-      "target": "api_package_dependencies_fastify_multipart"
+      "target": "api_package_dependencies_fastify_multipart",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -17331,9 +17331,9 @@
       "source_file": "api/src/routes/cameras.ts",
       "source_location": "L15",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "routes_cameras",
-      "target": "routes_cameras_video_ext"
+      "target": "routes_cameras_video_ext",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports_from",
@@ -18683,9 +18683,9 @@
       "source_file": "scripts/diag-home.sh",
       "source_location": "L1",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "scripts_diag_home",
-      "target": "c_projects_aipvzanalityc_scripts_diag_home_sh__entry"
+      "target": "c_projects_aipvzanalityc_scripts_diag_home_sh__entry",
+      "confidence_score": 1.0
     },
     {
       "relation": "defines",
@@ -18693,9 +18693,9 @@
       "source_file": "scripts/diag-home.sh",
       "source_location": "L11",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "scripts_diag_home",
-      "target": "scripts_diag_home_line"
+      "target": "scripts_diag_home_line",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -18704,9 +18704,9 @@
       "source_location": "L13",
       "weight": 1.0,
       "context": "call",
-      "confidence_score": 1.0,
       "source": "c_projects_aipvzanalityc_scripts_diag_home_sh__entry",
-      "target": "scripts_diag_home_line"
+      "target": "scripts_diag_home_line",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -21439,9 +21439,9 @@
       "source_file": "web/app/admin/video/page.tsx",
       "source_location": "L8",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "video_page",
-      "target": "lib_api_getsites"
+      "target": "lib_api_getsites",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -21461,9 +21461,9 @@
       "source_file": "web/app/admin/video/page.tsx",
       "source_location": "L8",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "video_page",
-      "target": "lib_api_uploadvideocamera"
+      "target": "lib_api_uploadvideocamera",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports_from",
@@ -21579,9 +21579,9 @@
       "source_file": "web/app/api/auth/login/route.ts",
       "source_location": "L9",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "login_route",
-      "target": "login_route_seeother"
+      "target": "login_route_seeother",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -21590,9 +21590,9 @@
       "source_file": "web/app/api/auth/login/route.ts",
       "source_location": "L24",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "login_route_post",
-      "target": "login_route_seeother"
+      "target": "login_route_seeother",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -24050,9 +24050,9 @@
       "source_file": "web/lib/api.ts",
       "source_location": "L99",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "lib_api",
-      "target": "lib_api_uploadvideocamera"
+      "target": "lib_api_uploadvideocamera",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -24083,9 +24083,9 @@
       "source_file": "web/lib/api.ts",
       "source_location": "L105",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "lib_api_uploadvideocamera",
-      "target": "lib_api_gettoken"
+      "target": "lib_api_gettoken",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -24496,9 +24496,9 @@
       "source_file": "web/middleware.ts",
       "source_location": "L18",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "web_middleware",
-      "target": "web_middleware_redirect"
+      "target": "web_middleware_redirect",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -24528,9 +24528,9 @@
       "source_file": "web/middleware.ts",
       "source_location": "L28",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "web_middleware_middleware",
-      "target": "web_middleware_redirect"
+      "target": "web_middleware_redirect",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -26321,5 +26321,5 @@
       "source_file": "CLAUDE.md"
     }
   ],
-  "built_at_commit": "1e73c7d85573b7e9ee79e73b8a00dccd392e6d01"
+  "built_at_commit": "e71ea537c6300f9c99aa6989a8c0b1c35f25678e"
 }

@@ -1,11 +1,18 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import type Redis from 'ioredis'
 import { and, eq } from 'drizzle-orm'
+import { randomUUID } from 'node:crypto'
+import { createWriteStream } from 'node:fs'
+import { mkdir, unlink } from 'node:fs/promises'
+import { pipeline } from 'node:stream/promises'
+import path from 'node:path'
 import { db } from '../db/client.js'
 import { camera, site, zone } from '../../db/schema.js'
 import { config } from '../config.js'
 import { writeAudit } from '../audit.js'
 import { CameraIdParams, CreateCameraBody, CreateZoneBody, UpdateCameraBody } from '../schemas.js'
+
+const VIDEO_EXT = new Set(['.mp4', '.mkv', '.avi', '.mov', '.webm', '.m4v'])
 
 /** Verify a camera belongs to the caller's tenant. */
 async function ownsCamera(tenantId: string, cameraId: string): Promise<boolean> {
@@ -67,6 +74,70 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
     }).from(camera).innerJoin(site, eq(camera.siteId, site.id))
       .where(eq(site.tenantId, req.tenantId))
     return { items: rows }
+  })
+
+  // Upload a test video → save to the shared dir the analyzer reads, then
+  // create a `file` camera pointing at it. The analyzer's camera supervisor
+  // picks it up on its next refresh (no worker restart needed).
+  app.post('/cameras/upload', {
+    preHandler: [app.requireRole('super', 'admin')],
+  }, async (req, reply) => {
+    let siteId = ''
+    let name = ''
+    let savedUrl: string | null = null
+    let savedDest: string | null = null
+
+    try {
+      for await (const part of req.parts()) {
+        if (part.type === 'field') {
+          if (part.fieldname === 'site_id') siteId = String(part.value)
+          else if (part.fieldname === 'name') name = String(part.value)
+        } else if (part.type === 'file') {
+          const ext = path.extname(part.filename || '').toLowerCase()
+          if (!VIDEO_EXT.has(ext)) {
+            part.file.resume() // drain so the request can complete
+            return reply.code(400).send({ message: `unsupported video type: ${ext || 'none'}` })
+          }
+          await mkdir(config.TESTVIDEO_DIR, { recursive: true })
+          const fname = `${randomUUID()}${ext}`
+          savedDest = path.join(config.TESTVIDEO_DIR, fname)
+          await pipeline(part.file, createWriteStream(savedDest))
+          if (part.file.truncated) {
+            await unlink(savedDest).catch(() => undefined)
+            return reply.code(413).send({ message: 'file exceeds upload size limit' })
+          }
+          // analyzer sees the same dir at TESTVIDEO_DIR (its /data mount)
+          savedUrl = `${config.TESTVIDEO_DIR}/${fname}`
+        }
+      }
+    } catch (err) {
+      if (savedDest) await unlink(savedDest).catch(() => undefined)
+      throw err
+    }
+
+    if (!savedUrl) return reply.code(400).send({ message: 'no video file in request' })
+
+    const [s] = await db.select({ id: site.id }).from(site)
+      .where(and(eq(site.id, siteId), eq(site.tenantId, req.tenantId))).limit(1)
+    if (!s) {
+      if (savedDest) await unlink(savedDest).catch(() => undefined)
+      return reply.code(400).send({ message: 'site not in tenant' })
+    }
+
+    const [row] = await db.insert(camera).values({
+      siteId,
+      name: name.trim() || 'Загруженное видео',
+      sourceType: 'file',
+      urlSub: savedUrl,
+      status: 'online',
+    }).returning()
+
+    await syncCameras(app, req.tenantId)
+    await writeAudit({
+      tenantId: req.tenantId, userId: req.userId, action: 'camera.upload',
+      resourceType: 'camera', resourceId: row!.id, details: { name: row!.name },
+    })
+    return reply.code(201).send(row)
   })
 
   app.post('/cameras', {

@@ -94,6 +94,35 @@ export async function deleteCamera(id: string): Promise<void> {
   if (!res.ok) throw new Error(`deleteCamera: ${res.status}`)
 }
 
+// Upload a test video → server creates a `file` camera the analyzer runs.
+// Uses XHR (not fetch) to surface upload progress for large files.
+export async function uploadVideoCamera(
+  file: File,
+  siteId: string,
+  name: string,
+  onProgress?: (pct: number) => void,
+): Promise<void> {
+  const token = await getToken()
+  const form = new FormData()
+  form.append('site_id', siteId)
+  form.append('name', name)
+  form.append('file', file)
+  await new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', '/api/v1/cameras/upload')
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+    xhr.upload.onprogress = (e): void => {
+      if (onProgress && e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100))
+    }
+    xhr.onload = (): void => {
+      if (xhr.status >= 200 && xhr.status < 300) resolve()
+      else reject(new Error(`upload ${xhr.status}: ${xhr.responseText}`))
+    }
+    xhr.onerror = (): void => reject(new Error('upload failed (network)'))
+    xhr.send(form)
+  })
+}
+
 export async function getSnapshotObjectUrl(cameraId: string): Promise<string> {
   const res = await apiFetch(`/api/v1/cameras/${cameraId}/snapshot`)
   if (!res.ok) throw new Error(`snapshot: ${res.status}`)

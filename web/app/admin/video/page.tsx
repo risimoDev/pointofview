@@ -1,11 +1,11 @@
 'use client'
 
 import type * as React from 'react'
-import { useEffect, useRef, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { IconPlayerPlay, IconUpload, IconBolt } from '@tabler/icons-react'
 import { EventType, Severity } from '@shared/events.schema'
-import { getCameras, simulateEvent } from '@/lib/api'
+import { getCameras, getSites, simulateEvent, uploadVideoCamera } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import {
@@ -16,19 +16,34 @@ const EVENT_TYPES = EventType.options
 const SEVERITIES = Severity.options
 
 export default function VideoTestPage(): React.JSX.Element {
+  const qc = useQueryClient()
   const cameras = useQuery({ queryKey: ['cameras'], queryFn: getCameras })
+  const sites = useQuery({ queryKey: ['sites'], queryFn: getSites })
 
-  const [videoUrl, setVideoUrl] = useState<string | null>(null)
-  const prevUrl = useRef<string | null>(null)
-  const onFile = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    const f = e.target.files?.[0]
-    if (!f) return
-    if (prevUrl.current) URL.revokeObjectURL(prevUrl.current)
-    const url = URL.createObjectURL(f)
-    prevUrl.current = url
-    setVideoUrl(url)
+  // ── upload video → file camera ──
+  const [file, setFile] = useState<File | null>(null)
+  const [upName, setUpName] = useState('')
+  const [siteId, setSiteId] = useState('')
+  const [progress, setProgress] = useState<number | null>(null)
+  const [upMsg, setUpMsg] = useState<string | null>(null)
+  useEffect(() => {
+    if (!siteId && sites.data && sites.data.length > 0) setSiteId(sites.data[0]!.id)
+  }, [sites.data, siteId])
+
+  const doUpload = async (): Promise<void> => {
+    if (!file || !siteId) return
+    setUpMsg(null); setProgress(0)
+    try {
+      await uploadVideoCamera(file, siteId, upName || file.name, (p) => setProgress(p))
+      setProgress(null)
+      setUpMsg('Готово — камера создана, analyzer подхватит её в течение ~30с')
+      setFile(null); setUpName('')
+      await qc.invalidateQueries({ queryKey: ['cameras'] })
+    } catch (e) {
+      setProgress(null)
+      setUpMsg(e instanceof Error ? e.message : 'Ошибка загрузки')
+    }
   }
-  useEffect(() => () => { if (prevUrl.current) URL.revokeObjectURL(prevUrl.current) }, [])
 
   const [cameraId, setCameraId] = useState('')
   const [type, setType] = useState<string>('crowd')
@@ -71,22 +86,61 @@ export default function VideoTestPage(): React.JSX.Element {
         <h1 className="font-display text-lg font-semibold tracking-tight">Видео-тесты</h1>
       </div>
       <p className="text-sm text-muted-foreground">
-        Фаза 1 — локальная симуляция: видео проигрывается в браузере, а события
-        вбрасываются в реальный конвейер (Redis → consumer → БД → WebSocket → дашборд,
-        и alerts-воркер, если есть правило). Серверная загрузка в MinIO и реальный
-        прогон analyzer (YOLO) — фаза 2, на сервере с GPU.
+        Загрузи видеофайл — сервер сохранит его и создаст камеру-источник типа
+        <span className="font-mono"> file</span>, которую реальный analyzer (YOLO) прогонит
+        на GPU. Ниже — симулятор событий для проверки конвейера без видео.
       </p>
 
-      {/* Video */}
-      <section className="space-y-2">
-        <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-border/70 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
-          <IconUpload className="h-4 w-4" stroke={1.75} />
-          Загрузить видео
-          <input type="file" accept="video/*" className="hidden" onChange={onFile} />
-        </label>
-        {videoUrl
-          ? <video src={videoUrl} controls className="w-full max-w-2xl rounded-lg ring-1 ring-border/60" />
-          : <div className="flex h-48 max-w-2xl items-center justify-center rounded-lg border border-dashed border-border/70 text-sm text-muted-foreground">Видео не выбрано</div>}
+      {/* Upload video → file camera */}
+      <section className="space-y-3 rounded-lg border border-border/70 bg-card/40 p-4">
+        <h2 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <IconUpload className="h-4 w-4 text-brand" stroke={1.75} /> Загрузить видео как камеру
+        </h2>
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="space-y-1">
+            <Label>Файл</Label>
+            <input
+              type="file" accept="video/*"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              className="block text-sm text-muted-foreground file:mr-2 file:rounded-md file:border file:border-border/70 file:bg-transparent file:px-3 file:py-1.5 file:text-sm file:text-foreground hover:file:bg-accent"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>Название</Label>
+            <input
+              value={upName} onChange={(e) => setUpName(e.target.value)}
+              placeholder={file?.name ?? 'Камера'}
+              className="h-9 w-52 rounded-md border border-border/70 bg-transparent px-3 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>Точка (site)</Label>
+            <Select value={siteId} onValueChange={setSiteId}>
+              <SelectTrigger className="w-52"><SelectValue placeholder="Точка" /></SelectTrigger>
+              <SelectContent>
+                {sites.data?.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button
+            disabled={!file || !siteId || progress !== null}
+            onClick={() => void doUpload()}
+          >
+            {progress !== null ? `Загрузка ${progress}%` : 'Загрузить'}
+          </Button>
+        </div>
+        {progress !== null && (
+          <div className="h-1.5 w-full max-w-lg overflow-hidden rounded bg-border/40">
+            <div className="h-full bg-brand transition-all" style={{ width: `${progress}%` }} />
+          </div>
+        )}
+        {upMsg && <p className="text-xs text-muted-foreground">{upMsg}</p>}
+        <p className="text-xs text-muted-foreground">
+          Большой файл (часовое видео) надёжнее закинуть на сервер по SSH в
+          <span className="font-mono"> /mnt/data/testvideo/</span> и создать file-камеру
+          в разделе «Камеры» — загрузка через браузер идёт по VPN-туннелю и на больших
+          файлах может оборваться.
+        </p>
       </section>
 
       {/* Event simulator */}

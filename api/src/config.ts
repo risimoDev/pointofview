@@ -36,6 +36,11 @@ const EnvSchema = z.object({
   // Alerts
   TELEGRAM_BOT_TOKEN: z.string().default(''),
   MINIO_BUCKET_SNAPSHOTS: z.string().default('snapshots'),
+
+  // Test-video upload → shared dir also mounted read-only into the analyzer.
+  // A `file` camera gets url_sub = <TESTVIDEO_DIR>/<uuid>.<ext>.
+  TESTVIDEO_DIR: z.string().default('/data'),
+  UPLOAD_MAX_BYTES: z.coerce.number().default(5 * 1024 * 1024 * 1024), // 5 GB
 })
 
 export const config = EnvSchema.parse(process.env)

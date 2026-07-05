@@ -20,8 +20,8 @@
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "analyzer/detect/worker.py": {
-    "mtime": 1783272198.275999,
-    "ast_hash": "e90642b68e937c6a5f30a55fc0b5620a",
+    "mtime": 1781572644.6008167,
+    "ast_hash": "d6bf767ca87ae9700193f433329705af",
     "semantic_hash": ""
   },
   "analyzer/ingest/__init__.py": {
@@ -65,13 +65,13 @@
     "semantic_hash": "fb0b0b056652ccdf48d942c85d746291"
   },
   "api/package.json": {
-    "mtime": 1783272214.0308392,
-    "ast_hash": "396e195d26040b5ca35a31eac6c41e12",
+    "mtime": 1781724473.8300302,
+    "ast_hash": "a4b41f952c5d5e6d0a61097f38038c2d",
     "semantic_hash": ""
   },
   "api/src/config.ts": {
-    "mtime": 1783272256.9336514,
-    "ast_hash": "43fbf07171c54c8a7573ad5222d23c72",
+    "mtime": 1783032287.0295496,
+    "ast_hash": "a70b7df28e298040c75f2ba954c1de0f",
     "semantic_hash": ""
   },
   "api/src/db/client.ts": {
@@ -80,8 +80,8 @@
     "semantic_hash": "d057a4e9ca0f51bef8627b1e42617485"
   },
   "api/src/index.ts": {
-    "mtime": 1783272239.297897,
-    "ast_hash": "268853183b1b73415fb9732c687338ae",
+    "mtime": 1783032325.0930333,
+    "ast_hash": "eea4d0ec5cecd996e06fbe69364ea650",
     "semantic_hash": ""
   },
   "api/src/minio.ts": {
@@ -115,8 +115,8 @@
     "semantic_hash": ""
   },
   "api/src/routes/cameras.ts": {
-    "mtime": 1783272293.8645077,
-    "ast_hash": "dee50cf624934feef0e90a7c7657ee09",
+    "mtime": 1781752289.3024354,
+    "ast_hash": "3c51af68aa110e4bc65bc8cd3fae5c9a",
     "semantic_hash": ""
   },
   "api/src/routes/events.ts": {
@@ -160,8 +160,8 @@
     "semantic_hash": "bbc5e8c80ed9cece90dec3970fa7392b"
   },
   "infra/nginx/locations.inc": {
-    "mtime": 1783214573.993757,
-    "ast_hash": "3ff8d48bfca5984e4039e6c317cedb07",
+    "mtime": 1783165971.6686997,
+    "ast_hash": "62397661365abe99a952cea3da6b3584",
     "semantic_hash": ""
   },
   "infra/postgres/init.sql": {
@@ -170,8 +170,8 @@
     "semantic_hash": ""
   },
   "scripts/deploy.sh": {
-    "mtime": 1783217640.5713954,
-    "ast_hash": "fa0e477f0f54c3edeafecfc5a51d80fc",
+    "mtime": 1783167501.774773,
+    "ast_hash": "ecbfeb9d0b7f8017468dd3e8abebef27",
     "semantic_hash": ""
   },
   "scripts/init.sh": {
@@ -185,8 +185,8 @@
     "semantic_hash": ""
   },
   "scripts/update.sh": {
-    "mtime": 1783217660.6287735,
-    "ast_hash": "f5f67611bc52ff44b22e2b84790ef2d9",
+    "mtime": 1783167553.8627498,
+    "ast_hash": "e8398514bedb3e005768161f4ea9cfba",
     "semantic_hash": ""
   },
   "shared/events.schema.json": {
@@ -205,14 +205,14 @@
     "semantic_hash": ""
   },
   "web/app/api/auth/login/route.ts": {
-    "mtime": 1783218579.7092214,
-    "ast_hash": "b5ed766c560a5b8cf2928ef16cb2e568",
-    "semantic_hash": ""
+    "mtime": 1781132996.223838,
+    "ast_hash": "ddeadb2c94ae3c422680bac2961cece7",
+    "semantic_hash": "ddeadb2c94ae3c422680bac2961cece7"
   },
   "web/app/api/auth/logout/route.ts": {
-    "mtime": 1783218587.0296597,
-    "ast_hash": "e9ed04a334ec5153ddd99429820fe778",
-    "semantic_hash": ""
+    "mtime": 1781132999.5921674,
+    "ast_hash": "e9b374292cd6b892270afb5dd2951818",
+    "semantic_hash": "e9b374292cd6b892270afb5dd2951818"
   },
   "web/app/api/auth/token/route.ts": {
     "mtime": 1781132998.5605626,
@@ -310,8 +310,8 @@
     "semantic_hash": "e248c85d0539a5cf875f95a9b468a8df"
   },
   "web/lib/api.ts": {
-    "mtime": 1783272383.7940974,
-    "ast_hash": "b1f02945ab32a9b8afabf42042f5693d",
+    "mtime": 1781750692.4302392,
+    "ast_hash": "fb252929ed1d1af5f001a167b58f7ec1",
     "semantic_hash": ""
   },
   "web/lib/utils.ts": {
@@ -320,8 +320,8 @@
     "semantic_hash": "29a85703c58a9889341b1eb10dac5f05"
   },
   "web/middleware.ts": {
-    "mtime": 1783218599.4261389,
-    "ast_hash": "f98eeb90fda21e753e4f590b928ead86",
+    "mtime": 1781744755.0526705,
+    "ast_hash": "681c3a0e2f63bbc0eaeeff0a9f800103",
     "semantic_hash": ""
   },
   "web/next-env.d.ts": {
@@ -490,8 +490,8 @@
     "semantic_hash": ""
   },
   "web/app/admin/video/page.tsx": {
-    "mtime": 1783272434.2796,
-    "ast_hash": "45ffb2da5f1cf5bda98f9befa0470174",
+    "mtime": 1781750028.2065125,
+    "ast_hash": "f72a0601c983710928f3cb5553d020ee",
     "semantic_hash": ""
   },
   "web/app/settings/cameras/page.tsx": {
@@ -530,8 +530,8 @@
     "semantic_hash": ""
   },
   "infra/docker-compose.prod.yml": {
-    "mtime": 1783272325.389614,
-    "ast_hash": "ba0e3cb35f7008f9d5ed398be3b3cae3",
+    "mtime": 1783032378.8290846,
+    "ast_hash": "bb7d7cb1a02e571838eb07db0616457e",
     "semantic_hash": ""
   },
   "infra/go2rtc/go2rtc.prod.yaml": {
@@ -547,11 +547,6 @@
   "scripts/wg-watchdog.sh": {
     "mtime": 1783171644.246272,
     "ast_hash": "5ac7d94bae405431dffb8091fe93a120",
-    "semantic_hash": ""
-  },
-  "scripts/diag-home.sh": {
-    "mtime": 1783217123.4160073,
-    "ast_hash": "df4f4ad7813653695bdc65b2d59de787",
     "semantic_hash": ""
   }
 }

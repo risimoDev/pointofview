@@ -1,5 +1,6 @@
 import Fastify from 'fastify'
 import websocket from '@fastify/websocket'
+import multipart from '@fastify/multipart'
 import {
   serializerCompiler,
   validatorCompiler,
@@ -39,6 +40,8 @@ async function main(): Promise<void> {
   await app.register(authPlugin)
   app.decorate('redis', redisCmd)
   await app.register(websocket)
+  // test-video upload (admin): stream large files straight to disk
+  await app.register(multipart, { limits: { fileSize: config.UPLOAD_MAX_BYTES, files: 1 } })
 
   // liveness probe for docker healthcheck / edge monitoring
   app.get('/api/v1/health', async () => {

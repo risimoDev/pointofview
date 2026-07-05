@@ -89,8 +89,12 @@ services:
       CLIP_POST_ROLL_SEC: ${CLIP_POST_ROLL_SEC}
       CLIP_WATERMARK: ${CLIP_WATERMARK}
       ARCHIVE_ROOT: /archive
+      # uploaded test videos land here; analyzer mounts the same dir at /data
+      TESTVIDEO_DIR: /data
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    volumes:
+      - ${DATA_ROOT}/testvideo:/data
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -160,6 +164,9 @@ services:
       INTERNAL_TOKEN: ${INTERNAL_TOKEN}
     volumes:
       - yolo_cache:/root/.cache
+      # test/file-source videos: a `file` camera with url /data/<name>.mp4
+      # reads from here (empty dir is harmless if unused)
+      - ${DATA_ROOT}/testvideo:/data:ro
     depends_on:
       redis: { condition: service_healthy }
     deploy:

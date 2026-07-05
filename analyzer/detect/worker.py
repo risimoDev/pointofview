@@ -44,6 +44,7 @@ class AnalyzerWorker:
         self._infer_pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="yolo")
         self._trackers: dict[str, sv.ByteTrack] = {}
         self._site_by_camera: dict[str, str] = {}
+        self._tasks: dict[str, asyncio.Task[None]] = {}  # camera_id → consumer
         self.zones = ZoneEngine(self.redis, settings)
         self.plugins = PluginManager(settings, self.redis)
 
@@ -51,8 +52,7 @@ class AnalyzerWorker:
     async def _load_cameras(self) -> list[CameraConfig]:
         raw = await self.redis.get(f"cameras:{self.settings.tenant_id}")
         if not raw:
-            logger.warning("no cameras for tenant %s", self.settings.tenant_id)
-            return []
+            return []  # supervisor re-checks periodically; no spammy warning
         return [CameraConfig.model_validate(c) for c in json.loads(raw)]
 
     def _make_source(self, cfg: CameraConfig) -> VideoSource:
@@ -174,31 +174,53 @@ class AnalyzerWorker:
             logger.exception("camera %s: consumer crashed", source.camera_id)
 
     async def run(self) -> None:
-        # Idle-wait for the first camera instead of exiting — otherwise a fresh
-        # deployment with zero cameras exits immediately and docker's
-        # restart policy turns that into a tight crash/restart loop.
-        cameras = await self._load_cameras()
-        while not cameras:
-            logger.info(
-                "no cameras for tenant %s; idling, re-checking in %ss",
-                self.settings.tenant_id, self.settings.zone_refresh_seconds,
-            )
-            await asyncio.sleep(self.settings.zone_refresh_seconds)
-            cameras = await self._load_cameras()
-
-        sources = [self._make_source(c) for c in cameras]
-
-        await self.zones.load_zones([c.id for c in cameras])
+        # Long-lived supervisor: never exits on zero cameras (a fresh deploy
+        # would otherwise exit → docker restart loop). Per-camera consumers are
+        # started/stopped as the cameras:{tenant} set changes, so admin
+        # add/remove/upload takes effect without restarting the worker.
         await self.plugins.load_features()
-        refresh_task = asyncio.create_task(self.zones.run_refresh())
-        feature_task = asyncio.create_task(self._refresh_features())
-
-        logger.info("starting %d camera source(s)", len(sources))
+        bg = [
+            asyncio.create_task(self.zones.run_refresh()),
+            asyncio.create_task(self._refresh_features()),
+            asyncio.create_task(self._camera_supervisor()),
+        ]
         try:
-            await asyncio.gather(*(self._consume(s) for s in sources))
+            await asyncio.gather(*bg)
         finally:
-            refresh_task.cancel()
-            feature_task.cancel()
+            for t in bg:
+                t.cancel()
+            for t in list(self._tasks.values()):
+                t.cancel()
+
+    async def _camera_supervisor(self) -> None:
+        while True:
+            try:
+                await self._sync_sources()
+            except Exception:  # noqa: BLE001
+                logger.exception("camera sync failed")
+            await asyncio.sleep(self.settings.zone_refresh_seconds)
+
+    async def _sync_sources(self) -> None:
+        wanted = {c.id: c for c in await self._load_cameras()}
+
+        for cam_id, cfg in wanted.items():
+            task = self._tasks.get(cam_id)
+            if task and not task.done():
+                continue  # already running
+            try:
+                source = self._make_source(cfg)
+            except ValueError:
+                logger.exception("camera %s: bad config, skipping", cam_id)
+                continue
+            await self.zones.load_zones([cam_id])
+            self._tasks[cam_id] = asyncio.create_task(self._consume(source))
+            logger.info("camera %s: started (%s)", cam_id, cfg.source_type)
+
+        for cam_id in list(self._tasks):
+            if cam_id not in wanted:
+                self._tasks[cam_id].cancel()
+                del self._tasks[cam_id]
+                logger.info("camera %s: removed, stopped", cam_id)
 
     async def _refresh_features(self) -> None:
         """Re-read enabled features so admin toggles apply without a restart.

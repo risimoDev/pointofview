@@ -17,7 +17,7 @@ server {
     ssl_certificate     /etc/letsencrypt/live/xn----7sbbhzo1afsm0d.xn--p1ai/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/xn----7sbbhzo1afsm0d.xn--p1ai/privkey.pem;
 
-    client_max_body_size 200m;
+    client_max_body_size 5g;   # test-video uploads (admin) can be large
 
     location / {
         proxy_pass http://10.9.0.2:80;

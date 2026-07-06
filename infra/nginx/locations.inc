@@ -28,9 +28,13 @@ location /api/v1 {
   proxy_set_header X-Forwarded-Proto $scheme;
 }
 
+# go2rtc lives on the host (network_mode: host), reached via the host gateway.
+# Unlike api/web, host.docker.internal is a STABLE address resolved from
+# /etc/hosts (extra_hosts) at startup — so use a literal upstream here. A
+# variable would force resolution through `resolver 127.0.0.11` (docker DNS),
+# which doesn't know host.docker.internal → 502 on WebRTC signaling.
 location /go2rtc/ {
-  set $upstream_go2rtc host.docker.internal:1984;
-  proxy_pass http://$upstream_go2rtc/;
+  proxy_pass http://host.docker.internal:1984/;
   proxy_http_version 1.1;
   proxy_set_header Upgrade $http_upgrade;
   proxy_set_header Connection $connection_upgrade;

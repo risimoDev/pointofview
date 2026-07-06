@@ -41,11 +41,13 @@ async function registerGo2rtc(
   cameraId: string, src: string | null, sourceType?: string,
 ): Promise<void> {
   if (!src) return
-  // A `file` source isn't a live stream: wrap it so go2rtc reads it via ffmpeg,
-  // transcodes to h264 (required for WebRTC) and loops endlessly at real-time
-  // rate. go2rtc must have the file mounted at the same path (its /data mount).
+  // A `file` source isn't a live stream: wrap it so go2rtc reads it via ffmpeg
+  // and transcodes to h264 (required for WebRTC). `#input=file` is go2rtc's
+  // built-in template (-re -stream_loop -1 -i ...) — passing those flags inline
+  // is rejected by go2rtc ("source with spaces may be insecure"). go2rtc must
+  // have the file mounted at the same path (its /data mount).
   const streamSrc = sourceType === 'file'
-    ? `ffmpeg:${src}#video=h264#input=-re -stream_loop -1`
+    ? `ffmpeg:${src}#video=h264#input=file`
     : src
   const url = `${config.GO2RTC_URL}/api/streams?name=${encodeURIComponent(cameraId)}`
     + `&src=${encodeURIComponent(streamSrc)}`
@@ -219,6 +221,14 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
     }
     await db.delete(camera).where(eq(camera.id, id))
     await syncCameras(app, req.tenantId)
+    // clean up per-camera Redis state so the dashboard doesn't keep a ghost row
+    await app.redis.hdel(`occupancy:${req.tenantId}`, id)
+    await app.redis.del(`zones:${id}`)
+    try {
+      await fetch(`${config.GO2RTC_URL}/api/streams?src=${encodeURIComponent(id)}`, { method: 'DELETE' })
+    } catch {
+      // go2rtc may be down; stream will be replaced on next onboarding anyway
+    }
     await writeAudit({
       tenantId: req.tenantId, userId: req.userId, action: 'camera.delete',
       resourceType: 'camera', resourceId: id,

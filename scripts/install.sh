@@ -78,6 +78,11 @@ ufw allow from 10.9.0.0/24 to any port 80 proto tcp
 ufw allow from 10.9.0.0/24 to any port 9000 proto tcp
 ufw allow from 10.9.0.0/24 to any port 8555
 ufw allow from 10.9.0.0/24 to any port 1984 proto tcp
+# go2rtc runs on host-network; the api/nginx containers reach it through the
+# host gateway with a docker-bridge source IP (172.16/12), which the WG-only
+# rule above would drop. Allow docker subnets → go2rtc api. 172.16/12 is
+# private/non-routable, so this doesn't expose it to the internet.
+ufw allow from 172.16.0.0/12 to any port 1984 proto tcp
 ufw --force enable
 
 # 6. docker group for the invoking user ---------------------------------------

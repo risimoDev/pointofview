@@ -2,7 +2,7 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import type Redis from 'ioredis'
 import { eq } from 'drizzle-orm'
 import { db } from '../db/client.js'
-import { tenantFeature } from '../../db/schema.js'
+import { camera, site, tenantFeature } from '../../db/schema.js'
 import { writeAudit } from '../audit.js'
 import { FeatureParams, UpsertFeatureBody } from '../schemas.js'
 
@@ -60,10 +60,20 @@ const featuresRoutes: FastifyPluginAsyncZod = async (app) => {
     preHandler: [app.authenticate],
   }, async (req) => {
     const raw = await app.redis.hgetall(`occupancy:${req.tenantId}`)
-    const items = Object.entries(raw).map(([cameraId, json]) => {
-      const v = JSON.parse(json) as { occupancy: number; visitors: number; ts: number }
-      return { cameraId, occupancy: v.occupancy, visitors: v.visitors, ts: v.ts }
-    })
+    // only surface cameras that still exist — deleting a camera used to leave a
+    // stale occupancy row that kept showing on the dashboard
+    const live = await db.select({ id: camera.id }).from(camera)
+      .innerJoin(site, eq(camera.siteId, site.id))
+      .where(eq(site.tenantId, req.tenantId))
+    const liveIds = new Set(live.map((c) => c.id))
+    const stale = Object.keys(raw).filter((id) => !liveIds.has(id))
+    if (stale.length > 0) await app.redis.hdel(`occupancy:${req.tenantId}`, ...stale)
+    const items = Object.entries(raw)
+      .filter(([cameraId]) => liveIds.has(cameraId))
+      .map(([cameraId, json]) => {
+        const v = JSON.parse(json) as { occupancy: number; visitors: number; ts: number }
+        return { cameraId, occupancy: v.occupancy, visitors: v.visitors, ts: v.ts }
+      })
     return { items }
   })
 }

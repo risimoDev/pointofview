@@ -1,62 +1,33 @@
 'use client'
 
 import type * as React from 'react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useEventsStore } from '@/store/events.store'
 import type { Camera } from '@shared/events.schema'
 
 const CRITICAL_BLINK_MS = 3000
 
-function waitIceGathering(pc: RTCPeerConnection): Promise<void> {
-  if (pc.iceGatheringState === 'complete') return Promise.resolve()
-  return new Promise((resolve) => {
-    const check = (): void => {
-      if (pc.iceGatheringState === 'complete') {
-        pc.removeEventListener('icegatheringstatechange', check)
-        resolve()
-      }
-    }
-    pc.addEventListener('icegatheringstatechange', check)
-    setTimeout(resolve, 2000) // fallback: don't block forever
-  })
-}
-
-async function startWhep(cameraId: string, video: HTMLVideoElement): Promise<RTCPeerConnection> {
-  const pc = new RTCPeerConnection()
-  pc.addTransceiver('video', { direction: 'recvonly' })
-  pc.addTransceiver('audio', { direction: 'recvonly' })
-  pc.ontrack = (e) => { video.srcObject = e.streams[0] ?? null }
-
-  const offer = await pc.createOffer()
-  await pc.setLocalDescription(offer)
-  await waitIceGathering(pc)
-
-  const res = await fetch(`/go2rtc/api/webrtc?src=${encodeURIComponent(cameraId)}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/sdp' },
-    body: pc.localDescription?.sdp ?? offer.sdp ?? '',
-  })
-  const answer = await res.text()
-  await pc.setRemoteDescription({ type: 'answer', sdp: answer })
-  return pc
+// MJPEG over the go2rtc HTTP proxy: works on every browser/device (incl. iOS
+// Safari, which supports neither MSE nor reliable WebRTC here) and reuses the
+// same nginx path snapshots already go through — no WebRTC/ICE/:8555 needed.
+// Higher bandwidth than WebRTC; a codec-negotiated player is a later optimization.
+function streamUrl(cameraId: string, nonce: number): string {
+  return `/go2rtc/api/stream.mjpeg?src=${encodeURIComponent(cameraId)}&_=${nonce}`
 }
 
 function CameraTile({ camera }: { camera: Camera }): React.JSX.Element {
-  const videoRef = useRef<HTMLVideoElement>(null)
   const [blink, setBlink] = useState(false)
+  const [nonce, setNonce] = useState(() => Date.now())
+  const [failed, setFailed] = useState(false)
   const lastEvent = useEventsStore((s) => s.lastByCamera[camera.id])
 
+  // retry a dropped MJPEG connection with a fresh nonce
   useEffect(() => {
-    const video = videoRef.current
-    if (!video) return
-    let pc: RTCPeerConnection | null = null
-    let cancelled = false
-    startWhep(camera.id, video)
-      .then((p) => { if (cancelled) p.close(); else pc = p })
-      .catch(() => undefined)
-    return () => { cancelled = true; pc?.close() }
-  }, [camera.id])
+    if (!failed) return
+    const t = setTimeout(() => { setFailed(false); setNonce(Date.now()) }, 3000)
+    return () => clearTimeout(t)
+  }, [failed])
 
   useEffect(() => {
     if (lastEvent?.severity === 'critical') {
@@ -69,7 +40,19 @@ function CameraTile({ camera }: { camera: Camera }): React.JSX.Element {
 
   return (
     <div className={cn('relative aspect-video overflow-hidden rounded-lg bg-black ring-1 ring-border/60', blink && 'animate-blink-red')}>
-      <video ref={videoRef} autoPlay muted playsInline className="h-full w-full object-contain" />
+      {failed ? (
+        <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+          нет сигнала — переподключение…
+        </div>
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={streamUrl(camera.id, nonce)}
+          alt={camera.name}
+          className="h-full w-full object-contain"
+          onError={() => setFailed(true)}
+        />
+      )}
       <div className="absolute inset-x-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent p-2 text-xs text-white">
         <span className="font-medium tracking-tight">{camera.name}</span>
         <span className={cn('flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium',

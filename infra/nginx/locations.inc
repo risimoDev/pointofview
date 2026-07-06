@@ -39,6 +39,11 @@ location /go2rtc/ {
   proxy_set_header Upgrade $http_upgrade;
   proxy_set_header Connection $connection_upgrade;
   proxy_set_header Host $host;
+  # MJPEG / WS are long-lived streams: nginx must not buffer them or it never
+  # flushes the (endless) response to the browser → blank <img>.
+  proxy_buffering off;
+  proxy_read_timeout 3600s;
+  proxy_send_timeout 3600s;
 }
 
 location / {

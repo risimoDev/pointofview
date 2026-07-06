@@ -26,13 +26,13 @@ export default function DashboardPage(): React.JSX.Element {
   )
 
   return (
-    <main className="flex h-[calc(100vh-3.5rem)] flex-col gap-3 p-4">
+    <main className="flex min-h-[calc(100vh-3.5rem)] flex-col gap-3 p-4 lg:h-[calc(100vh-3.5rem)]">
       <header className="flex items-center justify-between">
         <h1 className="font-display text-lg font-semibold tracking-tight">Дашборд</h1>
         <ToggleGroup type="single" value={cols} onValueChange={(v) => v && setCols(v)}>
           <ToggleGroupItem value="2">2×2</ToggleGroupItem>
-          <ToggleGroupItem value="3">3×3</ToggleGroupItem>
-          <ToggleGroupItem value="4">4×4</ToggleGroupItem>
+          <ToggleGroupItem value="3" className="hidden sm:flex">3×3</ToggleGroupItem>
+          <ToggleGroupItem value="4" className="hidden sm:flex">4×4</ToggleGroupItem>
         </ToggleGroup>
       </header>
 
@@ -62,11 +62,11 @@ export default function DashboardPage(): React.JSX.Element {
         </div>
       )}
 
-      <div className="grid flex-1 grid-cols-[1fr_320px] gap-3 overflow-hidden">
-        <div className="overflow-y-auto">
+      <div className="grid flex-1 grid-cols-1 gap-3 overflow-hidden lg:grid-cols-[1fr_320px]">
+        <div className="min-h-0 overflow-y-auto">
           <VideoGrid cameras={cameras} columns={Number(cols)} />
         </div>
-        <aside className="overflow-hidden">
+        <aside className="min-h-0 overflow-hidden lg:h-auto">
           <EventLog cameraNames={cameraNames} />
         </aside>
       </div>

@@ -42,46 +42,48 @@ export function AppNav(): React.JSX.Element | null {
   if (pathname === '/login' || pathname === '/') return null
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-1 border-b border-border/70 bg-background/80 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <Link href="/dashboard" className="mr-5 flex items-center gap-2">
+    <header className="sticky top-0 z-40 flex h-14 items-center gap-0.5 border-b border-border/70 bg-background/80 px-2 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:gap-1 sm:px-4">
+      <Link href="/dashboard" className="mr-1 flex shrink-0 items-center gap-2 sm:mr-4">
         <span className="flex h-7 w-7 items-center justify-center rounded-md bg-brand/10 text-brand ring-1 ring-brand/30">
           <IconShieldCheck className="h-4 w-4" stroke={1.9} />
         </span>
-        <span className="font-display text-base font-semibold tracking-tight">
+        <span className="hidden font-display text-base font-semibold tracking-tight sm:inline">
           BZK-VIZI<span className="text-brand">AI</span>
         </span>
       </Link>
 
-      <nav className="flex items-center gap-1">
+      <nav className="flex min-w-0 items-center gap-0.5 overflow-x-auto sm:gap-1">
         {NAV.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`)
           return (
             <Link
               key={href}
               href={href}
+              title={label}
               className={cn(
-                'flex items-center gap-2 rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
+                'flex shrink-0 items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:px-3',
                 active && 'bg-accent text-foreground',
               )}
             >
-              <Icon className="h-[18px] w-[18px]" stroke={1.75} />
-              {label}
+              <Icon className="h-[18px] w-[18px] shrink-0" stroke={1.75} />
+              <span className="hidden md:inline">{label}</span>
             </Link>
           )
         })}
       </nav>
 
-      <div className="ml-auto flex items-center gap-1">
+      <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
         {isSuper && (
           <Link
             href="/admin"
+            title="Админ"
             className={cn(
-              'flex items-center gap-2 rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
+              'flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:px-3',
               pathname.startsWith('/admin') && 'bg-accent text-foreground',
             )}
           >
-            <IconShieldLock className="h-[18px] w-[18px]" stroke={1.75} />
-            Админ
+            <IconShieldLock className="h-[18px] w-[18px] shrink-0" stroke={1.75} />
+            <span className="hidden md:inline">Админ</span>
           </Link>
         )}
         <ThemeToggle />

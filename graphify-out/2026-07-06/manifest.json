@@ -115,8 +115,8 @@
     "semantic_hash": ""
   },
   "api/src/routes/cameras.ts": {
-    "mtime": 1783272293.8645077,
-    "ast_hash": "dee50cf624934feef0e90a7c7657ee09",
+    "mtime": 1783286347.0058262,
+    "ast_hash": "9bb54b433f9bb07587805231d61dfecc",
     "semantic_hash": ""
   },
   "api/src/routes/events.ts": {
@@ -530,8 +530,8 @@
     "semantic_hash": ""
   },
   "infra/docker-compose.prod.yml": {
-    "mtime": 1783272325.389614,
-    "ast_hash": "ba0e3cb35f7008f9d5ed398be3b3cae3",
+    "mtime": 1783286370.8869152,
+    "ast_hash": "4d5e57f2c899d07dd571c06f58658503",
     "semantic_hash": ""
   },
   "infra/go2rtc/go2rtc.prod.yaml": {

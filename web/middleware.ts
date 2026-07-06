@@ -13,10 +13,16 @@ function roleFromToken(token: string): string | null {
   }
 }
 
-// Relative Location so the browser resolves against the public origin instead
-// of Next's internal 0.0.0.0:3001 behind the reverse proxy (see login route).
-function redirect(path: string): NextResponse {
-  return new NextResponse(null, { status: 307, headers: { Location: path } })
+// Build the redirect from req.nextUrl (a valid NextURL parsed from the request
+// Host header) — NOT new URL(req.url), which throws "Invalid URL" in middleware,
+// and NOT a bare relative Location, which middleware also can't parse. Behind
+// the proxy nextUrl.host is the public domain (nginx forwards Host), so this
+// lands on the right origin.
+function redirect(req: NextRequest, path: string): NextResponse {
+  const url = req.nextUrl.clone()
+  url.pathname = path
+  url.search = ''
+  return NextResponse.redirect(url)
 }
 
 export function middleware(req: NextRequest): NextResponse {
@@ -25,14 +31,14 @@ export function middleware(req: NextRequest): NextResponse {
   const isPublic = PUBLIC.some((p) => pathname.startsWith(p))
 
   if (!token && !isPublic) {
-    return redirect('/login')
+    return redirect(req, '/login')
   }
   if (token && pathname === '/login') {
-    return redirect('/dashboard')
+    return redirect(req, '/dashboard')
   }
   // Super-admin area: UX gate (the API enforces role=super for real).
   if (token && pathname.startsWith('/admin') && roleFromToken(token) !== 'super') {
-    return redirect('/dashboard')
+    return redirect(req, '/dashboard')
   }
   return NextResponse.next()
 }

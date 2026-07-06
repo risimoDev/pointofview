@@ -109,30 +109,32 @@ function EventsTable(): React.JSX.Element {
           onChange={(e) => setParam('to', e.target.value ? new Date(e.target.value).toISOString() : '')} />
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Severity</TableHead>
-            <TableHead>Тип</TableHead>
-            <TableHead>Камера</TableHead>
-            <TableHead>Зона</TableHead>
-            <TableHead>Время</TableHead>
-            <TableHead>Действия</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.map((e) => (
-            <TableRow key={e.id}>
-              <TableCell><Badge variant={severityVariant[e.severity]}>{e.severity}</Badge></TableCell>
-              <TableCell>{e.type}</TableCell>
-              <TableCell className="font-mono text-xs">{e.cameraId.slice(0, 8)}</TableCell>
-              <TableCell className="font-mono text-xs">{e.zoneId?.slice(0, 8) ?? '—'}</TableCell>
-              <TableCell>{new Date(e.tsStart).toLocaleString('ru-RU')}</TableCell>
-              <TableCell><ClipCell eventId={e.id} /></TableCell>
+      <div className="overflow-x-auto rounded-lg border border-border/60">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Severity</TableHead>
+              <TableHead>Тип</TableHead>
+              <TableHead>Камера</TableHead>
+              <TableHead>Зона</TableHead>
+              <TableHead className="whitespace-nowrap">Время</TableHead>
+              <TableHead>Действия</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {rows.map((e) => (
+              <TableRow key={e.id}>
+                <TableCell><Badge variant={severityVariant[e.severity]}>{e.severity}</Badge></TableCell>
+                <TableCell className="whitespace-nowrap">{e.type}</TableCell>
+                <TableCell className="font-mono text-xs">{e.cameraId.slice(0, 8)}</TableCell>
+                <TableCell className="font-mono text-xs">{e.zoneId?.slice(0, 8) ?? '—'}</TableCell>
+                <TableCell className="whitespace-nowrap">{new Date(e.tsStart).toLocaleString('ru-RU')}</TableCell>
+                <TableCell><ClipCell eventId={e.id} /></TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
 
       <div ref={sentinel} className="h-8 text-center text-sm text-muted-foreground">
         {query.isFetchingNextPage ? 'Загрузка…' : query.hasNextPage ? '' : 'Конец списка'}

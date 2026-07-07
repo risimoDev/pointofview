@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/select'
 import { getEvents } from '@/lib/api'
 import { useClipRequest } from '@/hooks/use-clip-request'
+import { eventTypeLabels, severityLabels } from '@/lib/labels'
 import { EventType, Severity, type ApiEvent } from '@shared/events.schema'
 
 const severityVariant = { critical: 'destructive', warn: 'warn', info: 'info' } as const
@@ -84,7 +85,7 @@ function EventsTable(): React.JSX.Element {
 
       <div className="flex flex-wrap gap-2 rounded-lg border border-border/70 bg-card/40 p-3">
         <Input
-          placeholder="camera_id"
+          placeholder="ID камеры"
           defaultValue={filter.camera_id ?? ''}
           onBlur={(e) => setParam('camera_id', e.target.value)}
           className="w-48"
@@ -93,14 +94,14 @@ function EventsTable(): React.JSX.Element {
           <SelectTrigger className="w-44"><SelectValue placeholder="Тип" /></SelectTrigger>
           <SelectContent>
             <SelectItem value={ANY}>Все типы</SelectItem>
-            {EventType.options.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+            {EventType.options.map((t) => <SelectItem key={t} value={t}>{eventTypeLabels[t]}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filter.severity ?? ANY} onValueChange={(v) => setParam('severity', v)}>
-          <SelectTrigger className="w-40"><SelectValue placeholder="Severity" /></SelectTrigger>
+          <SelectTrigger className="w-40"><SelectValue placeholder="Важность" /></SelectTrigger>
           <SelectContent>
             <SelectItem value={ANY}>Все</SelectItem>
-            {Severity.options.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            {Severity.options.map((s) => <SelectItem key={s} value={s}>{severityLabels[s]}</SelectItem>)}
           </SelectContent>
         </Select>
         <Input type="datetime-local" defaultValue={filter.from ?? ''}
@@ -113,7 +114,7 @@ function EventsTable(): React.JSX.Element {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Severity</TableHead>
+              <TableHead>Важность</TableHead>
               <TableHead>Тип</TableHead>
               <TableHead>Камера</TableHead>
               <TableHead>Зона</TableHead>
@@ -124,8 +125,8 @@ function EventsTable(): React.JSX.Element {
           <TableBody>
             {rows.map((e) => (
               <TableRow key={e.id}>
-                <TableCell><Badge variant={severityVariant[e.severity]}>{e.severity}</Badge></TableCell>
-                <TableCell className="whitespace-nowrap">{e.type}</TableCell>
+                <TableCell><Badge variant={severityVariant[e.severity]}>{severityLabels[e.severity]}</Badge></TableCell>
+                <TableCell className="whitespace-nowrap">{eventTypeLabels[e.type]}</TableCell>
                 <TableCell className="font-mono text-xs">{e.cameraId.slice(0, 8)}</TableCell>
                 <TableCell className="font-mono text-xs">{e.zoneId?.slice(0, 8) ?? '—'}</TableCell>
                 <TableCell className="whitespace-nowrap">{new Date(e.tsStart).toLocaleString('ru-RU')}</TableCell>

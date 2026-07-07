@@ -65,7 +65,7 @@ export default function DiagnosticsPage(): React.JSX.Element {
             >
               <StatusDot ok={status === 'ok'} />
               <span className="font-medium capitalize">{name}</span>
-              <span className="text-muted-foreground">{status}</span>
+              <span className="text-muted-foreground">{status === 'ok' ? 'норма' : String(status)}</span>
             </div>
           ))}
           {health.isLoading && <span className="text-sm text-muted-foreground">Загрузка…</span>}
@@ -78,10 +78,10 @@ export default function DiagnosticsPage(): React.JSX.Element {
         <section className="space-y-2">
           <h2 className="text-sm font-medium text-muted-foreground">Потоки Redis</h2>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <Stat label={`events (${streams.events.name})`} value={streams.events.length} />
-            <Stat label={`dead-letter (${streams.failed.name})`} value={streams.failed.length} />
-            <Stat label="consumer pending" value={streams.group?.pending ?? '—'} />
-            <Stat label="consumer lag" value={streams.group?.lag ?? '—'} />
+            <Stat label={`События (${streams.events.name})`} value={streams.events.length} />
+            <Stat label={`Не сохранены (${streams.failed.name})`} value={streams.failed.length} />
+            <Stat label="В обработке" value={streams.group?.pending ?? '—'} />
+            <Stat label="Отставание" value={streams.group?.lag ?? '—'} />
           </div>
         </section>
       )}
@@ -89,7 +89,7 @@ export default function DiagnosticsPage(): React.JSX.Element {
       {/* Dead-letter */}
       <section className="space-y-2">
         <h2 className="text-sm font-medium text-muted-foreground">
-          Несохранённые события (dead-letter)
+          Несохранённые события
         </h2>
         {dl.isLoading && <p className="text-sm text-muted-foreground">Загрузка…</p>}
         {dl.data && dl.data.length === 0 && (
@@ -107,7 +107,7 @@ export default function DiagnosticsPage(): React.JSX.Element {
                   disabled={replay.isPending}
                   onClick={() => replay.mutate(e.id)}
                 >
-                  Реплей
+                  Повторить
                 </Button>
               </div>
               <div className="mt-1 text-xs text-red-400">{e.error}</div>

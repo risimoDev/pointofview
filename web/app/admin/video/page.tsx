@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { IconPlayerPlay, IconUpload, IconBolt } from '@tabler/icons-react'
 import { EventType, Severity } from '@shared/events.schema'
 import { getCameras, getSites, simulateEvent, uploadVideoCamera } from '@/lib/api'
+import { eventTypeLabels, severityLabels } from '@/lib/labels'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import {
@@ -36,7 +37,7 @@ export default function VideoTestPage(): React.JSX.Element {
     try {
       await uploadVideoCamera(file, siteId, upName || file.name, (p) => setProgress(p))
       setProgress(null)
-      setUpMsg('Готово — камера создана, analyzer подхватит её в течение ~30с')
+      setUpMsg('Готово — камера создана, анализатор подхватит её в течение ~30с')
       setFile(null); setUpName('')
       await qc.invalidateQueries({ queryKey: ['cameras'] })
     } catch (e) {
@@ -86,9 +87,9 @@ export default function VideoTestPage(): React.JSX.Element {
         <h1 className="font-display text-lg font-semibold tracking-tight">Видео-тесты</h1>
       </div>
       <p className="text-sm text-muted-foreground">
-        Загрузи видеофайл — сервер сохранит его и создаст камеру-источник типа
-        <span className="font-mono"> file</span>, которую реальный analyzer (YOLO) прогонит
-        на GPU. Ниже — симулятор событий для проверки конвейера без видео.
+        Загрузи видеофайл — сервер сохранит его и создаст камеру-источник из видеофайла,
+        которую реальный анализатор (YOLO) прогонит на GPU. Ниже — симулятор событий для
+        проверки конвейера без видео.
       </p>
 
       {/* Upload video → file camera */}
@@ -114,7 +115,7 @@ export default function VideoTestPage(): React.JSX.Element {
             />
           </div>
           <div className="space-y-1">
-            <Label>Точка (site)</Label>
+            <Label>Точка (ПВЗ)</Label>
             <Select value={siteId} onValueChange={setSiteId}>
               <SelectTrigger className="w-52"><SelectValue placeholder="Точка" /></SelectTrigger>
               <SelectContent>
@@ -138,7 +139,7 @@ export default function VideoTestPage(): React.JSX.Element {
         <p className="text-xs text-muted-foreground">
           Большой файл (часовое видео) надёжнее закинуть на сервер по SSH в
           <span className="font-mono"> /mnt/data/testvideo/</span> и создать file-камеру
-          в разделе «Камеры» — загрузка через браузер идёт по VPN-туннелю и на больших
+          в разделе «Камеры» — загрузка через браузер идёт по VPN-туннелю, и на больших
           файлах может оборваться.
         </p>
       </section>
@@ -162,14 +163,14 @@ export default function VideoTestPage(): React.JSX.Element {
             <Label>Тип события</Label>
             <Select value={type} onValueChange={setType}>
               <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-              <SelectContent>{EVENT_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+              <SelectContent>{EVENT_TYPES.map((t) => <SelectItem key={t} value={t}>{eventTypeLabels[t]}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="space-y-1">
-            <Label>Severity</Label>
+            <Label>Важность</Label>
             <Select value={severity} onValueChange={setSeverity}>
               <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-              <SelectContent>{SEVERITIES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+              <SelectContent>{SEVERITIES.map((s) => <SelectItem key={s} value={s}>{severityLabels[s]}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <Button disabled={!cameraId} onClick={() => void fire(type)}>Отправить событие</Button>

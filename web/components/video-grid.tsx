@@ -4,6 +4,7 @@ import type * as React from 'react'
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useEventsStore } from '@/store/events.store'
+import { cameraStatusLabels, eventTypeLabels } from '@/lib/labels'
 import { CameraStream } from './camera-stream'
 import type { Camera } from '@shared/events.schema'
 
@@ -33,12 +34,12 @@ function CameraTile({ camera }: { camera: Camera }): React.JSX.Element {
               : 'bg-zinc-500/25 text-zinc-300')}>
           <span className={cn('h-1.5 w-1.5 rounded-full',
             camera.status === 'online' ? 'bg-emerald-400' : camera.status === 'error' ? 'bg-red-400' : 'bg-zinc-400')} />
-          {camera.status}
+          {cameraStatusLabels[camera.status]}
         </span>
       </div>
       {lastEvent && (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 text-xs text-white">
-          {lastEvent.type} · {new Date(lastEvent.tsStart).toLocaleTimeString('ru-RU')}
+          {eventTypeLabels[lastEvent.type]} · {new Date(lastEvent.tsStart).toLocaleTimeString('ru-RU')}
         </div>
       )}
     </div>

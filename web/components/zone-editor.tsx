@@ -8,6 +8,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { createZone } from '@/lib/api'
+import { zoneKindLabels } from '@/lib/labels'
 import { ZoneKind, type Zone } from '@shared/events.schema'
 
 type Point = [number, number] // normalized 0..1
@@ -134,7 +135,7 @@ export function ZoneEditor({ cameraId, imageUrl }: { cameraId: string; imageUrl:
 
   const closeDraft = (): void => {
     if (draft.length < 3) return
-    setZones((zs) => [...zs, { name: `zone ${zs.length + 1}`, kind: 'counter', polygon: draft }])
+    setZones((zs) => [...zs, { name: `Зона ${zs.length + 1}`, kind: 'counter', polygon: draft }])
     setDraft([])
   }
 
@@ -163,7 +164,7 @@ export function ZoneEditor({ cameraId, imageUrl }: { cameraId: string; imageUrl:
         <img
           ref={imgRef}
           src={imageUrl}
-          alt="snapshot"
+          alt="Снимок камеры"
           onLoad={syncSize}
           className="max-w-[800px] rounded-lg ring-1 ring-border/60"
           draggable={false}
@@ -194,7 +195,7 @@ export function ZoneEditor({ cameraId, imageUrl }: { cameraId: string; imageUrl:
             <Select value={z.kind} onValueChange={(v) => updateZone(i, { kind: v as Kind })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {KINDS.map((k) => <SelectItem key={k} value={k}>{k}</SelectItem>)}
+                {KINDS.map((k) => <SelectItem key={k} value={k}>{zoneKindLabels[k]}</SelectItem>)}
               </SelectContent>
             </Select>
             <div className="flex items-center justify-between text-xs text-muted-foreground">

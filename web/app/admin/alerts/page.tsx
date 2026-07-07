@@ -14,8 +14,11 @@ import { Label } from '@/components/ui/label'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
+import { eventTypeLabels } from '@/lib/labels'
 
 const EVENT_TYPES = EventType.options
+const eventTypeLabel = (t: string): string =>
+  eventTypeLabels[t as keyof typeof eventTypeLabels] ?? t
 
 function tgChatId(channels: Record<string, unknown>[]): string {
   const tg = channels.find((c) => (c as { type?: unknown }).type === 'telegram')
@@ -47,12 +50,12 @@ function RuleRow(
   return (
     <div className="border-b border-border/60 p-3 last:border-0">
       <div className="flex flex-wrap items-center gap-3">
-        <span className="font-mono text-sm font-medium">{rule.eventType}</span>
+        <span className="text-sm font-medium">{eventTypeLabel(rule.eventType)}</span>
         <span className="flex items-center gap-1 text-xs text-muted-foreground">
           <IconBrandTelegram className="h-3.5 w-3.5" stroke={1.75} />
           {tgChatId(rule.channels) || '—'}
         </span>
-        <span className="text-xs text-muted-foreground">cooldown {rule.cooldownSeconds}s</span>
+        <span className="text-xs text-muted-foreground">пауза {rule.cooldownSeconds}с</span>
         <span className={
           rule.enabled
             ? 'rounded-full border border-brand/30 bg-brand/10 px-2 py-0.5 text-[11px] text-brand'
@@ -78,15 +81,15 @@ function RuleRow(
             <Label>Тип события</Label>
             <Select value={eventType} onValueChange={setEventType}>
               <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-              <SelectContent>{EVENT_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+              <SelectContent>{EVENT_TYPES.map((t) => <SelectItem key={t} value={t}>{eventTypeLabels[t]}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="space-y-1">
-            <Label>Telegram chat_id</Label>
+            <Label>ID чата Telegram</Label>
             <Input value={chatId} onChange={(e) => setChatId(e.target.value)} className="w-44" />
           </div>
           <div className="space-y-1">
-            <Label>Cooldown, сек</Label>
+            <Label>Пауза, сек</Label>
             <Input type="number" value={cooldown} onChange={(e) => setCooldown(e.target.value)} className="w-28" />
           </div>
           <Button size="sm" variant={enabled ? 'default' : 'outline'} onClick={() => setEnabled((v) => !v)}>
@@ -122,8 +125,8 @@ export default function AdminAlertsPage(): React.JSX.Element {
         <h1 className="font-display text-lg font-semibold tracking-tight">Правила алертов</h1>
       </div>
       <p className="text-sm text-muted-foreground">
-        Событие выбранного типа рассылается в Telegram-чат. Дубликаты гасятся cooldown'ом
-        на пару (правило, камера). Отправку выполняет alerts-воркер (нужен запущенный воркер и TELEGRAM_BOT_TOKEN).
+        Событие выбранного типа рассылается в Telegram-чат. Дубликаты гасятся паузой
+        на пару (правило, камера). Отправку выполняет воркер алертов (нужен запущенный воркер и TELEGRAM_BOT_TOKEN).
       </p>
 
       <div className="overflow-hidden rounded-lg border border-border/70">
@@ -141,15 +144,15 @@ export default function AdminAlertsPage(): React.JSX.Element {
             <Label>Тип события</Label>
             <Select value={eventType} onValueChange={setEventType}>
               <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-              <SelectContent>{EVENT_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+              <SelectContent>{EVENT_TYPES.map((t) => <SelectItem key={t} value={t}>{eventTypeLabels[t]}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="space-y-1">
-            <Label>Telegram chat_id</Label>
+            <Label>ID чата Telegram</Label>
             <Input value={chatId} onChange={(e) => setChatId(e.target.value)} className="w-44" placeholder="напр. -1001234567890" />
           </div>
           <div className="space-y-1">
-            <Label>Cooldown, сек</Label>
+            <Label>Пауза, сек</Label>
             <Input type="number" value={cooldown} onChange={(e) => setCooldown(e.target.value)} className="w-28" />
           </div>
           <Button type="submit" disabled={add.isPending}>Добавить</Button>

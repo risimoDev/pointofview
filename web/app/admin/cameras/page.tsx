@@ -14,6 +14,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
+import { cameraStatusLabels, sourceTypeLabels } from '@/lib/labels'
 
 const SOURCES = ['rtsp_pull', 'srt_push', 'file'] as const
 const STATUSES = ['online', 'offline', 'error'] as const
@@ -45,9 +46,9 @@ function CameraRow(
       <div className="flex flex-wrap items-center gap-3">
         <span className="text-sm font-medium">{cam.name}</span>
         <span className={cn('rounded-full border px-2 py-0.5 text-[11px]', statusStyle[cam.status] ?? statusStyle.offline)}>
-          {cam.status}
+          {cameraStatusLabels[cam.status]}
         </span>
-        <span className="text-xs text-muted-foreground">{cam.sourceType} · {siteName}</span>
+        <span className="text-xs text-muted-foreground">{sourceTypeLabels[cam.sourceType]} · {siteName}</span>
         <div className="ml-auto flex items-center gap-1">
           <Button size="sm" variant="ghost" onClick={() => setEdit((v) => !v)}>
             {edit ? 'Отмена' : 'Изменить'}
@@ -73,18 +74,18 @@ function CameraRow(
             <Input value={name} onChange={(e) => setName(e.target.value)} className="w-44" />
           </div>
           <div className="space-y-1">
-            <Label>URL main (архив)</Label>
+            <Label>Основной URL (архив)</Label>
             <Input value={urlMain} onChange={(e) => setUrlMain(e.target.value)} className="w-64" />
           </div>
           <div className="space-y-1">
-            <Label>URL sub (AI)</Label>
+            <Label>Доп. URL (ИИ-анализ)</Label>
             <Input value={urlSub} onChange={(e) => setUrlSub(e.target.value)} className="w-64" />
           </div>
           <div className="space-y-1">
             <Label>Статус</Label>
             <Select value={status} onValueChange={setStatus}>
               <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-              <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+              <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{cameraStatusLabels[s]}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <Button disabled={save.isPending} onClick={() => save.mutate()}>Сохранить</Button>
@@ -149,15 +150,15 @@ export default function AdminCamerasPage(): React.JSX.Element {
             <Label>Источник</Label>
             <Select value={source} onValueChange={setSource}>
               <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
-              <SelectContent>{SOURCES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+              <SelectContent>{SOURCES.map((s) => <SelectItem key={s} value={s}>{sourceTypeLabels[s]}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="space-y-1">
-            <Label>URL main</Label>
+            <Label>Основной URL</Label>
             <Input value={urlMain} onChange={(e) => setUrlMain(e.target.value)} className="w-56" />
           </div>
           <div className="space-y-1">
-            <Label>URL sub</Label>
+            <Label>Доп. URL</Label>
             <Input value={urlSub} onChange={(e) => setUrlSub(e.target.value)} className="w-56" />
           </div>
           <Button type="submit" disabled={!siteId || !name || add.isPending}>Добавить</Button>

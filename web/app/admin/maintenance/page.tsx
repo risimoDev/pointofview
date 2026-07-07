@@ -30,7 +30,7 @@ export default function MaintenancePage(): React.JSX.Element {
   const doClear = useMutation({
     mutationFn: clearDeadLetter,
     onSuccess: (n) => {
-      setMsg(`Очищено dead-letter: ${n}`)
+      setMsg(`Очищено несохранённых событий: ${n}`)
       void qc.invalidateQueries({ queryKey: ['admin', 'health'] })
     },
     onError: () => setMsg('Ошибка очистки'),
@@ -53,13 +53,13 @@ export default function MaintenancePage(): React.JSX.Element {
           </Button>
           <Button variant="outline" disabled={doClear.isPending} onClick={() => doClear.mutate()}>
             <IconTrash className="mr-1 h-4 w-4" stroke={1.75} />
-            Очистить dead-letter
+            Очистить несохранённые
           </Button>
         </div>
         {msg && <p className="text-sm text-brand">{msg}</p>}
         <p className="text-xs text-muted-foreground">
           Ресинхр перезаписывает Redis (<span className="font-mono">cameras:/features:/zones:</span>) из БД —
-          полезно, если analyzer рассинхронизировался.
+          полезно, если анализатор рассинхронизировался.
         </p>
       </section>
 

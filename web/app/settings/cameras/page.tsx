@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query'
 import { IconVideo, IconVectorTriangle } from '@tabler/icons-react'
 import { getCameras } from '@/lib/api'
 import { cn } from '@/lib/utils'
+import { cameraStatusLabels, sourceTypeLabels } from '@/lib/labels'
 
 const statusStyle: Record<string, string> = {
   online: 'border-emerald-500/30 bg-emerald-500/15 text-emerald-300',
@@ -39,11 +40,11 @@ export default function CamerasPage(): React.JSX.Element {
                     'rounded-full border px-2 py-0.5 text-[11px] font-medium',
                     statusStyle[c.status] ?? statusStyle.offline,
                   )}>
-                    {c.status}
+                    {cameraStatusLabels[c.status]}
                   </span>
                 </div>
                 <div className="truncate font-mono text-xs text-muted-foreground">
-                  {c.sourceType} · {c.id.slice(0, 8)}
+                  {sourceTypeLabels[c.sourceType]} · {c.id.slice(0, 8)}
                 </div>
               </div>
               <Link

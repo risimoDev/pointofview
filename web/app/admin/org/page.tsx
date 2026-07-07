@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
+import { roleLabels } from '@/lib/labels'
 
 const ROLES = ['operator', 'manager', 'admin', 'super'] as const
 
@@ -95,7 +96,7 @@ export default function OrgPage(): React.JSX.Element {
             <div key={u.id} className="flex items-center gap-3 border-b border-border/60 p-3 last:border-0">
               <span className="text-sm font-medium">{u.email}</span>
               <span className="rounded-full border border-brand/30 bg-brand/10 px-2 py-0.5 text-[11px] text-brand">
-                {u.role}
+                {roleLabels[u.role as keyof typeof roleLabels] ?? u.role}
               </span>
               <Button
                 size="sm" variant="ghost" className="ml-auto text-muted-foreground hover:text-red-300"
@@ -113,7 +114,7 @@ export default function OrgPage(): React.JSX.Element {
           onSubmit={(e) => { e.preventDefault(); if (email && password.length >= 8) addUser.mutate() }}
         >
           <div className="space-y-1">
-            <Label htmlFor="u-email">Email</Label>
+            <Label htmlFor="u-email">Эл. почта</Label>
             <Input id="u-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-56" />
           </div>
           <div className="space-y-1">
@@ -125,7 +126,7 @@ export default function OrgPage(): React.JSX.Element {
             <Select value={role} onValueChange={setRole}>
               <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                {ROLES.map((r) => <SelectItem key={r} value={r}>{roleLabels[r]}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>

@@ -3,6 +3,7 @@
 import type * as React from 'react'
 import { Badge } from '@/components/ui/badge'
 import { useEventsStore } from '@/store/events.store'
+import { eventTypeLabels, severityLabels } from '@/lib/labels'
 import type { UiEvent } from '@shared/events.schema'
 
 const severityVariant: Record<UiEvent['severity'], 'destructive' | 'warn' | 'info'> = {
@@ -33,8 +34,8 @@ export function EventLog({ cameraNames }: { cameraNames?: Record<string, string>
             key={`${e.id ?? 'live'}-${i}`}
             className="flex items-center gap-2 rounded-md px-1.5 py-1.5 transition-colors hover:bg-accent/60"
           >
-            <Badge variant={severityVariant[e.severity]}>{e.severity}</Badge>
-            <span className="font-medium">{e.type}</span>
+            <Badge variant={severityVariant[e.severity]}>{severityLabels[e.severity]}</Badge>
+            <span className="font-medium">{eventTypeLabels[e.type]}</span>
             <span className="truncate text-muted-foreground">
               {cameraNames?.[e.cameraId] ?? e.cameraId.slice(0, 8)}
             </span>

@@ -29,7 +29,7 @@ export default function LoginPage(): React.JSX.Element {
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">Эл. почта</Label>
           <Input id="email" name="email" type="email" required autoComplete="email" />
         </div>
         <div className="space-y-1.5">

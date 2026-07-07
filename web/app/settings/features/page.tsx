@@ -8,13 +8,13 @@ import { getFeatures, setFeature, type Feature } from '@/lib/api'
 // Catalog of toggleable plugins. `feature` must match analyzer FeaturePlugin.feature_id
 // and the DB feature_kind enum.
 const CATALOG: { feature: string; title: string; hint: string }[] = [
-  { feature: 'crowd', title: 'Скопление (crowd)', hint: 'Событие при превышении числа людей в кадре/зоне' },
-  { feature: 'counter', title: 'Подсчёт посетителей (counter)', hint: 'Занятость и трафик по counter-зонам' },
-  { feature: 'repack', title: 'Перепаковка (repack)', hint: 'Обслуживание на стойке по dwell в desk-зоне' },
-  { feature: 'queue', title: 'Очередь (queue)', hint: 'Алерт по длительности ожидания в queue-зоне' },
-  { feature: 'shelf', title: 'Полки (shelf)', hint: 'Нарушения на полках/в ячейках выдачи' },
-  { feature: 'ppe', title: 'СИЗ / PPE', hint: 'Каска/жилет (для завода)' },
-  { feature: 'face_id', title: 'Распознавание лиц (face_id)', hint: 'Неизвестные лица. Внимание: 152-ФЗ' },
+  { feature: 'crowd', title: 'Скопление людей', hint: 'Событие при превышении числа людей в кадре или зоне' },
+  { feature: 'counter', title: 'Подсчёт посетителей', hint: 'Занятость и трафик по зонам-счётчикам' },
+  { feature: 'repack', title: 'Перепаковка', hint: 'Обслуживание на стойке по времени нахождения в зоне выдачи' },
+  { feature: 'queue', title: 'Очередь', hint: 'Оповещение по времени ожидания в зоне очереди' },
+  { feature: 'shelf', title: 'Полки', hint: 'Нарушения на полках и в ячейках выдачи' },
+  { feature: 'ppe', title: 'Средства защиты (СИЗ)', hint: 'Каска и жилет (для производств)' },
+  { feature: 'face_id', title: 'Распознавание лиц', hint: 'Неизвестные лица. Внимание: 152-ФЗ' },
 ]
 
 export default function FeaturesPage(): React.JSX.Element {
@@ -33,7 +33,7 @@ export default function FeaturesPage(): React.JSX.Element {
     <main className="mx-auto flex max-w-2xl flex-col gap-4 p-6">
       <h1 className="font-display text-lg font-semibold tracking-tight">Функции аналитики</h1>
       <p className="text-sm text-muted-foreground">
-        Включение применяется воркером в течение ~30 секунд. Требуется роль admin.
+        Включение применяется воркером в течение ~30 секунд. Требуется роль администратора.
       </p>
 
       <ul className="flex flex-col divide-y rounded-md border">

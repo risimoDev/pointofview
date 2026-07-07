@@ -16,35 +16,35 @@ type FeatureMeta = { label: string; note?: string; fields: FieldDef[] }
 // Per-plugin editable config, mirroring analyzer/plugins/*.py defaults.
 const FEATURE_META: Record<string, FeatureMeta> = {
   crowd: {
-    label: 'Скопление (crowd)',
+    label: 'Скопление людей',
     fields: [
       { key: 'max_count', label: 'Порог людей', type: 'number', def: 10 },
-      { key: 'cooldown_seconds', label: 'Кулдаун алерта, сек', type: 'number', def: 60 },
+      { key: 'cooldown_seconds', label: 'Пауза оповещения, сек', type: 'number', def: 60 },
     ],
   },
   counter: {
-    label: 'Подсчёт / занятость (counter)',
+    label: 'Подсчёт / занятость',
     fields: [
       { key: 'interval_seconds', label: 'Интервал записи метрики, сек', type: 'number', def: 60 },
     ],
   },
   repack: {
-    label: 'Перепаковка на стойке (repack)',
+    label: 'Перепаковка на стойке',
     fields: [
       { key: 'min_seconds', label: 'Мин. время на стойке, сек', type: 'number', def: 8 },
       { key: 'require_second_person', label: 'Требовать второго человека', type: 'bool', def: false },
     ],
   },
   shelf: {
-    label: 'Полки / ячейки (shelf)',
+    label: 'Полки / ячейки',
     fields: [
       { key: 'change_threshold', label: 'Порог изменения (0..1)', type: 'number', def: 0.1 },
       { key: 'settle_seconds', label: 'Стабилизация, сек', type: 'number', def: 2 },
     ],
   },
-  queue: { label: 'Очередь (queue)', note: 'Порог dwell задаётся в конфиге зоны.', fields: [] },
-  ppe: { label: 'СИЗ / PPE (ppe)', note: 'Требует серверной модели (RTX 3070).', fields: [] },
-  face_id: { label: 'Лица / Re-ID (face_id)', note: 'Требует серверной модели + согласие 152-ФЗ.', fields: [] },
+  queue: { label: 'Очередь', note: 'Порог времени нахождения задаётся в настройках зоны.', fields: [] },
+  ppe: { label: 'Средства защиты (СИЗ)', note: 'Требует серверной модели (RTX 3070).', fields: [] },
+  face_id: { label: 'Распознавание лиц', note: 'Требует серверной модели + согласие по 152-ФЗ.', fields: [] },
 }
 
 function FeatureCard(
@@ -145,7 +145,7 @@ export default function AdminFeaturesPage(): React.JSX.Element {
       </div>
       <p className="text-sm text-muted-foreground">
         Включение плагинов и пороги срабатывания. Изменения сразу уходят в Redis
-        (<span className="font-mono text-xs">features:{'{tenant}'}</span>) и подхватываются analyzer.
+        (<span className="font-mono text-xs">features:{'{tenant}'}</span>) и подхватываются анализатором.
       </p>
 
       <div className="grid gap-3">

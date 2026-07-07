@@ -13,7 +13,7 @@ import { makeRedis } from './redis.js'
 import authPlugin from './plugins/auth.js'
 import authRoutes from './routes/auth.js'
 import eventsRoutes from './routes/events.js'
-import camerasRoutes from './routes/cameras.js'
+import camerasRoutes, { startGo2rtcReconciler } from './routes/cameras.js'
 import analyticsRoutes from './routes/analytics.js'
 import featuresRoutes from './routes/features.js'
 import adminRoutes from './routes/admin.js'
@@ -75,7 +75,11 @@ async function main(): Promise<void> {
   const consumer = new EventConsumer(redisStream, redisCmd, app.log)
   await consumer.start()
 
+  // Keep go2rtc's (in-memory, wiped on its restart) streams in sync with the DB
+  const stopReconciler = startGo2rtcReconciler(app.log)
+
   const shutdown = async (): Promise<void> => {
+    stopReconciler()
     consumer.stop()
     await app.close()
     await Promise.allSettled([redisCmd.quit(), redisStream.quit(), redisSub.quit()])

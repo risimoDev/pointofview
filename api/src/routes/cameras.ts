@@ -37,50 +37,43 @@ async function syncCameras(app: { redis: Redis }, tenantId: string): Promise<voi
 }
 
 /**
- * go2rtc source list for a camera. Two sources on one stream:
- *  1. native — RTSP/SRT pass through; a `file` is wrapped in a looping ffmpeg
- *     reader (`#input=file` = -re -stream_loop -1 -i ...). Kept as H264 so
- *     snapshots (`/api/frame.jpeg`) and any future WebRTC stay cheap.
- *  2. mjpeg — the dashboard plays MJPEG (the only codec that works on every
- *     browser incl. iOS Safari, no MSE/WebRTC). go2rtc won't transcode
- *     H264→MJPEG for a live consumer on its own, so this second source
- *     transcodes the stream itself (`ffmpeg:<id>#video=mjpeg`) on demand — it
- *     only spins up while someone is watching. NB: declaring both codecs in a
- *     SINGLE ffmpeg process (`#video=h264#video=mjpeg#input=file`) dies with EOF
- *     under -stream_loop; transcoding the already-looping stream avoids that.
- * go2rtc must have `file` sources mounted at the same path (its /data mount).
+ * go2rtc source string for a camera. One native H264 stream — no transcoding
+ * tricks: the browser plays it adaptively via MSE (desktop/Android) or HLS
+ * (iOS), both H264 passthrough. RTSP/SRT pass through as-is; a `file` isn't a
+ * live stream so it's wrapped in a looping ffmpeg reader (`#input=file` =
+ * -re -stream_loop -1 -i ...). Snapshots (`/api/frame.jpeg`) transcode a single
+ * frame from the same H264 on demand. go2rtc must have `file` sources mounted at
+ * the same path (its /data mount).
  */
-function go2rtcSources(cameraId: string, src: string, sourceType?: string): string[] {
-  const native = sourceType === 'file'
-    ? `ffmpeg:${src}#video=h264#input=file`
-    : src
-  return [native, `ffmpeg:${cameraId}#video=mjpeg`]
+function go2rtcSource(src: string, sourceType?: string): string {
+  return sourceType === 'file' ? `ffmpeg:${src}#video=h264#input=file` : src
 }
 
-/** Register/replace a go2rtc stream named by camera id (for MJPEG + snapshot). */
+/** Register/replace a go2rtc stream named by camera id (MSE/HLS + snapshot). */
 async function registerGo2rtc(
   cameraId: string, src: string | null, sourceType?: string,
 ): Promise<void> {
   if (!src) return
-  const params = new URLSearchParams({ name: cameraId })
-  for (const s of go2rtcSources(cameraId, src, sourceType)) params.append('src', s)
   const base = `${config.GO2RTC_URL}/api/streams`
+  const put = `${base}?name=${encodeURIComponent(cameraId)}`
+    + `&src=${encodeURIComponent(go2rtcSource(src, sourceType))}`
   try {
     // go2rtc's create is idempotent (won't update an existing stream), so drop
     // any previous registration first to guarantee source changes take effect.
     await fetch(`${base}?src=${encodeURIComponent(cameraId)}`, { method: 'DELETE' })
-    await fetch(`${base}?${params.toString()}`, { method: 'PUT' })
+    await fetch(put, { method: 'PUT' })
   } catch {
     // go2rtc may be down during onboarding; the reconciler re-adds it later
   }
 }
 
 /**
- * Re-add go2rtc streams that are missing or stale (lack the mjpeg source).
- * go2rtc's stream config is empty on disk (`streams: {}`) and rebuilt at
+ * Re-register go2rtc streams that are missing or drifted from the expected
+ * source. go2rtc's stream config is empty on disk (`streams: {}`) and rebuilt at
  * runtime, so every go2rtc restart wipes them — without this the dashboard goes
- * blank until a camera is manually re-saved. Skips healthy streams so it never
- * interrupts an active viewer. Best-effort: a go2rtc outage just retries next tick.
+ * blank until a camera is manually re-saved. Healthy, matching streams are left
+ * untouched so we never interrupt an active viewer. Best-effort: a go2rtc outage
+ * just retries on the next tick.
  */
 export async function reconcileGo2rtc(
   log?: { info?: (o: unknown, m: string) => void },
@@ -100,9 +93,9 @@ export async function reconcileGo2rtc(
   for (const c of cams) {
     const src = c.urlSub ?? c.urlMain
     if (!src) continue
-    const expected = `ffmpeg:${c.id}#video=mjpeg`
-    const hasMjpeg = streams[c.id]?.producers?.some((p) => p.url === expected)
-    if (hasMjpeg) continue
+    const expected = go2rtcSource(src, c.sourceType ?? undefined)
+    const urls = streams[c.id]?.producers?.map((p) => p.url) ?? []
+    if (urls.length === 1 && urls[0] === expected) continue // already correct
     await registerGo2rtc(c.id, src, c.sourceType ?? undefined)
     log?.info?.({ camera: c.id }, 'go2rtc: (re)registered missing/stale stream')
   }

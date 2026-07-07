@@ -4,30 +4,14 @@ import type * as React from 'react'
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useEventsStore } from '@/store/events.store'
+import { CameraStream } from './camera-stream'
 import type { Camera } from '@shared/events.schema'
 
 const CRITICAL_BLINK_MS = 3000
 
-// MJPEG over the go2rtc HTTP proxy: works on every browser/device (incl. iOS
-// Safari, which supports neither MSE nor reliable WebRTC here) and reuses the
-// same nginx path snapshots already go through — no WebRTC/ICE/:8555 needed.
-// Higher bandwidth than WebRTC; a codec-negotiated player is a later optimization.
-function streamUrl(cameraId: string, nonce: number): string {
-  return `/go2rtc/api/stream.mjpeg?src=${encodeURIComponent(cameraId)}&_=${nonce}`
-}
-
 function CameraTile({ camera }: { camera: Camera }): React.JSX.Element {
   const [blink, setBlink] = useState(false)
-  const [nonce, setNonce] = useState(() => Date.now())
-  const [failed, setFailed] = useState(false)
   const lastEvent = useEventsStore((s) => s.lastByCamera[camera.id])
-
-  // retry a dropped MJPEG connection with a fresh nonce
-  useEffect(() => {
-    if (!failed) return
-    const t = setTimeout(() => { setFailed(false); setNonce(Date.now()) }, 3000)
-    return () => clearTimeout(t)
-  }, [failed])
 
   useEffect(() => {
     if (lastEvent?.severity === 'critical') {
@@ -40,20 +24,8 @@ function CameraTile({ camera }: { camera: Camera }): React.JSX.Element {
 
   return (
     <div className={cn('relative aspect-video overflow-hidden rounded-lg bg-black ring-1 ring-border/60', blink && 'animate-blink-red')}>
-      {failed ? (
-        <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-          нет сигнала — переподключение…
-        </div>
-      ) : (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={streamUrl(camera.id, nonce)}
-          alt={camera.name}
-          className="h-full w-full object-contain"
-          onError={() => setFailed(true)}
-        />
-      )}
-      <div className="absolute inset-x-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent p-2 text-xs text-white">
+      <CameraStream cameraId={camera.id} />
+      <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent p-2 text-xs text-white">
         <span className="font-medium tracking-tight">{camera.name}</span>
         <span className={cn('flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium',
           camera.status === 'online' ? 'bg-emerald-500/20 text-emerald-300'
@@ -65,7 +37,7 @@ function CameraTile({ camera }: { camera: Camera }): React.JSX.Element {
         </span>
       </div>
       {lastEvent && (
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 text-xs text-white">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 text-xs text-white">
           {lastEvent.type} · {new Date(lastEvent.tsStart).toLocaleTimeString('ru-RU')}
         </div>
       )}

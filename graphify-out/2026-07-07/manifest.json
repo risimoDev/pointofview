@@ -80,8 +80,8 @@
     "semantic_hash": "d057a4e9ca0f51bef8627b1e42617485"
   },
   "api/src/index.ts": {
-    "mtime": 1783272239.297897,
-    "ast_hash": "268853183b1b73415fb9732c687338ae",
+    "mtime": 1783384872.7397158,
+    "ast_hash": "75230caf1f93682214f9dd70acc6bb03",
     "semantic_hash": ""
   },
   "api/src/minio.ts": {
@@ -115,8 +115,8 @@
     "semantic_hash": ""
   },
   "api/src/routes/cameras.ts": {
-    "mtime": 1783286347.0058262,
-    "ast_hash": "9bb54b433f9bb07587805231d61dfecc",
+    "mtime": 1783384852.2654333,
+    "ast_hash": "5cae7c357d6d1c1333d02dc1ba43c093",
     "semantic_hash": ""
   },
   "api/src/routes/events.ts": {
@@ -160,8 +160,8 @@
     "semantic_hash": "bbc5e8c80ed9cece90dec3970fa7392b"
   },
   "infra/nginx/locations.inc": {
-    "mtime": 1783214573.993757,
-    "ast_hash": "3ff8d48bfca5984e4039e6c317cedb07",
+    "mtime": 1783375575.4829104,
+    "ast_hash": "e2242226eed486221592f05a5a4e2315",
     "semantic_hash": ""
   },
   "infra/postgres/init.sql": {
@@ -180,8 +180,8 @@
     "semantic_hash": ""
   },
   "scripts/install.sh": {
-    "mtime": 1783175248.9623072,
-    "ast_hash": "2325505d954b509ddbb29c209a7e414e",
+    "mtime": 1783371303.2449014,
+    "ast_hash": "34349a4cca2a2c3b7db1145cb544535d",
     "semantic_hash": ""
   },
   "scripts/update.sh": {
@@ -290,8 +290,8 @@
     "semantic_hash": "6dc3a7016b21e606fe3d0b224ffee47c"
   },
   "web/components/video-grid.tsx": {
-    "mtime": 1781727558.9786448,
-    "ast_hash": "f599abac7b5933d6349953a076701f4c",
+    "mtime": 1783373994.2041073,
+    "ast_hash": "7cd844cdd96637871e37c2df19ddc501",
     "semantic_hash": ""
   },
   "web/components/zone-editor.tsx": {
@@ -430,8 +430,8 @@
     "semantic_hash": ""
   },
   "api/src/routes/features.ts": {
-    "mtime": 1781752387.7983458,
-    "ast_hash": "2ea2d59a78faf7b3c77dd17bc9b5ce0c",
+    "mtime": 1783370752.6340196,
+    "ast_hash": "13ecf6062ed1823913cfacc070e932da",
     "semantic_hash": ""
   },
   "infra/postgres/migrations/0001_add_crowd_counter_features.sql": {
@@ -552,6 +552,16 @@
   "scripts/diag-home.sh": {
     "mtime": 1783217123.4160073,
     "ast_hash": "df4f4ad7813653695bdc65b2d59de787",
+    "semantic_hash": ""
+  },
+  "scripts/diag-stream.sh": {
+    "mtime": 1783383694.809811,
+    "ast_hash": "046228d88bfeed2be9b03db559b742a9",
+    "semantic_hash": ""
+  },
+  "scripts/diag-stream2.sh": {
+    "mtime": 1783384315.2964332,
+    "ast_hash": "cf39c81c53a5ceef6a4ba69b6b62b306",
     "semantic_hash": ""
   }
 }

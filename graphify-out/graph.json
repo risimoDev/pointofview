@@ -109,7 +109,7 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "analyzer_config_cameraconfig",
-      "community": 0,
+      "community": 20,
       "norm_label": "cameraconfig"
     },
     {
@@ -119,7 +119,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "basemodel",
-      "community": 0,
+      "community": 20,
       "norm_label": "basemodel"
     },
     {
@@ -129,7 +129,7 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "analyzer_config_cameraconfig_ai_url",
-      "community": 0,
+      "community": 20,
       "norm_label": ".ai_url()"
     },
     {
@@ -139,7 +139,7 @@
       "source_location": "L71",
       "_origin": "ast",
       "id": "analyzer_config_cameraconfig_frame_skip",
-      "community": 0,
+      "community": 20,
       "norm_label": ".frame_skip()"
     },
     {
@@ -159,7 +159,7 @@
       "source_location": "L53",
       "_origin": "ast",
       "id": "analyzer_config_rationale_53",
-      "community": 0,
+      "community": 20,
       "norm_label": "one camera entry from redis key cameras:{tenant_id} (json array)."
     },
     {
@@ -169,7 +169,7 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "analyzer_config_rationale_65",
-      "community": 0,
+      "community": 20,
       "norm_label": "sub-stream is used for ai; fall back to main."
     },
     {
@@ -1519,7 +1519,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "zones_engine",
-      "community": 5,
+      "community": 0,
       "norm_label": "engine.py"
     },
     {
@@ -1529,7 +1529,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "zones_engine_iso",
-      "community": 5,
+      "community": 0,
       "norm_label": "_iso()"
     },
     {
@@ -1619,7 +1619,7 @@
       "source_location": "L110",
       "_origin": "ast",
       "id": "zones_engine_event_payload",
-      "community": 5,
+      "community": 0,
       "norm_label": ".payload()"
     },
     {
@@ -1629,7 +1629,7 @@
       "source_location": "L110",
       "_origin": "ast",
       "id": "analyzer_zones_engine_py_any",
-      "community": 5,
+      "community": 0,
       "norm_label": "any"
     },
     {
@@ -2009,7 +2009,7 @@
       "source_location": "L194",
       "_origin": "ast",
       "id": "db_schema_site",
-      "community": 29,
+      "community": 7,
       "norm_label": "site"
     },
     {
@@ -2019,7 +2019,7 @@
       "source_location": "L196",
       "_origin": "ast",
       "id": "db_schema_camera",
-      "community": 21,
+      "community": 7,
       "norm_label": "camera"
     },
     {
@@ -2029,7 +2029,7 @@
       "source_location": "L198",
       "_origin": "ast",
       "id": "db_schema_zone",
-      "community": 31,
+      "community": 7,
       "norm_label": "zone"
     },
     {
@@ -2049,7 +2049,7 @@
       "source_location": "L202",
       "_origin": "ast",
       "id": "db_schema_alertrule",
-      "community": 29,
+      "community": 7,
       "norm_label": "alertrule"
     },
     {
@@ -2059,7 +2059,7 @@
       "source_location": "L204",
       "_origin": "ast",
       "id": "db_schema_appuser",
-      "community": 13,
+      "community": 7,
       "norm_label": "appuser"
     },
     {
@@ -2069,7 +2069,7 @@
       "source_location": "L206",
       "_origin": "ast",
       "id": "db_schema_auditlog",
-      "community": 29,
+      "community": 7,
       "norm_label": "auditlog"
     },
     {
@@ -2079,7 +2079,7 @@
       "source_location": "L208",
       "_origin": "ast",
       "id": "db_schema_archivesegment",
-      "community": 21,
+      "community": 18,
       "norm_label": "archivesegment"
     },
     {
@@ -2089,7 +2089,7 @@
       "source_location": "L210",
       "_origin": "ast",
       "id": "db_schema_tenantfeature",
-      "community": 29,
+      "community": 7,
       "norm_label": "tenantfeature"
     },
     {
@@ -2629,7 +2629,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_audit",
-      "community": 29,
+      "community": 7,
       "norm_label": "audit.ts"
     },
     {
@@ -2739,7 +2739,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_minio",
-      "community": 21,
+      "community": 18,
       "norm_label": "minio.ts"
     },
     {
@@ -2749,7 +2749,7 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_minio_makeclient",
-      "community": 21,
+      "community": 18,
       "norm_label": "makeclient()"
     },
     {
@@ -2759,7 +2759,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_minio_minio",
-      "community": 21,
+      "community": 18,
       "norm_label": "minio"
     },
     {
@@ -2769,7 +2769,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_minio_ensurebucket",
-      "community": 21,
+      "community": 18,
       "norm_label": "ensurebucket()"
     },
     {
@@ -2849,7 +2849,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_queues_clipjob",
-      "community": 21,
+      "community": 18,
       "norm_label": "clipjob"
     },
     {
@@ -2869,7 +2869,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_queues_clipsqueue",
-      "community": 22,
+      "community": 18,
       "norm_label": "clipsqueue"
     },
     {
@@ -2919,7 +2919,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "routes_admin",
-      "community": 29,
+      "community": 7,
       "norm_label": "admin.ts"
     },
     {
@@ -2929,7 +2929,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "routes_admin_roleenum",
-      "community": 29,
+      "community": 7,
       "norm_label": "roleenum"
     },
     {
@@ -2939,7 +2939,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "routes_admin_alertrulebody",
-      "community": 29,
+      "community": 7,
       "norm_label": "alertrulebody"
     },
     {
@@ -2949,7 +2949,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "routes_admin_flattoobj",
-      "community": 29,
+      "community": 7,
       "norm_label": "flattoobj()"
     },
     {
@@ -2999,7 +2999,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "routes_auth",
-      "community": 13,
+      "community": 31,
       "norm_label": "auth.ts"
     },
     {
@@ -3009,7 +3009,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "routes_auth_authroutes",
-      "community": 13,
+      "community": 31,
       "norm_label": "authroutes()"
     },
     {
@@ -3053,20 +3053,20 @@
       "norm_label": "synccameras()"
     },
     {
-      "label": "go2rtcSources()",
+      "label": "go2rtcSource()",
       "file_type": "code",
       "source_file": "api/src/routes/cameras.ts",
-      "source_location": "L53",
+      "source_location": "L48",
       "_origin": "ast",
-      "id": "routes_cameras_go2rtcsources",
+      "id": "routes_cameras_go2rtcsource",
       "community": 31,
-      "norm_label": "go2rtcsources()"
+      "norm_label": "go2rtcsource()"
     },
     {
       "label": "registerGo2rtc()",
       "file_type": "code",
       "source_file": "api/src/routes/cameras.ts",
-      "source_location": "L61",
+      "source_location": "L53",
       "_origin": "ast",
       "id": "routes_cameras_registergo2rtc",
       "community": 31,
@@ -3076,7 +3076,7 @@
       "label": "reconcileGo2rtc()",
       "file_type": "code",
       "source_file": "api/src/routes/cameras.ts",
-      "source_location": "L85",
+      "source_location": "L78",
       "_origin": "ast",
       "id": "routes_cameras_reconcilego2rtc",
       "community": 31,
@@ -3086,17 +3086,17 @@
       "label": "startGo2rtcReconciler()",
       "file_type": "code",
       "source_file": "api/src/routes/cameras.ts",
-      "source_location": "L112",
+      "source_location": "L105",
       "_origin": "ast",
       "id": "routes_cameras_startgo2rtcreconciler",
-      "community": 31,
+      "community": 13,
       "norm_label": "startgo2rtcreconciler()"
     },
     {
       "label": "syncZones()",
       "file_type": "code",
       "source_file": "api/src/routes/cameras.ts",
-      "source_location": "L122",
+      "source_location": "L115",
       "_origin": "ast",
       "id": "routes_cameras_synczones",
       "community": 31,
@@ -3106,7 +3106,7 @@
       "label": "camerasRoutes()",
       "file_type": "code",
       "source_file": "api/src/routes/cameras.ts",
-      "source_location": "L136",
+      "source_location": "L129",
       "_origin": "ast",
       "id": "routes_cameras_camerasroutes",
       "community": 13,
@@ -3119,7 +3119,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "routes_events",
-      "community": 22,
+      "community": 18,
       "norm_label": "events.ts"
     },
     {
@@ -3129,7 +3129,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "routes_events_eventsroutes",
-      "community": 22,
+      "community": 18,
       "norm_label": "eventsroutes()"
     },
     {
@@ -3139,7 +3139,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "routes_features",
-      "community": 22,
+      "community": 7,
       "norm_label": "features.ts"
     },
     {
@@ -3149,7 +3149,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "routes_features_syncfeatures",
-      "community": 22,
+      "community": 7,
       "norm_label": "syncfeatures()"
     },
     {
@@ -3189,7 +3189,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_schemas",
-      "community": 22,
+      "community": 31,
       "norm_label": "schemas.ts"
     },
     {
@@ -3199,7 +3199,7 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_schemas_eventtypeenum",
-      "community": 29,
+      "community": 7,
       "norm_label": "eventtypeenum"
     },
     {
@@ -3209,7 +3209,7 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_schemas_severityenum",
-      "community": 29,
+      "community": 7,
       "norm_label": "severityenum"
     },
     {
@@ -3219,7 +3219,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_schemas_sourcetypeenum",
-      "community": 22,
+      "community": 31,
       "norm_label": "sourcetypeenum"
     },
     {
@@ -3229,7 +3229,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_schemas_zonekindenum",
-      "community": 22,
+      "community": 31,
       "norm_label": "zonekindenum"
     },
     {
@@ -3239,7 +3239,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_schemas_featurekindenum",
-      "community": 22,
+      "community": 31,
       "norm_label": "featurekindenum"
     },
     {
@@ -3249,7 +3249,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_schemas_bboxschema",
-      "community": 22,
+      "community": 31,
       "norm_label": "bboxschema"
     },
     {
@@ -3259,7 +3259,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_schemas_eventmessageschema",
-      "community": 22,
+      "community": 31,
       "norm_label": "eventmessageschema"
     },
     {
@@ -3279,7 +3279,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_schemas_loginbody",
-      "community": 13,
+      "community": 31,
       "norm_label": "loginbody"
     },
     {
@@ -3289,7 +3289,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_schemas_eventsquery",
-      "community": 22,
+      "community": 18,
       "norm_label": "eventsquery"
     },
     {
@@ -3349,7 +3349,7 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "src_schemas_eventidparams",
-      "community": 22,
+      "community": 18,
       "norm_label": "eventidparams"
     },
     {
@@ -3359,7 +3359,7 @@
       "source_location": "L92",
       "_origin": "ast",
       "id": "src_schemas_featureparams",
-      "community": 22,
+      "community": 7,
       "norm_label": "featureparams"
     },
     {
@@ -3369,7 +3369,7 @@
       "source_location": "L93",
       "_origin": "ast",
       "id": "src_schemas_upsertfeaturebody",
-      "community": 22,
+      "community": 7,
       "norm_label": "upsertfeaturebody"
     },
     {
@@ -3379,7 +3379,7 @@
       "source_location": "L99",
       "_origin": "ast",
       "id": "src_schemas_segmentbody",
-      "community": 22,
+      "community": 31,
       "norm_label": "segmentbody"
     },
     {
@@ -3629,7 +3629,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "workers_clips_worker",
-      "community": 21,
+      "community": 18,
       "norm_label": "clips.worker.ts"
     },
     {
@@ -3639,7 +3639,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "workers_clips_worker_log",
-      "community": 21,
+      "community": 18,
       "norm_label": "log()"
     },
     {
@@ -3649,7 +3649,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "workers_clips_worker_ffmpegescape",
-      "community": 21,
+      "community": 18,
       "norm_label": "ffmpegescape()"
     },
     {
@@ -3659,7 +3659,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "workers_clips_worker_runffmpeg",
-      "community": 21,
+      "community": 18,
       "norm_label": "runffmpeg()"
     },
     {
@@ -3669,7 +3669,7 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "workers_clips_worker_processclip",
-      "community": 21,
+      "community": 18,
       "norm_label": "processclip()"
     },
     {
@@ -3679,7 +3679,7 @@
       "source_location": "L112",
       "_origin": "ast",
       "id": "workers_clips_worker_main",
-      "community": 21,
+      "community": 18,
       "norm_label": "main()"
     },
     {
@@ -4177,6 +4177,62 @@
       "id": "scripts_diag_home_line",
       "community": 63,
       "norm_label": "line()"
+    },
+    {
+      "label": "diag-stream-verify.sh",
+      "file_type": "code",
+      "source_file": "scripts/diag-stream-verify.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "file"
+      },
+      "_origin": "ast",
+      "id": "scripts_diag_stream_verify",
+      "community": 56,
+      "norm_label": "diag-stream-verify.sh"
+    },
+    {
+      "label": "diag-stream-verify.sh script",
+      "file_type": "code",
+      "source_file": "scripts/diag-stream-verify.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_entrypoint"
+      },
+      "_origin": "ast",
+      "id": "c_projects_aipvzanalityc_scripts_diag_stream_verify_sh__entry",
+      "community": 56,
+      "norm_label": "diag-stream-verify.sh script"
+    },
+    {
+      "label": "line()",
+      "file_type": "code",
+      "source_file": "scripts/diag-stream-verify.sh",
+      "source_location": "L6",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "_origin": "ast",
+      "id": "scripts_diag_stream_verify_line",
+      "community": 56,
+      "norm_label": "line()"
+    },
+    {
+      "label": "pyjson()",
+      "file_type": "code",
+      "source_file": "scripts/diag-stream-verify.sh",
+      "source_location": "L7",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "_origin": "ast",
+      "id": "scripts_diag_stream_verify_pyjson",
+      "community": 56,
+      "norm_label": "pyjson()"
     },
     {
       "label": "diag-stream.sh",
@@ -4859,7 +4915,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "shared_events_schema_properties_stream",
-      "community": 50,
+      "community": 2,
       "norm_label": "stream"
     },
     {
@@ -4869,7 +4925,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "shared_events_schema_stream_const",
-      "community": 50,
+      "community": 2,
       "norm_label": "const"
     },
     {
@@ -4879,7 +4935,7 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "shared_events_schema_properties_tenant_id",
-      "community": 56,
+      "community": 2,
       "norm_label": "tenant_id"
     },
     {
@@ -4889,7 +4945,7 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "shared_events_schema_tenant_id_type",
-      "community": 56,
+      "community": 2,
       "norm_label": "type"
     },
     {
@@ -4899,7 +4955,7 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "shared_events_schema_tenant_id_format",
-      "community": 56,
+      "community": 2,
       "norm_label": "format"
     },
     {
@@ -4959,7 +5015,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "shared_events_schema_properties_bbox",
-      "community": 2,
+      "community": 50,
       "norm_label": "bbox"
     },
     {
@@ -4969,7 +5025,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "shared_events_schema_bbox_ref",
-      "community": 2,
+      "community": 50,
       "norm_label": "$ref"
     },
     {
@@ -5069,7 +5125,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "shared_events_schema_properties_ts",
-      "community": 2,
+      "community": 64,
       "norm_label": "ts"
     },
     {
@@ -5079,7 +5135,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "shared_events_schema_ts_type",
-      "community": 2,
+      "community": 64,
       "norm_label": "type"
     },
     {
@@ -5089,7 +5145,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "shared_events_schema_ts_format",
-      "community": 2,
+      "community": 64,
       "norm_label": "format"
     },
     {
@@ -5379,7 +5435,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "shared_events_schema_zonekind",
-      "community": 12,
+      "community": 15,
       "norm_label": "zonekind"
     },
     {
@@ -5399,7 +5455,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "shared_events_schema_streameventschema",
-      "community": 17,
+      "community": 12,
       "norm_label": "streameventschema"
     },
     {
@@ -5469,7 +5525,7 @@
       "source_location": "L74",
       "_origin": "ast",
       "id": "shared_events_schema_camera",
-      "community": 17,
+      "community": 15,
       "norm_label": "camera"
     },
     {
@@ -5499,7 +5555,7 @@
       "source_location": "L86",
       "_origin": "ast",
       "id": "shared_events_schema_zone",
-      "community": 12,
+      "community": 10,
       "norm_label": "zone"
     },
     {
@@ -5509,7 +5565,7 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "shared_events_schema_uievent",
-      "community": 17,
+      "community": 12,
       "norm_label": "uievent"
     },
     {
@@ -5529,7 +5585,7 @@
       "source_location": "L108",
       "_origin": "ast",
       "id": "shared_events_schema_fromstreamevent",
-      "community": 17,
+      "community": 12,
       "norm_label": "fromstreamevent()"
     },
     {
@@ -5559,7 +5615,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "alerts_page",
-      "community": 15,
+      "community": 29,
       "norm_label": "page.tsx"
     },
     {
@@ -5569,7 +5625,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "alerts_page_tgchatid",
-      "community": 15,
+      "community": 29,
       "norm_label": "tgchatid()"
     },
     {
@@ -5579,7 +5635,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "alerts_page_buildchannels",
-      "community": 15,
+      "community": 29,
       "norm_label": "buildchannels()"
     },
     {
@@ -5589,7 +5645,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "alerts_page_rulerow",
-      "community": 15,
+      "community": 29,
       "norm_label": "rulerow()"
     },
     {
@@ -5599,7 +5655,7 @@
       "source_location": "L102",
       "_origin": "ast",
       "id": "alerts_page_adminalertspage",
-      "community": 15,
+      "community": 29,
       "norm_label": "adminalertspage()"
     },
     {
@@ -5609,7 +5665,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "web_app_admin_cameras_page_tsx_cameras_page",
-      "community": 9,
+      "community": 15,
       "norm_label": "page.tsx"
     },
     {
@@ -5619,7 +5675,7 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "cameras_page_sources",
-      "community": 9,
+      "community": 15,
       "norm_label": "sources"
     },
     {
@@ -5629,7 +5685,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "cameras_page_statuses",
-      "community": 9,
+      "community": 15,
       "norm_label": "statuses"
     },
     {
@@ -5639,7 +5695,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "web_app_admin_cameras_page_tsx_cameras_page_statusstyle",
-      "community": 9,
+      "community": 15,
       "norm_label": "statusstyle"
     },
     {
@@ -5649,7 +5705,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "cameras_page_camerarow",
-      "community": 9,
+      "community": 15,
       "norm_label": "camerarow()"
     },
     {
@@ -5659,7 +5715,7 @@
       "source_location": "L97",
       "_origin": "ast",
       "id": "cameras_page_admincameraspage",
-      "community": 9,
+      "community": 15,
       "norm_label": "admincameraspage()"
     },
     {
@@ -5779,7 +5835,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "org_page",
-      "community": 10,
+      "community": 9,
       "norm_label": "page.tsx"
     },
     {
@@ -5789,7 +5845,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "org_page_roles",
-      "community": 10,
+      "community": 9,
       "norm_label": "roles"
     },
     {
@@ -5799,7 +5855,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "org_page_orgpage",
-      "community": 10,
+      "community": 9,
       "norm_label": "orgpage()"
     },
     {
@@ -5809,7 +5865,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "admin_page",
-      "community": 10,
+      "community": 17,
       "norm_label": "page.tsx"
     },
     {
@@ -5819,7 +5875,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "admin_page_statusdot",
-      "community": 10,
+      "community": 17,
       "norm_label": "statusdot()"
     },
     {
@@ -5829,7 +5885,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "admin_page_stat",
-      "community": 10,
+      "community": 17,
       "norm_label": "stat()"
     },
     {
@@ -5839,7 +5895,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "admin_page_diagnosticspage",
-      "community": 10,
+      "community": 17,
       "norm_label": "diagnosticspage()"
     },
     {
@@ -6243,13 +6299,53 @@
       "norm_label": "appnav()"
     },
     {
+      "label": "camera-stream.tsx",
+      "file_type": "code",
+      "source_file": "web/components/camera-stream.tsx",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "components_camera_stream",
+      "community": 17,
+      "norm_label": "camera-stream.tsx"
+    },
+    {
+      "label": "loadPlayer()",
+      "file_type": "code",
+      "source_file": "web/components/camera-stream.tsx",
+      "source_location": "L10",
+      "_origin": "ast",
+      "id": "components_camera_stream_loadplayer",
+      "community": 17,
+      "norm_label": "loadplayer()"
+    },
+    {
+      "label": "signalingURL()",
+      "file_type": "code",
+      "source_file": "web/components/camera-stream.tsx",
+      "source_location": "L26",
+      "_origin": "ast",
+      "id": "components_camera_stream_signalingurl",
+      "community": 17,
+      "norm_label": "signalingurl()"
+    },
+    {
+      "label": "CameraStream()",
+      "file_type": "code",
+      "source_file": "web/components/camera-stream.tsx",
+      "source_location": "L32",
+      "_origin": "ast",
+      "id": "components_camera_stream_camerastream",
+      "community": 17,
+      "norm_label": "camerastream()"
+    },
+    {
       "label": "event-log.tsx",
       "file_type": "code",
       "source_file": "web/components/event-log.tsx",
       "source_location": "L1",
       "_origin": "ast",
       "id": "components_event_log",
-      "community": 17,
+      "community": 12,
       "norm_label": "event-log.tsx"
     },
     {
@@ -6259,7 +6355,7 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "components_event_log_severityvariant",
-      "community": 17,
+      "community": 12,
       "norm_label": "severityvariant"
     },
     {
@@ -6269,7 +6365,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "components_event_log_fmttime",
-      "community": 17,
+      "community": 12,
       "norm_label": "fmttime()"
     },
     {
@@ -6279,7 +6375,7 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "components_event_log_eventlog",
-      "community": 17,
+      "community": 12,
       "norm_label": "eventlog()"
     },
     {
@@ -6593,20 +6689,10 @@
       "norm_label": "video-grid.tsx"
     },
     {
-      "label": "streamUrl()",
-      "file_type": "code",
-      "source_file": "web/components/video-grid.tsx",
-      "source_location": "L15",
-      "_origin": "ast",
-      "id": "components_video_grid_streamurl",
-      "community": 17,
-      "norm_label": "streamurl()"
-    },
-    {
       "label": "CameraTile()",
       "file_type": "code",
       "source_file": "web/components/video-grid.tsx",
-      "source_location": "L19",
+      "source_location": "L12",
       "_origin": "ast",
       "id": "components_video_grid_cameratile",
       "community": 17,
@@ -6616,7 +6702,7 @@
       "label": "COLS",
       "file_type": "code",
       "source_file": "web/components/video-grid.tsx",
-      "source_location": "L76",
+      "source_location": "L48",
       "_origin": "ast",
       "id": "components_video_grid_cols",
       "community": 17,
@@ -6626,7 +6712,7 @@
       "label": "VideoGrid()",
       "file_type": "code",
       "source_file": "web/components/video-grid.tsx",
-      "source_location": "L80",
+      "source_location": "L52",
       "_origin": "ast",
       "id": "components_video_grid_videogrid",
       "community": 17,
@@ -6689,7 +6775,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "hooks_use_clip_request",
-      "community": 16,
+      "community": 10,
       "norm_label": "use-clip-request.ts"
     },
     {
@@ -6699,7 +6785,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "hooks_use_clip_request_clipstatus",
-      "community": 16,
+      "community": 10,
       "norm_label": "clipstatus"
     },
     {
@@ -6709,7 +6795,7 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "hooks_use_clip_request_clipstate",
-      "community": 16,
+      "community": 10,
       "norm_label": "clipstate"
     },
     {
@@ -6729,7 +6815,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "hooks_use_event_stream",
-      "community": 17,
+      "community": 12,
       "norm_label": "use-event-stream.ts"
     },
     {
@@ -6849,7 +6935,7 @@
       "source_location": "L92",
       "_origin": "ast",
       "id": "lib_api_deletecamera",
-      "community": 9,
+      "community": 15,
       "norm_label": "deletecamera()"
     },
     {
@@ -6879,7 +6965,7 @@
       "source_location": "L133",
       "_origin": "ast",
       "id": "lib_api_createzoneinput",
-      "community": 12,
+      "community": 10,
       "norm_label": "createzoneinput"
     },
     {
@@ -6889,7 +6975,7 @@
       "source_location": "L141",
       "_origin": "ast",
       "id": "lib_api_createzone",
-      "community": 10,
+      "community": 15,
       "norm_label": "createzone()"
     },
     {
@@ -6899,7 +6985,7 @@
       "source_location": "L149",
       "_origin": "ast",
       "id": "lib_api_requestclip",
-      "community": 16,
+      "community": 10,
       "norm_label": "requestclip()"
     },
     {
@@ -6919,7 +7005,7 @@
       "source_location": "L155",
       "_origin": "ast",
       "id": "lib_api_getwsticket",
-      "community": 17,
+      "community": 12,
       "norm_label": "getwsticket()"
     },
     {
@@ -6939,7 +7025,7 @@
       "source_location": "L160",
       "_origin": "ast",
       "id": "lib_api_getclipurl",
-      "community": 16,
+      "community": 10,
       "norm_label": "getclipurl()"
     },
     {
@@ -7059,7 +7145,7 @@
       "source_location": "L233",
       "_origin": "ast",
       "id": "lib_api_gethealth",
-      "community": 10,
+      "community": 17,
       "norm_label": "gethealth()"
     },
     {
@@ -7089,7 +7175,7 @@
       "source_location": "L242",
       "_origin": "ast",
       "id": "lib_api_getdeadletter",
-      "community": 10,
+      "community": 17,
       "norm_label": "getdeadletter()"
     },
     {
@@ -7099,7 +7185,7 @@
       "source_location": "L246",
       "_origin": "ast",
       "id": "lib_api_replaydeadletter",
-      "community": 10,
+      "community": 17,
       "norm_label": "replaydeadletter()"
     },
     {
@@ -7139,7 +7225,7 @@
       "source_location": "L261",
       "_origin": "ast",
       "id": "lib_api_getsites",
-      "community": 10,
+      "community": 15,
       "norm_label": "getsites()"
     },
     {
@@ -7149,7 +7235,7 @@
       "source_location": "L264",
       "_origin": "ast",
       "id": "lib_api_createsite",
-      "community": 10,
+      "community": 9,
       "norm_label": "createsite()"
     },
     {
@@ -7189,7 +7275,7 @@
       "source_location": "L279",
       "_origin": "ast",
       "id": "lib_api_getusers",
-      "community": 10,
+      "community": 9,
       "norm_label": "getusers()"
     },
     {
@@ -7199,7 +7285,7 @@
       "source_location": "L282",
       "_origin": "ast",
       "id": "lib_api_createuser",
-      "community": 10,
+      "community": 9,
       "norm_label": "createuser()"
     },
     {
@@ -7219,7 +7305,7 @@
       "source_location": "L298",
       "_origin": "ast",
       "id": "lib_api_deleteuser",
-      "community": 10,
+      "community": 9,
       "norm_label": "deleteuser()"
     },
     {
@@ -7249,7 +7335,7 @@
       "source_location": "L312",
       "_origin": "ast",
       "id": "lib_api_alertrule",
-      "community": 15,
+      "community": 29,
       "norm_label": "alertrule"
     },
     {
@@ -7269,7 +7355,7 @@
       "source_location": "L321",
       "_origin": "ast",
       "id": "lib_api_getalertrules",
-      "community": 10,
+      "community": 29,
       "norm_label": "getalertrules()"
     },
     {
@@ -7279,7 +7365,7 @@
       "source_location": "L324",
       "_origin": "ast",
       "id": "lib_api_createalertrule",
-      "community": 15,
+      "community": 29,
       "norm_label": "createalertrule()"
     },
     {
@@ -7289,7 +7375,7 @@
       "source_location": "L330",
       "_origin": "ast",
       "id": "lib_api_updatealertrule",
-      "community": 15,
+      "community": 29,
       "norm_label": "updatealertrule()"
     },
     {
@@ -7299,7 +7385,7 @@
       "source_location": "L336",
       "_origin": "ast",
       "id": "lib_api_deletealertrule",
-      "community": 15,
+      "community": 29,
       "norm_label": "deletealertrule()"
     },
     {
@@ -7399,7 +7485,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "lib_utils",
-      "community": 9,
+      "community": 17,
       "norm_label": "utils.ts"
     },
     {
@@ -7409,7 +7495,7 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "lib_utils_cn",
-      "community": 9,
+      "community": 17,
       "norm_label": "cn()"
     },
     {
@@ -7823,13 +7909,333 @@
       "norm_label": "postcss.config.mjs"
     },
     {
+      "label": "video-rtc.js",
+      "file_type": "code",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "players_video_rtc",
+      "community": 21,
+      "norm_label": "video-rtc.js"
+    },
+    {
+      "label": "VideoRTC",
+      "file_type": "code",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L17",
+      "_origin": "ast",
+      "id": "players_video_rtc_videortc",
+      "community": 21,
+      "norm_label": "videortc"
+    },
+    {
+      "label": ".constructor()",
+      "file_type": "code",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L18",
+      "_origin": "ast",
+      "id": "players_video_rtc_videortc_constructor",
+      "community": 21,
+      "norm_label": ".constructor()"
+    },
+    {
+      "label": ".src()",
+      "file_type": "code",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L149",
+      "_origin": "ast",
+      "id": "players_video_rtc_videortc_src",
+      "community": 21,
+      "norm_label": ".src()"
+    },
+    {
+      "label": ".play()",
+      "file_type": "code",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L166",
+      "_origin": "ast",
+      "id": "players_video_rtc_videortc_play",
+      "community": 21,
+      "norm_label": ".play()"
+    },
+    {
+      "label": ".send()",
+      "file_type": "code",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L181",
+      "_origin": "ast",
+      "id": "players_video_rtc_videortc_send",
+      "community": 21,
+      "norm_label": ".send()"
+    },
+    {
+      "label": ".codecs()",
+      "file_type": "code",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L186",
+      "_origin": "ast",
+      "id": "players_video_rtc_videortc_codecs",
+      "community": 21,
+      "norm_label": ".codecs()"
+    },
+    {
+      "label": ".connectedCallback()",
+      "file_type": "code",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L196",
+      "_origin": "ast",
+      "id": "players_video_rtc_videortc_connectedcallback",
+      "community": 21,
+      "norm_label": ".connectedcallback()"
+    },
+    {
+      "label": ".disconnectedCallback()",
+      "file_type": "code",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L220",
+      "_origin": "ast",
+      "id": "players_video_rtc_videortc_disconnectedcallback",
+      "community": 21,
+      "norm_label": ".disconnectedcallback()"
+    },
+    {
+      "label": ".oninit()",
+      "file_type": "code",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L239",
+      "_origin": "ast",
+      "id": "players_video_rtc_videortc_oninit",
+      "community": 21,
+      "norm_label": ".oninit()"
+    },
+    {
+      "label": ".onconnect()",
+      "file_type": "code",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L309",
+      "_origin": "ast",
+      "id": "players_video_rtc_videortc_onconnect",
+      "community": 21,
+      "norm_label": ".onconnect()"
+    },
+    {
+      "label": ".ondisconnect()",
+      "file_type": "code",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L325",
+      "_origin": "ast",
+      "id": "players_video_rtc_videortc_ondisconnect",
+      "community": 21,
+      "norm_label": ".ondisconnect()"
+    },
+    {
+      "label": ".onopen()",
+      "file_type": "code",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L348",
+      "_origin": "ast",
+      "id": "players_video_rtc_videortc_onopen",
+      "community": 21,
+      "norm_label": ".onopen()"
+    },
+    {
+      "label": ".onclose()",
+      "file_type": "code",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L402",
+      "_origin": "ast",
+      "id": "players_video_rtc_videortc_onclose",
+      "community": 21,
+      "norm_label": ".onclose()"
+    },
+    {
+      "label": ".onmse()",
+      "file_type": "code",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L420",
+      "_origin": "ast",
+      "id": "players_video_rtc_videortc_onmse",
+      "community": 21,
+      "norm_label": ".onmse()"
+    },
+    {
+      "label": ".onwebrtc()",
+      "file_type": "code",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L504",
+      "_origin": "ast",
+      "id": "players_video_rtc_videortc_onwebrtc",
+      "community": 21,
+      "norm_label": ".onwebrtc()"
+    },
+    {
+      "label": ".createOffer()",
+      "file_type": "code",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L565",
+      "_origin": "ast",
+      "id": "players_video_rtc_videortc_createoffer",
+      "community": 21,
+      "norm_label": ".createoffer()"
+    },
+    {
+      "label": ".onpcvideo()",
+      "file_type": "code",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L591",
+      "_origin": "ast",
+      "id": "players_video_rtc_videortc_onpcvideo",
+      "community": 21,
+      "norm_label": ".onpcvideo()"
+    },
+    {
+      "label": ".onmjpeg()",
+      "file_type": "code",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L632",
+      "_origin": "ast",
+      "id": "players_video_rtc_videortc_onmjpeg",
+      "community": 21,
+      "norm_label": ".onmjpeg()"
+    },
+    {
+      "label": ".onhls()",
+      "file_type": "code",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L641",
+      "_origin": "ast",
+      "id": "players_video_rtc_videortc_onhls",
+      "community": 21,
+      "norm_label": ".onhls()"
+    },
+    {
+      "label": ".onmp4()",
+      "file_type": "code",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L654",
+      "_origin": "ast",
+      "id": "players_video_rtc_videortc_onmp4",
+      "community": 21,
+      "norm_label": ".onmp4()"
+    },
+    {
+      "label": ".btoa()",
+      "file_type": "code",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L686",
+      "_origin": "ast",
+      "id": "players_video_rtc_videortc_btoa",
+      "community": 21,
+      "norm_label": ".btoa()"
+    },
+    {
+      "label": "video-stream.js",
+      "file_type": "code",
+      "source_file": "web/public/players/video-stream.js",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "players_video_stream",
+      "community": 21,
+      "norm_label": "video-stream.js"
+    },
+    {
+      "label": "VideoStream",
+      "file_type": "code",
+      "source_file": "web/public/players/video-stream.js",
+      "source_location": "L7",
+      "_origin": "ast",
+      "id": "players_video_stream_videostream",
+      "community": 21,
+      "norm_label": "videostream"
+    },
+    {
+      "label": ".divMode()",
+      "file_type": "code",
+      "source_file": "web/public/players/video-stream.js",
+      "source_location": "L8",
+      "_origin": "ast",
+      "id": "players_video_stream_videostream_divmode",
+      "community": 21,
+      "norm_label": ".divmode()"
+    },
+    {
+      "label": ".divError()",
+      "file_type": "code",
+      "source_file": "web/public/players/video-stream.js",
+      "source_location": "L13",
+      "_origin": "ast",
+      "id": "players_video_stream_videostream_diverror",
+      "community": 21,
+      "norm_label": ".diverror()"
+    },
+    {
+      "label": ".oninit()",
+      "file_type": "code",
+      "source_file": "web/public/players/video-stream.js",
+      "source_location": "L23",
+      "_origin": "ast",
+      "id": "players_video_stream_videostream_oninit",
+      "community": 21,
+      "norm_label": ".oninit()"
+    },
+    {
+      "label": ".onconnect()",
+      "file_type": "code",
+      "source_file": "web/public/players/video-stream.js",
+      "source_location": "L54",
+      "_origin": "ast",
+      "id": "players_video_stream_videostream_onconnect",
+      "community": 21,
+      "norm_label": ".onconnect()"
+    },
+    {
+      "label": ".ondisconnect()",
+      "file_type": "code",
+      "source_file": "web/public/players/video-stream.js",
+      "source_location": "L61",
+      "_origin": "ast",
+      "id": "players_video_stream_videostream_ondisconnect",
+      "community": 21,
+      "norm_label": ".ondisconnect()"
+    },
+    {
+      "label": ".onopen()",
+      "file_type": "code",
+      "source_file": "web/public/players/video-stream.js",
+      "source_location": "L66",
+      "_origin": "ast",
+      "id": "players_video_stream_videostream_onopen",
+      "community": 21,
+      "norm_label": ".onopen()"
+    },
+    {
+      "label": ".onclose()",
+      "file_type": "code",
+      "source_file": "web/public/players/video-stream.js",
+      "source_location": "L88",
+      "_origin": "ast",
+      "id": "players_video_stream_videostream_onclose",
+      "community": 21,
+      "norm_label": ".onclose()"
+    },
+    {
+      "label": ".onpcvideo()",
+      "file_type": "code",
+      "source_file": "web/public/players/video-stream.js",
+      "source_location": "L93",
+      "_origin": "ast",
+      "id": "players_video_stream_videostream_onpcvideo",
+      "community": 21,
+      "norm_label": ".onpcvideo()"
+    },
+    {
       "label": "events.store.ts",
       "file_type": "code",
       "source_file": "web/store/events.store.ts",
       "source_location": "L1",
       "_origin": "ast",
       "id": "store_events_store",
-      "community": 17,
+      "community": 12,
       "norm_label": "events.store.ts"
     },
     {
@@ -7839,7 +8245,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "store_events_store_eventsstate",
-      "community": 17,
+      "community": 12,
       "norm_label": "eventsstate"
     },
     {
@@ -7849,7 +8255,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "store_events_store_useeventsstore",
-      "community": 17,
+      "community": 12,
       "norm_label": "useeventsstore"
     },
     {
@@ -8141,6 +8547,36 @@
       "id": "web_tsconfig_exclude",
       "community": 8,
       "norm_label": "exclude"
+    },
+    {
+      "label": "video-stream.d.ts",
+      "file_type": "code",
+      "source_file": "web/types/video-stream.d.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "types_video_stream_d",
+      "community": 65,
+      "norm_label": "video-stream.d.ts"
+    },
+    {
+      "label": "VideoStreamElement",
+      "file_type": "code",
+      "source_file": "web/types/video-stream.d.ts",
+      "source_location": "L9",
+      "_origin": "ast",
+      "id": "types_video_stream_d_videostreamelement",
+      "community": 65,
+      "norm_label": "videostreamelement"
+    },
+    {
+      "label": "IntrinsicElements",
+      "file_type": "code",
+      "source_file": "web/types/video-stream.d.ts",
+      "source_location": "L21",
+      "_origin": "ast",
+      "id": "types_video_stream_d_intrinsicelements",
+      "community": 65,
+      "norm_label": "intrinsicelements"
     },
     {
       "label": "CLAUDE.md",
@@ -8731,6 +9167,26 @@
       "id": "status_4_\u043a\u0430\u043a_\u0437\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u044c_\u043b\u043e\u043a\u0430\u043b\u044c\u043d\u043e",
       "community": 48,
       "norm_label": "4. \u043a\u0430\u043a \u0437\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u044c \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u043e"
+    },
+    {
+      "label": "README.md",
+      "file_type": "document",
+      "source_file": "web/public/players/README.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "players_readme",
+      "community": 66,
+      "norm_label": "readme.md"
+    },
+    {
+      "label": "go2rtc web player (vendored)",
+      "file_type": "document",
+      "source_file": "web/public/players/README.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "players_readme_go2rtc_web_player_vendored",
+      "community": 66,
+      "norm_label": "go2rtc web player (vendored)"
     },
     {
       "label": "ViziAI VMS Platform",
@@ -15389,9 +15845,9 @@
       "source_file": "api/src/routes/features.ts",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "routes_features",
-      "target": "db_schema_site",
-      "confidence_score": 1.0
+      "target": "db_schema_site"
     },
     {
       "relation": "imports",
@@ -15444,9 +15900,9 @@
       "source_file": "api/src/routes/features.ts",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "routes_features",
-      "target": "db_schema_camera",
-      "confidence_score": 1.0
+      "target": "db_schema_camera"
     },
     {
       "relation": "imports",
@@ -16830,9 +17286,9 @@
       "source_file": "api/src/index.ts",
       "source_location": "L16",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_index",
-      "target": "routes_cameras_startgo2rtcreconciler",
-      "confidence_score": 1.0
+      "target": "routes_cameras_startgo2rtcreconciler"
     },
     {
       "relation": "imports_from",
@@ -16993,9 +17449,9 @@
       "source_file": "api/src/index.ts",
       "source_location": "L79",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_index_main",
-      "target": "routes_cameras_startgo2rtcreconciler",
-      "confidence_score": 1.0
+      "target": "routes_cameras_startgo2rtcreconciler"
     },
     {
       "relation": "calls",
@@ -17507,10 +17963,10 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "api/src/routes/cameras.ts",
-      "source_location": "L53",
+      "source_location": "L48",
       "weight": 1.0,
       "source": "routes_cameras",
-      "target": "routes_cameras_go2rtcsources",
+      "target": "routes_cameras_go2rtcsource",
       "confidence_score": 1.0
     },
     {
@@ -17529,9 +17985,9 @@
       "source_file": "api/src/routes/cameras.ts",
       "source_location": "L85",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "routes_cameras",
-      "target": "routes_cameras_reconcilego2rtc",
-      "confidence_score": 1.0
+      "target": "routes_cameras_reconcilego2rtc"
     },
     {
       "relation": "contains",
@@ -17549,9 +18005,9 @@
       "source_file": "api/src/routes/cameras.ts",
       "source_location": "L112",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "routes_cameras",
-      "target": "routes_cameras_startgo2rtcreconciler",
-      "confidence_score": 1.0
+      "target": "routes_cameras_startgo2rtcreconciler"
     },
     {
       "relation": "contains",
@@ -17643,10 +18099,21 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "api/src/routes/cameras.ts",
-      "source_location": "L66",
+      "source_location": "L96",
+      "weight": 1.0,
+      "source": "routes_cameras_reconcilego2rtc",
+      "target": "routes_cameras_go2rtcsource",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "api/src/routes/cameras.ts",
+      "source_location": "L59",
       "weight": 1.0,
       "source": "routes_cameras_registergo2rtc",
-      "target": "routes_cameras_go2rtcsources",
+      "target": "routes_cameras_go2rtcsource",
       "confidence_score": 1.0
     },
     {
@@ -17656,9 +18123,9 @@
       "source_file": "api/src/routes/cameras.ts",
       "source_location": "L106",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "routes_cameras_reconcilego2rtc",
-      "target": "routes_cameras_registergo2rtc",
-      "confidence_score": 1.0
+      "target": "routes_cameras_registergo2rtc"
     },
     {
       "relation": "calls",
@@ -17667,9 +18134,9 @@
       "source_file": "api/src/routes/cameras.ts",
       "source_location": "L115",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "routes_cameras_startgo2rtcreconciler",
-      "target": "routes_cameras_reconcilego2rtc",
-      "confidence_score": 1.0
+      "target": "routes_cameras_reconcilego2rtc"
     },
     {
       "relation": "contains",
@@ -18992,12 +19459,64 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "scripts/diag-stream-verify.sh",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "scripts_diag_stream_verify",
+      "target": "c_projects_aipvzanalityc_scripts_diag_stream_verify_sh__entry",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/diag-stream-verify.sh",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "scripts_diag_stream_verify",
+      "target": "scripts_diag_stream_verify_line",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/diag-stream-verify.sh",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "scripts_diag_stream_verify",
+      "target": "scripts_diag_stream_verify_pyjson",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/diag-stream-verify.sh",
+      "source_location": "L9",
+      "weight": 1.0,
+      "context": "call",
+      "source": "c_projects_aipvzanalityc_scripts_diag_stream_verify_sh__entry",
+      "target": "scripts_diag_stream_verify_line",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/diag-stream-verify.sh",
+      "source_location": "L10",
+      "weight": 1.0,
+      "context": "call",
+      "source": "c_projects_aipvzanalityc_scripts_diag_stream_verify_sh__entry",
+      "target": "scripts_diag_stream_verify_pyjson",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "scripts/diag-stream.sh",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_diag_stream",
-      "target": "c_projects_aipvzanalityc_scripts_diag_stream_sh__entry",
-      "confidence_score": 1.0
+      "target": "c_projects_aipvzanalityc_scripts_diag_stream_sh__entry"
     },
     {
       "relation": "defines",
@@ -19005,9 +19524,9 @@
       "source_file": "scripts/diag-stream.sh",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_diag_stream",
-      "target": "scripts_diag_stream_line",
-      "confidence_score": 1.0
+      "target": "scripts_diag_stream_line"
     },
     {
       "relation": "defines",
@@ -19015,9 +19534,9 @@
       "source_file": "scripts/diag-stream.sh",
       "source_location": "L15",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_diag_stream",
-      "target": "scripts_diag_stream_pyjson",
-      "confidence_score": 1.0
+      "target": "scripts_diag_stream_pyjson"
     },
     {
       "relation": "calls",
@@ -19026,9 +19545,9 @@
       "source_location": "L18",
       "weight": 1.0,
       "context": "call",
+      "confidence_score": 1.0,
       "source": "c_projects_aipvzanalityc_scripts_diag_stream_sh__entry",
-      "target": "scripts_diag_stream_line",
-      "confidence_score": 1.0
+      "target": "scripts_diag_stream_line"
     },
     {
       "relation": "calls",
@@ -19037,9 +19556,9 @@
       "source_location": "L31",
       "weight": 1.0,
       "context": "call",
+      "confidence_score": 1.0,
       "source": "c_projects_aipvzanalityc_scripts_diag_stream_sh__entry",
-      "target": "scripts_diag_stream_pyjson",
-      "confidence_score": 1.0
+      "target": "scripts_diag_stream_pyjson"
     },
     {
       "relation": "contains",
@@ -19047,9 +19566,9 @@
       "source_file": "scripts/diag-stream2.sh",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_diag_stream2",
-      "target": "c_projects_aipvzanalityc_scripts_diag_stream2_sh__entry",
-      "confidence_score": 1.0
+      "target": "c_projects_aipvzanalityc_scripts_diag_stream2_sh__entry"
     },
     {
       "relation": "defines",
@@ -19057,9 +19576,9 @@
       "source_file": "scripts/diag-stream2.sh",
       "source_location": "L36",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_diag_stream2",
-      "target": "scripts_diag_stream2_cleanup",
-      "confidence_score": 1.0
+      "target": "scripts_diag_stream2_cleanup"
     },
     {
       "relation": "defines",
@@ -19067,9 +19586,9 @@
       "source_file": "scripts/diag-stream2.sh",
       "source_location": "L10",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_diag_stream2",
-      "target": "scripts_diag_stream2_line",
-      "confidence_score": 1.0
+      "target": "scripts_diag_stream2_line"
     },
     {
       "relation": "defines",
@@ -19077,9 +19596,9 @@
       "source_file": "scripts/diag-stream2.sh",
       "source_location": "L11",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_diag_stream2",
-      "target": "scripts_diag_stream2_pyjson",
-      "confidence_score": 1.0
+      "target": "scripts_diag_stream2_pyjson"
     },
     {
       "relation": "defines",
@@ -19087,9 +19606,9 @@
       "source_file": "scripts/diag-stream2.sh",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_diag_stream2",
-      "target": "scripts_diag_stream2_show_medias",
-      "confidence_score": 1.0
+      "target": "scripts_diag_stream2_show_medias"
     },
     {
       "relation": "defines",
@@ -19097,9 +19616,9 @@
       "source_file": "scripts/diag-stream2.sh",
       "source_location": "L27",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_diag_stream2",
-      "target": "scripts_diag_stream2_test_mjpeg",
-      "confidence_score": 1.0
+      "target": "scripts_diag_stream2_test_mjpeg"
     },
     {
       "relation": "calls",
@@ -19108,9 +19627,9 @@
       "source_location": "L48",
       "weight": 1.0,
       "context": "call",
+      "confidence_score": 1.0,
       "source": "c_projects_aipvzanalityc_scripts_diag_stream2_sh__entry",
-      "target": "scripts_diag_stream2_cleanup",
-      "confidence_score": 1.0
+      "target": "scripts_diag_stream2_cleanup"
     },
     {
       "relation": "calls",
@@ -19119,9 +19638,9 @@
       "source_location": "L42",
       "weight": 1.0,
       "context": "call",
+      "confidence_score": 1.0,
       "source": "c_projects_aipvzanalityc_scripts_diag_stream2_sh__entry",
-      "target": "scripts_diag_stream2_line",
-      "confidence_score": 1.0
+      "target": "scripts_diag_stream2_line"
     },
     {
       "relation": "calls",
@@ -19130,9 +19649,9 @@
       "source_location": "L43",
       "weight": 1.0,
       "context": "call",
+      "confidence_score": 1.0,
       "source": "c_projects_aipvzanalityc_scripts_diag_stream2_sh__entry",
-      "target": "scripts_diag_stream2_pyjson",
-      "confidence_score": 1.0
+      "target": "scripts_diag_stream2_pyjson"
     },
     {
       "relation": "calls",
@@ -19141,9 +19660,9 @@
       "source_location": "L62",
       "weight": 1.0,
       "context": "call",
+      "confidence_score": 1.0,
       "source": "c_projects_aipvzanalityc_scripts_diag_stream2_sh__entry",
-      "target": "scripts_diag_stream2_show_medias",
-      "confidence_score": 1.0
+      "target": "scripts_diag_stream2_show_medias"
     },
     {
       "relation": "calls",
@@ -19152,9 +19671,9 @@
       "source_location": "L61",
       "weight": 1.0,
       "context": "call",
+      "confidence_score": 1.0,
       "source": "c_projects_aipvzanalityc_scripts_diag_stream2_sh__entry",
-      "target": "scripts_diag_stream2_test_mjpeg",
-      "confidence_score": 1.0
+      "target": "scripts_diag_stream2_test_mjpeg"
     },
     {
       "relation": "calls",
@@ -19163,9 +19682,9 @@
       "source_location": "L15",
       "weight": 1.0,
       "context": "call",
+      "confidence_score": 1.0,
       "source": "scripts_diag_stream2_show_medias",
-      "target": "scripts_diag_stream2_pyjson",
-      "confidence_score": 1.0
+      "target": "scripts_diag_stream2_pyjson"
     },
     {
       "relation": "contains",
@@ -22979,6 +23498,58 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "web/components/camera-stream.tsx",
+      "source_location": "L32",
+      "weight": 1.0,
+      "source": "components_camera_stream",
+      "target": "components_camera_stream_camerastream",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/components/camera-stream.tsx",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "components_camera_stream",
+      "target": "components_camera_stream_loadplayer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/components/camera-stream.tsx",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "components_camera_stream",
+      "target": "components_camera_stream_signalingurl",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "web/components/video-grid.tsx",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "components_video_grid",
+      "target": "components_camera_stream",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "web/components/video-grid.tsx",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "components_video_grid",
+      "target": "components_camera_stream_camerastream",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "web/components/event-log.tsx",
       "source_location": "L18",
       "weight": 1.0,
@@ -23569,16 +24140,6 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "web/components/video-grid.tsx",
-      "source_location": "L15",
-      "weight": 1.0,
-      "source": "components_video_grid",
-      "target": "components_video_grid_streamurl",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "web/components/video-grid.tsx",
       "source_location": "L93",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -23628,17 +24189,6 @@
       "confidence_score": 1.0,
       "source": "components_video_grid",
       "target": "store_events_store_useeventsstore"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "web/components/video-grid.tsx",
-      "source_location": "L50",
-      "weight": 1.0,
-      "source": "components_video_grid_cameratile",
-      "target": "components_video_grid_streamurl",
-      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -25304,6 +25854,515 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "players_video_rtc",
+      "target": "players_video_rtc_videortc",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-stream.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "players_video_stream",
+      "target": "players_video_rtc",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L686",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc",
+      "target": "players_video_rtc_videortc_btoa",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L186",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc",
+      "target": "players_video_rtc_videortc_codecs",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L196",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc",
+      "target": "players_video_rtc_videortc_connectedcallback",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L18",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc",
+      "target": "players_video_rtc_videortc_constructor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L565",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc",
+      "target": "players_video_rtc_videortc_createoffer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L220",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc",
+      "target": "players_video_rtc_videortc_disconnectedcallback",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L402",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc",
+      "target": "players_video_rtc_videortc_onclose",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L309",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc",
+      "target": "players_video_rtc_videortc_onconnect",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L325",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc",
+      "target": "players_video_rtc_videortc_ondisconnect",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L641",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc",
+      "target": "players_video_rtc_videortc_onhls",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L239",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc",
+      "target": "players_video_rtc_videortc_oninit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L632",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc",
+      "target": "players_video_rtc_videortc_onmjpeg",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L654",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc",
+      "target": "players_video_rtc_videortc_onmp4",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L420",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc",
+      "target": "players_video_rtc_videortc_onmse",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L348",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc",
+      "target": "players_video_rtc_videortc_onopen",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L591",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc",
+      "target": "players_video_rtc_videortc_onpcvideo",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L504",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc",
+      "target": "players_video_rtc_videortc_onwebrtc",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L166",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc",
+      "target": "players_video_rtc_videortc_play",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L181",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc",
+      "target": "players_video_rtc_videortc_send",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L149",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc",
+      "target": "players_video_rtc_videortc_src",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-stream.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "players_video_stream",
+      "target": "players_video_rtc_videortc",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L159",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc_src",
+      "target": "players_video_rtc_videortc_onconnect",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L208",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc_connectedcallback",
+      "target": "players_video_rtc_videortc_play",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L445",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc_onmse",
+      "target": "players_video_rtc_videortc_play",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L611",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc_onpcvideo",
+      "target": "players_video_rtc_videortc_play",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L651",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc_onhls",
+      "target": "players_video_rtc_videortc_send",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L638",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc_onmjpeg",
+      "target": "players_video_rtc_videortc_send",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L683",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc_onmp4",
+      "target": "players_video_rtc_videortc_send",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L651",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc_onhls",
+      "target": "players_video_rtc_videortc_codecs",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L683",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc_onmp4",
+      "target": "players_video_rtc_videortc_codecs",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L213",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc_connectedcallback",
+      "target": "players_video_rtc_videortc_onconnect",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L210",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc_connectedcallback",
+      "target": "players_video_rtc_videortc_oninit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L373",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc_onopen",
+      "target": "players_video_rtc_videortc_onhls",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L392",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc_onopen",
+      "target": "players_video_rtc_videortc_onmjpeg",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L376",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc_onopen",
+      "target": "players_video_rtc_videortc_onmp4",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L370",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc_onopen",
+      "target": "players_video_rtc_videortc_onmse",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L381",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc_onopen",
+      "target": "players_video_rtc_videortc_onwebrtc",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-rtc.js",
+      "source_location": "L553",
+      "weight": 1.0,
+      "source": "players_video_rtc_videortc_onwebrtc",
+      "target": "players_video_rtc_videortc_createoffer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-stream.js",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "players_video_stream",
+      "target": "players_video_stream_videostream",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-stream.js",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "players_video_stream_videostream",
+      "target": "players_video_stream_videostream_diverror",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-stream.js",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "players_video_stream_videostream",
+      "target": "players_video_stream_videostream_divmode",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-stream.js",
+      "source_location": "L88",
+      "weight": 1.0,
+      "source": "players_video_stream_videostream",
+      "target": "players_video_stream_videostream_onclose",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-stream.js",
+      "source_location": "L54",
+      "weight": 1.0,
+      "source": "players_video_stream_videostream",
+      "target": "players_video_stream_videostream_onconnect",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-stream.js",
+      "source_location": "L61",
+      "weight": 1.0,
+      "source": "players_video_stream_videostream",
+      "target": "players_video_stream_videostream_ondisconnect",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-stream.js",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "players_video_stream_videostream",
+      "target": "players_video_stream_videostream_oninit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-stream.js",
+      "source_location": "L66",
+      "weight": 1.0,
+      "source": "players_video_stream_videostream",
+      "target": "players_video_stream_videostream_onopen",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/video-stream.js",
+      "source_location": "L93",
+      "weight": 1.0,
+      "source": "players_video_stream_videostream",
+      "target": "players_video_stream_videostream_onpcvideo",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "web/store/events.store.ts",
       "source_location": "L6",
       "weight": 1.0,
@@ -25590,6 +26649,26 @@
       "confidence_score": 1.0,
       "source": "web_tsconfig_compileroptions_paths",
       "target": "web_tsconfig_paths_zod"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/types/video-stream.d.ts",
+      "source_location": "L21",
+      "weight": 1.0,
+      "source": "types_video_stream_d",
+      "target": "types_video_stream_d_intrinsicelements",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/types/video-stream.d.ts",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "types_video_stream_d",
+      "target": "types_video_stream_d_videostreamelement",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -26140,6 +27219,16 @@
       "confidence_score": 1.0,
       "source": "status_3_\u0447\u0442\u043e_\u043e\u0441\u0442\u0430\u043b\u043e\u0441\u044c_\u0434\u043e\u0434\u0435\u043b\u0430\u0442\u044c_\u043f\u043e_\u0432\u0441\u0435\u043c\u0443_\u043f\u0440\u043e\u0435\u043a\u0442\u0443",
       "target": "status_c_\u043a\u0430\u0447\u0435\u0441\u0442\u0432\u043e_\u0438_\u0431\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u043e\u0441\u0442\u044c"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/public/players/README.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "players_readme",
+      "target": "players_readme_go2rtc_web_player_vendored",
+      "confidence_score": 1.0
     },
     {
       "relation": "references",
@@ -26770,5 +27859,5 @@
       "source_file": "CLAUDE.md"
     }
   ],
-  "built_at_commit": "981afe7f0b6fcf1f8dca02f006070b20260ca1b4"
+  "built_at_commit": "5528326a139b77da590d0f1bfc67950429afee54"
 }

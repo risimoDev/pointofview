@@ -6,6 +6,14 @@ GO2RTC="http://localhost:1984"
 line() { printf '\n========== %s ==========\n' "$1"; }
 pyjson() { python3 -c "$1" 2>/dev/null; }
 
+line "0. Файлы плеера отдаются web-контейнером через nginx (нужен HTTP 200 + JS)"
+for p in /players/video-stream.js /players/video-rtc.js; do
+  curl -s --max-time 8 -o /dev/null \
+    -w "   $p: http=%{http_code} type=%{content_type} bytes=%{size_download}\n" \
+    "http://localhost$p"
+done
+echo "   (404 => web пересобран без public/ — проверь COPY public в web/Dockerfile)"
+
 line "1. Потоки go2rtc: у каждой камеры РОВНО ОДИН источник (нет mjpeg-хвоста)"
 curl -s --max-time 5 "$GO2RTC/api/streams" | pyjson '
 import sys,json

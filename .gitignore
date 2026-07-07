@@ -57,7 +57,7 @@ redis-data/
 # === Offline driver blob (79MB of .deb) ===
 /_r8168-driver-offline
 *.deb
-
+/graphify-out
 # === Tooling ===
 /.claude
 graphify-out/cache/

@@ -26,6 +26,9 @@ ENV NODE_ENV=production PORT=3001 HOSTNAME=0.0.0.0
 # standalone output is rooted at the repo dir (outputFileTracingRoot=..)
 COPY --from=build /repo/web/.next/standalone ./
 COPY --from=build /repo/web/.next/static ./web/.next/static
+# Next standalone does NOT bundle public/ — copy it so static assets under
+# /public (e.g. the vendored go2rtc player at /players/*.js) are actually served.
+COPY --from=build /repo/web/public ./web/public
 
 EXPOSE 3001
 CMD ["node", "web/server.js"]

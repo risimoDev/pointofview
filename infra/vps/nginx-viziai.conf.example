@@ -2,6 +2,17 @@
 # TLS terminates here; everything proxies to the home server (10.9.0.2)
 # over WireGuard. Certs: certbot --nginx -d <domain> -d s3.<domain>
 
+# WebSocket upgrade helper. Must forward `Connection: upgrade` (literal) to the
+# home nginx — sending `Connection: websocket` (i.e. $http_upgrade) makes the
+# second nginx hop NOT enter tunnel mode: the 101 passes but no frames flow, so
+# go2rtc MSE video and live-event WS stay silent. Named uniquely to avoid
+# clashing with any map already defined in the main nginx.conf http{} block.
+# (This file is included inside http{} via sites-enabled, so `map` is valid here.)
+map $http_upgrade $viziai_conn_upgrade {
+    default upgrade;
+    ''      close;
+}
+
 # ── main app ────────────────────────────────────────────────
 server {
     listen 80;
@@ -22,9 +33,9 @@ server {
     location / {
         proxy_pass http://10.9.0.2:80;
         proxy_http_version 1.1;
-        # WebSocket (live events, go2rtc WebRTC signaling)
+        # WebSocket (live events + go2rtc MSE/HLS signaling)
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection $http_upgrade;
+        proxy_set_header Connection $viziai_conn_upgrade;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

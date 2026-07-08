@@ -57,7 +57,7 @@ redis-data/
 # === Offline driver blob (79MB of .deb) ===
 /_r8168-driver-offline
 *.deb
-/graphify-out
+graphify-out
 # === Tooling ===
 /.claude
 graphify-out/cache/
@@ -82,3 +82,4 @@ graphify-out/2026-07-07/.graphify_labels.json
 graphify-out/2026-07-07/GRAPH_REPORT.md
 graphify-out/2026-07-07/graph.json
 graphify-out/2026-07-07/manifest.json
+pvz-onboarding

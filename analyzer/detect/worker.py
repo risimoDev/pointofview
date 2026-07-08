@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
@@ -23,6 +24,12 @@ from analyzer.zones.engine import TrackEvent, ZoneEngine
 logger = logging.getLogger(__name__)
 
 PERSON_CLASS = 0  # COCO person
+
+# Liveness heartbeat: refreshed while frames flow, expires on stall/crash.
+# The API maps key presence to the camera's online/offline badge.
+HEARTBEAT_KEY = "camera_alive:{camera_id}"
+HEARTBEAT_TTL = 15   # seconds a camera stays "online" after the last frame
+HEARTBEAT_EVERY = 5  # min seconds between SETEX calls per camera
 
 
 def _iso(ts: float) -> str:
@@ -165,8 +172,17 @@ class AnalyzerWorker:
 
     # ── per-camera consumer; isolated so one failure stays local
     async def _consume(self, source: VideoSource) -> None:
+        key = HEARTBEAT_KEY.format(camera_id=source.camera_id)
+        last_beat = 0.0
         try:
             async for frame in source.frames():
+                now = time.monotonic()
+                if now - last_beat >= HEARTBEAT_EVERY:
+                    last_beat = now
+                    try:
+                        await self.redis.setex(key, HEARTBEAT_TTL, "1")
+                    except Exception:  # noqa: BLE001 — heartbeat must not kill the consumer
+                        pass
                 await self._process(frame)
         except asyncio.CancelledError:
             raise

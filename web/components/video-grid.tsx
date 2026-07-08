@@ -25,7 +25,14 @@ function CameraTile({ camera }: { camera: Camera }): React.JSX.Element {
 
   return (
     <div className={cn('relative aspect-video overflow-hidden rounded-lg bg-black ring-1 ring-border/60', blink && 'animate-blink-red')}>
-      <CameraStream cameraId={camera.id} />
+      {camera.status === 'online' ? (
+        <CameraStream cameraId={camera.id} />
+      ) : (
+        // offline/error: a static plate instead of a doomed connection attempt
+        <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+          {camera.status === 'error' ? 'ошибка камеры' : 'камера не в сети'}
+        </div>
+      )}
       <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent p-2 text-xs text-white">
         <span className="font-medium tracking-tight">{camera.name}</span>
         <span className={cn('flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium',

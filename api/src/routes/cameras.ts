@@ -136,7 +136,18 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
       urlSub: camera.urlSub, status: camera.status, config: camera.config,
     }).from(camera).innerJoin(site, eq(camera.siteId, site.id))
       .where(eq(site.tenantId, req.tenantId))
-    return { items: rows }
+    // Live status from the analyzer heartbeat (camera_alive:{id}, TTL 15s) —
+    // the DB column is a manual override only for the sticky `error` state.
+    const alive = rows.length > 0
+      ? await app.redis.mget(rows.map((r) => `camera_alive:${r.id}`))
+      : []
+    const items = rows.map((r, i) => ({
+      ...r,
+      status: alive[i]
+        ? 'online' as const
+        : (r.status === 'error' ? 'error' as const : 'offline' as const),
+    }))
+    return { items }
   })
 
   // Upload a test video → save to the shared dir the analyzer reads, then

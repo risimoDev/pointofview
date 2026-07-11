@@ -57,7 +57,11 @@ fi
 
 line "3. Поток — ИЗ КОНТЕЙНЕРА analyzer (тот же путь, что у настоящего ИИ)"
 if $COMPOSE ps analyzer >/dev/null 2>&1; then
-  $COMPOSE exec -T analyzer ffprobe -hide_banner -rtsp_transport tcp -timeout 8000000 \
+  # -rw_timeout (not -timeout): modern ffmpeg repurposed -timeout for the RTSP
+  # *listen* (server) mode and merely passing it flips the demuxer into
+  # listen mode — "Unable to open RTSP for listening / Cannot assign
+  # requested address" even against a perfectly reachable camera.
+  $COMPOSE exec -T analyzer ffprobe -hide_banner -rtsp_transport tcp -rw_timeout 8000000 \
     -show_entries stream=codec_type,codec_name,width,height -of default=noprint_wrappers=1 -i "$URL"
   if [ $? -eq 0 ]; then
     echo ""

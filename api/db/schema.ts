@@ -30,7 +30,7 @@ export const eventTypeEnum = pgEnum('event_type', [
 export const eventSeverityEnum = pgEnum('event_severity', ['info', 'warn', 'critical'])
 export const userRoleEnum = pgEnum('user_role', ['super', 'admin', 'manager', 'operator'])
 export const featureIdEnum = pgEnum('feature_kind',
-  ['ppe', 'face_id', 'shelf', 'repack', 'queue', 'crowd', 'counter'])
+  ['ppe', 'face_id', 'shelf', 'repack', 'queue', 'crowd', 'counter', 'reid'])
 export const notificationStatusEnum = pgEnum('notification_status', ['pending', 'sent', 'failed'])
 
 // ── Shared JSON shapes ────────────────────────────────────────

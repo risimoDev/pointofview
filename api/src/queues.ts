@@ -19,6 +19,9 @@ export const clipsQueue = new Queue<ClipJob>(CLIPS_QUEUE, { connection: bullConn
 export interface AlertJob {
   event_id: string
   tenant_id: string
+  // test mode: dispatch a synthetic message to the rule's channels,
+  // bypassing cooldown/quiet-hours (event_id is ignored)
+  test_rule_id?: string
 }
 
 export const ALERTS_QUEUE = 'alerts'

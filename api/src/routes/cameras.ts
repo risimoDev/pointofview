@@ -10,7 +10,10 @@ import { db } from '../db/client.js'
 import { camera, site, zone } from '../../db/schema.js'
 import { config } from '../config.js'
 import { writeAudit } from '../audit.js'
-import { CameraIdParams, CreateCameraBody, CreateZoneBody, UpdateCameraBody } from '../schemas.js'
+import {
+  CameraIdParams, CreateCameraBody, CreateZoneBody, UpdateCameraBody,
+  UpdateZoneBody, ZoneParams,
+} from '../schemas.js'
 
 const VIDEO_EXT = new Set(['.mp4', '.mkv', '.avi', '.mov', '.webm', '.m4v'])
 
@@ -300,6 +303,18 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
     return { deleted: true }
   })
 
+  app.get('/cameras/:id/zones', {
+    preHandler: [app.authenticate],
+    schema: { params: CameraIdParams },
+  }, async (req, reply) => {
+    const { id } = req.params
+    if (!(await ownsCamera(req.tenantId, id))) {
+      return reply.code(404).send({ message: 'camera not found' })
+    }
+    const rows = await db.select().from(zone).where(eq(zone.cameraId, id))
+    return { items: rows }
+  })
+
   app.post('/cameras/:id/zones', {
     preHandler: [app.authenticate],
     schema: { params: CameraIdParams, body: CreateZoneBody },
@@ -322,6 +337,53 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
 
     await syncZones(app, id)
     return reply.code(201).send(row)
+  })
+
+  app.patch('/cameras/:id/zones/:zoneId', {
+    preHandler: [app.authenticate],
+    schema: { params: ZoneParams, body: UpdateZoneBody },
+  }, async (req, reply) => {
+    const { id, zoneId } = req.params
+    if (!(await ownsCamera(req.tenantId, id))) {
+      return reply.code(404).send({ message: 'camera not found' })
+    }
+    const b = req.body
+    const patch: {
+      name?: string
+      kind?: 'counter' | 'desk' | 'shelf' | 'queue' | 'forbidden' | 'required_ppe'
+      polygon?: [number, number][]; config?: Record<string, unknown>
+      active?: boolean; schedule?: Record<string, unknown>
+    } = {}
+    if (b.name !== undefined) patch.name = b.name
+    if (b.kind !== undefined) patch.kind = b.kind
+    if (b.polygon !== undefined) patch.polygon = b.polygon
+    if (b.config !== undefined) patch.config = b.config
+    if (b.active !== undefined) patch.active = b.active
+    if (b.schedule !== undefined) patch.schedule = b.schedule
+    if (Object.keys(patch).length === 0) {
+      return reply.code(400).send({ message: 'nothing to update' })
+    }
+    const [row] = await db.update(zone).set(patch)
+      .where(and(eq(zone.id, zoneId), eq(zone.cameraId, id))).returning()
+    if (!row) return reply.code(404).send({ message: 'zone not found' })
+    await syncZones(app, id)
+    return row
+  })
+
+  app.delete('/cameras/:id/zones/:zoneId', {
+    preHandler: [app.authenticate],
+    schema: { params: ZoneParams },
+  }, async (req, reply) => {
+    const { id, zoneId } = req.params
+    if (!(await ownsCamera(req.tenantId, id))) {
+      return reply.code(404).send({ message: 'camera not found' })
+    }
+    const [row] = await db.delete(zone)
+      .where(and(eq(zone.id, zoneId), eq(zone.cameraId, id)))
+      .returning({ id: zone.id })
+    if (!row) return reply.code(404).send({ message: 'zone not found' })
+    await syncZones(app, id)
+    return { deleted: true }
   })
 
   // Current frame proxied from go2rtc (binary JPEG passthrough)

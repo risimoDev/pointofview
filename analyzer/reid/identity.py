@@ -1,0 +1,265 @@
+from __future__ import annotations
+
+import json
+import logging
+import time
+import uuid
+from base64 import b64encode
+from dataclasses import dataclass, field
+from typing import Any
+
+import cv2
+import httpx
+import numpy as np
+import redis.asyncio as aioredis
+
+from analyzer.config import Settings
+from analyzer.reid.embedding import cosine, make_embedder
+
+logger = logging.getLogger(__name__)
+
+EMA_ALPHA = 0.3           # smoothing of a track's rolling embedding
+GALLERY_KEY = "reid:gallery:{site_id}"   # hash gid -> json {emb, last_seen}
+STAFF_KEY = "reid:staff:{tenant_id}"     # hash gid -> json {emb, name} (API-managed)
+
+
+@dataclass(slots=True)
+class IdentityResult:
+    global_id: str | None
+    staff: bool
+
+
+@dataclass(slots=True)
+class _TrackState:
+    emb: np.ndarray | None = None
+    gid: str | None = None
+    staff: bool = False
+    last_match: float = 0.0
+    last_seen: float = 0.0
+
+
+@dataclass(slots=True)
+class _GalleryEntry:
+    emb: np.ndarray
+    last_seen: float
+    dirty: bool = True  # needs write-back to Redis
+
+
+@dataclass(slots=True)
+class _PendingCrop:
+    site_id: str
+    gid: str
+    jpeg: bytes
+    created: float = field(default_factory=time.time)
+
+
+class IdentityManager:
+    """Cross-camera person identity for one tenant.
+
+    Per-site gallery of appearance embeddings lives in Redis so the dashboard
+    («Люди») and restarts share it. Staff embeddings are a separate persistent
+    hash written by the API; any track matching a staff embedding is flagged
+    `staff` for its whole lifetime — plugins/zone engine then skip visitor
+    counting and visitor alerts for it.
+    """
+
+    feature_id = "reid"
+
+    def __init__(self, settings: Settings, redis: aioredis.Redis) -> None:
+        self.settings = settings
+        self.redis = redis
+        self.embedder = make_embedder()
+        self.enabled = False
+        self._cfg: dict[str, Any] = {}
+        self._tracks: dict[str, _TrackState] = {}          # "{cam}:{tid}"
+        self._gallery: dict[str, dict[str, _GalleryEntry]] = {}   # site -> gid -> entry
+        self._staff: dict[str, np.ndarray] = {}            # gid -> emb
+        self._gallery_loaded: set[str] = set()
+        self._pending_crops: list[_PendingCrop] = []
+
+    # ── config / periodic sync ────────────────────────────────
+    def _f(self, key: str, default: float) -> float:
+        v = self._cfg.get(key, default)
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return default
+
+    async def refresh(self) -> None:
+        """Re-read feature flag/config + staff gallery. Called every ~30s."""
+        raw = await self.redis.get(f"features:{self.settings.tenant_id}")
+        feats: dict[str, Any] = json.loads(raw) if raw else {}
+        if self.feature_id in self.settings.enabled_plugin_ids():
+            feats.setdefault(self.feature_id, {"enabled": True, "config": {}})
+        feat = feats.get(self.feature_id) or {}
+        self.enabled = bool(feat.get("enabled"))
+        self._cfg = feat.get("config") or {}
+
+        if not self.enabled:
+            return
+        staff_raw = await self.redis.hgetall(STAFF_KEY.format(tenant_id=self.settings.tenant_id))
+        staff: dict[str, np.ndarray] = {}
+        for gid, payload in staff_raw.items():
+            try:
+                emb = np.asarray(json.loads(payload)["emb"], dtype=np.float32)
+                if emb.shape[0] == self.embedder.dim:
+                    staff[gid] = emb
+            except (KeyError, ValueError, json.JSONDecodeError):
+                continue
+        self._staff = staff
+
+    async def ensure_site(self, site_id: str) -> None:
+        """Lazy-load the site gallery once (no-op afterwards)."""
+        if self.enabled:
+            await self._load_gallery(site_id)
+
+    async def _load_gallery(self, site_id: str) -> None:
+        if site_id in self._gallery_loaded:
+            return
+        self._gallery_loaded.add(site_id)
+        entries: dict[str, _GalleryEntry] = {}
+        raw = await self.redis.hgetall(GALLERY_KEY.format(site_id=site_id))
+        for gid, payload in raw.items():
+            try:
+                d = json.loads(payload)
+                emb = np.asarray(d["emb"], dtype=np.float32)
+                if emb.shape[0] == self.embedder.dim:
+                    entries[gid] = _GalleryEntry(emb=emb, last_seen=float(d.get("last_seen", 0)), dirty=False)
+            except (KeyError, ValueError, json.JSONDecodeError):
+                continue
+        self._gallery[site_id] = entries
+
+    async def sync(self) -> None:
+        """Write dirty gallery entries back to Redis + expire stale ones.
+        Also uploads pending identity crops through the internal API."""
+        if not self.enabled:
+            return
+        ttl = self._f("gallery_ttl_hours", 12.0) * 3600.0
+        now = time.time()
+        for site_id, entries in self._gallery.items():
+            key = GALLERY_KEY.format(site_id=site_id)
+            stale = [gid for gid, e in entries.items() if now - e.last_seen > ttl]
+            if stale:
+                for gid in stale:
+                    del entries[gid]
+                await self.redis.hdel(key, *stale)
+            dirty = {gid: e for gid, e in entries.items() if e.dirty}
+            if dirty:
+                mapping = {
+                    gid: json.dumps({"emb": e.emb.tolist(), "last_seen": e.last_seen})
+                    for gid, e in dirty.items()
+                }
+                await self.redis.hset(key, mapping=mapping)
+                for e in dirty.values():
+                    e.dirty = False
+
+        # forget tracks that vanished
+        lost = self.settings.track_lost_seconds * 3
+        for tkey in [k for k, s in self._tracks.items() if now - s.last_seen > lost]:
+            del self._tracks[tkey]
+
+        await self._flush_crops()
+
+    async def _flush_crops(self) -> None:
+        if not self._pending_crops or not self.settings.internal_api_url:
+            self._pending_crops = self._pending_crops[-20:]
+            return
+        crops, self._pending_crops = self._pending_crops, []
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                for c in crops:
+                    await client.post(
+                        f"{self.settings.internal_api_url}/internal/reid/crop",
+                        headers={"x-internal-token": self.settings.internal_token},
+                        json={
+                            "tenant_id": self.settings.tenant_id,
+                            "site_id": c.site_id,
+                            "gid": c.gid,
+                            "jpeg_b64": b64encode(c.jpeg).decode(),
+                        },
+                    )
+        except httpx.HTTPError:
+            # API down: keep the newest few and retry next sync
+            self._pending_crops = (crops + self._pending_crops)[-20:]
+
+    # ── per-frame resolution ──────────────────────────────────
+    def resolve(
+        self,
+        camera_id: str,
+        site_id: str,
+        track_id: int,
+        frame: np.ndarray,
+        bbox: tuple[float, float, float, float],
+        ts: float,
+    ) -> IdentityResult:
+        if not self.enabled:
+            return IdentityResult(global_id=None, staff=False)
+
+        tkey = f"{camera_id}:{track_id}"
+        state = self._tracks.setdefault(tkey, _TrackState())
+        state.last_seen = ts
+
+        if ts - state.last_match < self._f("match_interval_seconds", 2.0):
+            return IdentityResult(global_id=state.gid, staff=state.staff)
+        state.last_match = ts
+
+        crop = self._crop(frame, bbox)
+        if crop is None:
+            return IdentityResult(global_id=state.gid, staff=state.staff)
+
+        emb = self.embedder(crop)
+        if state.emb is None:
+            state.emb = emb
+        else:
+            mixed = (1 - EMA_ALPHA) * state.emb + EMA_ALPHA * emb
+            norm = float(np.linalg.norm(mixed))
+            state.emb = mixed / norm if norm > 0 else mixed
+
+        # staff match is sticky for the whole track
+        if not state.staff:
+            staff_thr = self._f("staff_threshold", 0.90)
+            for gid, semb in self._staff.items():
+                if cosine(state.emb, semb) >= staff_thr:
+                    state.staff = True
+                    state.gid = gid
+                    break
+        if state.staff:
+            return IdentityResult(global_id=state.gid, staff=True)
+
+        entries = self._gallery.setdefault(site_id, {})
+        thr = self._f("match_threshold", 0.88)
+        best_gid, best_sim = None, thr
+        for gid, entry in entries.items():
+            sim = cosine(state.emb, entry.emb)
+            if sim >= best_sim:
+                best_gid, best_sim = gid, sim
+
+        if best_gid is not None:
+            entry = entries[best_gid]
+            mixed = (1 - EMA_ALPHA) * entry.emb + EMA_ALPHA * state.emb
+            norm = float(np.linalg.norm(mixed))
+            entry.emb = mixed / norm if norm > 0 else mixed
+            entry.last_seen = ts
+            entry.dirty = True
+            state.gid = best_gid
+            return IdentityResult(global_id=best_gid, staff=False)
+
+        # new person at this site
+        if len(entries) >= int(self._f("max_gallery", 500)):
+            return IdentityResult(global_id=state.gid, staff=False)
+        gid = uuid.uuid4().hex[:12]
+        entries[gid] = _GalleryEntry(emb=state.emb.copy(), last_seen=ts)
+        state.gid = gid
+        ok, jpeg = cv2.imencode(".jpg", crop, [cv2.IMWRITE_JPEG_QUALITY, 85])
+        if ok:
+            self._pending_crops.append(_PendingCrop(site_id=site_id, gid=gid, jpeg=jpeg.tobytes()))
+        return IdentityResult(global_id=gid, staff=False)
+
+    def _crop(self, frame: np.ndarray, bbox: tuple[float, float, float, float]) -> np.ndarray | None:
+        h, w = frame.shape[0], frame.shape[1]
+        x1 = max(0, int(bbox[0])); y1 = max(0, int(bbox[1]))
+        x2 = min(w, int(bbox[2])); y2 = min(h, int(bbox[3]))
+        min_px = int(self._f("min_crop_px", 48))
+        if x2 - x1 < min_px or y2 - y1 < min_px:
+            return None
+        return frame[y1:y2, x1:x2]

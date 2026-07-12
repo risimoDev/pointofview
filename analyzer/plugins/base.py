@@ -15,6 +15,9 @@ class TrackInfo:
     center_norm: tuple[float, float]          # 0..1
     confidence: float
     zone_ids: frozenset[str] = frozenset()    # active zones containing the center
+    # cross-camera identity (reid feature); None when reid is disabled
+    global_id: str | None = None
+    staff: bool = False                        # matched the staff gallery
 
 
 @dataclass(slots=True)

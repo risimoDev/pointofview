@@ -52,6 +52,7 @@ class TrackEvent:
     frame_h: int
     confidence: float
     ts: float
+    staff: bool = False  # reid: staff don't trigger visitor alerts
 
     def center_norm(self) -> tuple[float, float]:
         x1, y1, x2, y2 = self.bbox
@@ -185,7 +186,7 @@ class ZoneEngine:
                 if state is None:
                     state = EntryState(entered_at=now, last_seen_at=now)
                     self._state[key] = state
-                    if zone.kind == "forbidden":
+                    if zone.kind == "forbidden" and not te.staff:
                         state.alerted = True
                         state.last_alert_at = now
                         out.append(self._event(te, zone, "zone_violation", "critical",
@@ -196,7 +197,11 @@ class ZoneEngine:
                 else:
                     state.last_seen_at = now
                     dwell = now - state.entered_at
-                    if zone.kind in DWELL_KINDS:
+                    if te.staff:
+                        # staff don't queue and may enter forbidden areas —
+                        # keep entry/exit history, suppress visitor alerts
+                        pass
+                    elif zone.kind in DWELL_KINDS:
                         limit = zone.config.get("dwell_seconds")
                         if (limit and dwell >= float(limit)
                                 and self._cooldown_ok(zone, state, now)):
@@ -271,6 +276,8 @@ class ZoneEngine:
 
     def _event(self, te: TrackEvent, zone: Zone, type_: str, severity: str,
                meta: dict[str, Any]) -> Event:
+        if te.staff:
+            meta = {**meta, "staff": True}
         return Event(
             tenant_id=te.tenant_id, site_id=te.site_id, camera_id=te.camera_id,
             zone_id=zone.id, type=type_, severity=severity, track_id=te.track_id,

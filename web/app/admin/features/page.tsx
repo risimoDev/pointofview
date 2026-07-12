@@ -42,6 +42,15 @@ const FEATURE_META: Record<string, FeatureMeta> = {
       { key: 'settle_seconds', label: 'Стабилизация, сек', type: 'number', def: 2 },
     ],
   },
+  reid: {
+    label: 'Сквозная идентификация',
+    note: 'Один человек на всех камерах точки. Сотрудники отмечаются на странице «Люди».',
+    fields: [
+      { key: 'match_threshold', label: 'Порог совпадения (0..1)', type: 'number', def: 0.88 },
+      { key: 'staff_threshold', label: 'Порог сотрудника (0..1)', type: 'number', def: 0.90 },
+      { key: 'gallery_ttl_hours', label: 'Память о посетителе, ч', type: 'number', def: 12 },
+    ],
+  },
   queue: { label: 'Очередь', note: 'Порог времени нахождения задаётся в настройках зоны.', fields: [] },
   ppe: { label: 'Средства защиты (СИЗ)', note: 'В разработке: требует серверной модели (RTX 3070).', fields: [] },
   face_id: { label: 'Распознавание лиц', note: 'В разработке: требует серверной модели + согласие по 152-ФЗ.', fields: [] },

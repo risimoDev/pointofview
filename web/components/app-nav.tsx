@@ -9,6 +9,7 @@ import {
   IconShieldLock,
   IconLayoutGrid,
   IconActivity,
+  IconChartHistogram,
   IconVideo,
   IconAdjustmentsHorizontal,
 } from '@tabler/icons-react'
@@ -21,6 +22,7 @@ type NavIcon = React.ComponentType<{ className?: string; stroke?: number }>
 const NAV: { href: string; label: string; icon: NavIcon }[] = [
   { href: '/dashboard', label: 'Дашборд', icon: IconLayoutGrid },
   { href: '/events', label: 'События', icon: IconActivity },
+  { href: '/analytics', label: 'Аналитика', icon: IconChartHistogram },
   { href: '/settings/cameras', label: 'Камеры', icon: IconVideo },
   { href: '/settings/features', label: 'Функции', icon: IconAdjustmentsHorizontal },
 ]

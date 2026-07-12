@@ -19,11 +19,13 @@ export default function DashboardPage(): React.JSX.Element {
   const { data: cameras = [] } = useQuery({
     queryKey: ['cameras'], queryFn: getCameras, refetchInterval: 15000,
   })
-  const { data: occupancy = [] } = useQuery({
+  const { data: occupancy } = useQuery({
     queryKey: ['occupancy'],
     queryFn: getOccupancy,
     refetchInterval: 5000,
   })
+  const occupancyItems = occupancy?.items ?? []
+  const visitorSites = occupancy?.sites ?? []
 
   const cameraNames = useMemo(
     () => Object.fromEntries(cameras.map((c) => [c.id, c.name])),
@@ -65,9 +67,28 @@ export default function DashboardPage(): React.JSX.Element {
         </div>
       </header>
 
-      {occupancy.length > 0 && (
+      {(occupancyItems.length > 0 || visitorSites.length > 0) && (
         <div className="flex flex-wrap gap-2">
-          {occupancy.map((o) => (
+          {visitorSites.map((s) => (
+            <div
+              key={s.siteId}
+              className="flex items-center gap-3 rounded-lg border border-brand/30 bg-brand/5 px-3 py-2"
+            >
+              <span className="flex h-8 w-8 items-center justify-center rounded-md bg-brand/10 text-brand ring-1 ring-brand/20">
+                <IconUsers className="h-4 w-4" stroke={1.75} />
+              </span>
+              <div className="leading-tight">
+                <div className="text-xs text-muted-foreground">{s.siteName}</div>
+                <div className="text-sm text-muted-foreground">
+                  <span className="font-display text-base font-semibold tabular-nums text-brand">
+                    {s.visitors}
+                  </span>{' '}
+                  посетителей за день
+                </div>
+              </div>
+            </div>
+          ))}
+          {occupancyItems.map((o) => (
             <div
               key={o.cameraId}
               className="flex items-center gap-3 rounded-lg border border-border/70 bg-card/60 px-3 py-2"
@@ -83,7 +104,7 @@ export default function DashboardPage(): React.JSX.Element {
                   <span className="font-display text-base font-semibold tabular-nums text-brand">
                     {o.occupancy}
                   </span>{' '}
-                  сейчас · {o.visitors} за день
+                  сейчас
                 </div>
               </div>
             </div>

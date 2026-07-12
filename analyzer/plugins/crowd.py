@@ -33,10 +33,12 @@ class CrowdPlugin:
 
     async def on_frame(self, ctx: FrameContext) -> list[Event]:
         zone_ids = set(self._cfg.get("zone_ids") or [])
+        # staff don't make a crowd (reid feature; staff=False when reid is off)
+        people = [t for t in ctx.tracks if not t.staff]
         if zone_ids:
-            count = sum(1 for t in ctx.tracks if t.zone_ids & zone_ids)
+            count = sum(1 for t in people if t.zone_ids & zone_ids)
         else:
-            count = len(ctx.tracks)
+            count = len(people)
 
         max_count = int(self._cfg.get("max_count", 10))
         if count < max_count:

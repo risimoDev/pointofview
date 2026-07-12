@@ -11,7 +11,7 @@ export const ZoneKindEnum = z.enum([
   'counter', 'desk', 'shelf', 'queue', 'forbidden', 'required_ppe',
 ])
 export const FeatureKindEnum = z.enum([
-  'ppe', 'face_id', 'shelf', 'repack', 'queue', 'crowd', 'counter',
+  'ppe', 'face_id', 'shelf', 'repack', 'queue', 'crowd', 'counter', 'reid',
 ])
 
 export const BboxSchema = z.object({
@@ -46,6 +46,8 @@ export const EventsQuery = z.object({
   camera_id: z.string().uuid().optional(),
   type: EventTypeEnum.optional(),
   severity: SeverityEnum.optional(),
+  // string enum, not coerce.boolean: `?resolved=false` must mean false
+  resolved: z.enum(['true', 'false']).optional(),
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
   limit: z.coerce.number().int().min(1).max(200).default(50),
@@ -78,6 +80,20 @@ export const CreateZoneBody = z.object({
   config: z.record(z.unknown()).default({}),
   active: z.boolean().default(true),
   schedule: z.record(z.unknown()).default({}),
+})
+
+export const UpdateZoneBody = z.object({
+  name: z.string().min(1).optional(),
+  kind: ZoneKindEnum.optional(),
+  polygon: z.array(z.tuple([z.number(), z.number()])).min(3).optional(),
+  config: z.record(z.unknown()).optional(),
+  active: z.boolean().optional(),
+  schedule: z.record(z.unknown()).optional(),
+})
+
+export const ZoneParams = z.object({
+  id: z.string().uuid(),      // camera id
+  zoneId: z.string().uuid(),
 })
 
 export const SummaryQuery = z.object({

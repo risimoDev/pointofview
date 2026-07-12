@@ -55,7 +55,9 @@ const featuresRoutes: FastifyPluginAsyncZod = async (app) => {
     return row
   })
 
-  // Live occupancy/visitors written by the counter plugin to occupancy:{tenant}
+  // Live metrics written by the counter plugin:
+  //   occupancy:{tenant} per camera; visitors:{tenant} per SITE (deduped by
+  //   cross-camera identity when reid is on — a person on 4 cameras counts once)
   app.get('/occupancy', {
     preHandler: [app.authenticate],
   }, async (req) => {
@@ -71,10 +73,23 @@ const featuresRoutes: FastifyPluginAsyncZod = async (app) => {
     const items = Object.entries(raw)
       .filter(([cameraId]) => liveIds.has(cameraId))
       .map(([cameraId, json]) => {
-        const v = JSON.parse(json) as { occupancy: number; visitors: number; ts: number }
-        return { cameraId, occupancy: v.occupancy, visitors: v.visitors, ts: v.ts }
+        // legacy rows may still carry visitors — ignored since the per-site hash took over
+        const v = JSON.parse(json) as { occupancy: number; ts: number }
+        return { cameraId, occupancy: v.occupancy, ts: v.ts }
       })
-    return { items }
+
+    const sitesRaw = await app.redis.hgetall(`visitors:${req.tenantId}`)
+    const names = await db.select({ id: site.id, name: site.name }).from(site)
+      .where(eq(site.tenantId, req.tenantId))
+    const nameById = new Map(names.map((s) => [s.id, s.name]))
+    const sites = Object.entries(sitesRaw)
+      .filter(([siteId]) => nameById.has(siteId))
+      .map(([siteId, json]) => {
+        const v = JSON.parse(json) as { visitors: number; day: string; ts: number }
+        return { siteId, siteName: nameById.get(siteId) ?? '', visitors: v.visitors, ts: v.ts }
+      })
+
+    return { items, sites }
   })
 }
 

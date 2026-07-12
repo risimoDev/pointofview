@@ -9,6 +9,7 @@ import { writeAudit } from '../audit.js'
 import { EventTypeEnum, SeverityEnum } from '../schemas.js'
 import { config } from '../config.js'
 import { CLIPS_BUCKET, minio } from '../minio.js'
+import { alertsQueue } from '../queues.js'
 
 const RoleEnum = z.enum(['super', 'admin', 'manager', 'operator'])
 const AlertRuleBody = z.object({
@@ -16,6 +17,10 @@ const AlertRuleBody = z.object({
   channels: z.array(z.record(z.unknown())).default([]),
   cooldown_seconds: z.number().int().min(1).default(60),
   enabled: z.boolean().default(true),
+  // { min_severity: 'info'|'warn'|'critical' }
+  conditions: z.record(z.unknown()).default({}),
+  // { quiet_from: 'HH:MM', quiet_to: 'HH:MM' } — тихие часы в TZ точки
+  schedule: z.record(z.unknown()).default({}),
 })
 
 function flatToObj(arr: unknown[]): Record<string, unknown> {
@@ -206,6 +211,7 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
     const [row] = await db.insert(alertRule).values({
       tenantId: req.tenantId, eventType: b.event_type, channels: b.channels,
       cooldownSeconds: b.cooldown_seconds, enabled: b.enabled,
+      conditions: b.conditions, schedule: b.schedule,
     }).returning()
     await writeAudit({
       tenantId: req.tenantId, userId: req.userId, action: 'alert_rule.create',
@@ -222,11 +228,14 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
     const patch: {
       eventType?: z.infer<typeof EventTypeEnum>; channels?: unknown[]
       cooldownSeconds?: number; enabled?: boolean
+      conditions?: Record<string, unknown>; schedule?: Record<string, unknown>
     } = {}
     if (b.event_type !== undefined) patch.eventType = b.event_type
     if (b.channels !== undefined) patch.channels = b.channels
     if (b.cooldown_seconds !== undefined) patch.cooldownSeconds = b.cooldown_seconds
     if (b.enabled !== undefined) patch.enabled = b.enabled
+    if (b.conditions !== undefined) patch.conditions = b.conditions
+    if (b.schedule !== undefined) patch.schedule = b.schedule
     if (Object.keys(patch).length === 0) {
       return reply.code(400).send({ message: 'nothing to update' })
     }
@@ -235,6 +244,22 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
       .returning()
     if (!row) return reply.code(404).send({ message: 'rule not found' })
     return row
+  })
+
+  // «Отправить тестовое» — synthetic message to the rule's channels via the
+  // same worker path as real alerts (validates token/chat_id/webhook end-to-end)
+  app.post('/alert-rules/:id/test', {
+    preHandler: [requireSuper],
+    schema: { params: z.object({ id: z.string().uuid() }) },
+  }, async (req, reply) => {
+    const [rule] = await db.select({ id: alertRule.id }).from(alertRule)
+      .where(and(eq(alertRule.id, req.params.id), eq(alertRule.tenantId, req.tenantId)))
+      .limit(1)
+    if (!rule) return reply.code(404).send({ message: 'rule not found' })
+    await alertsQueue.add('test', {
+      event_id: '', tenant_id: req.tenantId, test_rule_id: rule.id,
+    }, { removeOnComplete: 20, removeOnFail: 50 })
+    return reply.code(202).send({ queued: true })
   })
 
   app.delete('/alert-rules/:id', {

@@ -2,37 +2,67 @@
 
 import type * as React from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { IconTrash } from '@tabler/icons-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { createZone } from '@/lib/api'
+import { createZone, deleteZone, getZones, updateZone } from '@/lib/api'
 import { zoneKindLabels } from '@/lib/labels'
 import { ZoneKind, type Zone } from '@shared/events.schema'
 
 type Point = [number, number] // normalized 0..1
 type Kind = Zone['kind']
 
+// kinds the zone engine tracks dwell for (dwell_seconds → queue_alert)
+const DWELL_KINDS: Kind[] = ['counter', 'desk', 'queue']
+// kinds that can alert repeatedly → cooldown_seconds applies
+const ALERTING_KINDS: Kind[] = ['counter', 'desk', 'queue', 'forbidden']
+
 interface EditZone {
+  id: string | null // null = ещё не сохранена
   name: string
   kind: Kind
   polygon: Point[]
-  saved?: boolean
+  config: Record<string, unknown>
+  active: boolean
+  dirty: boolean
 }
 
 const KINDS = ZoneKind.options
 const HANDLE_HIT = 12 // px
+
+function numField(cfg: Record<string, unknown>, key: string): string {
+  const v = cfg[key]
+  return typeof v === 'number' || typeof v === 'string' ? String(v) : ''
+}
 
 export function ZoneEditor({ cameraId, imageUrl }: { cameraId: string; imageUrl: string }): React.JSX.Element {
   const imgRef = useRef<HTMLImageElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [size, setSize] = useState({ w: 0, h: 0 })
   const [zones, setZones] = useState<EditZone[]>([])
+  const [loaded, setLoaded] = useState(false)
   const [draft, setDraft] = useState<Point[]>([])
   const dragRef = useRef<{ zone: number | 'draft'; idx: number } | null>(null)
   const movedRef = useRef(false)
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const load = useCallback(async (): Promise<void> => {
+    const items = await getZones(cameraId)
+    setZones(items.map((z) => ({
+      id: z.id, name: z.name, kind: z.kind,
+      polygon: z.polygon.map((p) => [p[0], p[1]] as Point),
+      config: z.config, active: z.active, dirty: false,
+    })))
+    setLoaded(true)
+  }, [cameraId])
+
+  useEffect(() => {
+    load().catch(() => setError('Не удалось загрузить зоны'))
+  }, [load])
 
   const syncSize = useCallback(() => {
     const img = imgRef.current
@@ -76,8 +106,12 @@ export function ZoneEditor({ cameraId, imageUrl }: { cameraId: string; imageUrl:
       }
     }
 
-    zones.forEach((z) => drawPoly(z.polygon, '#34d399', true))   // emerald = saved
-    drawPoly(draft, '#2dd4bf', false)                            // teal = brand draft
+    for (const z of zones) {
+      // grey = выключена, amber = несохранённые правки, emerald = сохранена
+      const color = !z.active ? '#71717a' : z.dirty || !z.id ? '#f59e0b' : '#34d399'
+      drawPoly(z.polygon, color, true)
+    }
+    drawPoly(draft, '#2dd4bf', false) // teal = рисуемая
   }, [zones, draft, size])
 
   const toNorm = (e: React.PointerEvent | React.MouseEvent): Point => {
@@ -119,7 +153,9 @@ export function ZoneEditor({ cameraId, imageUrl }: { cameraId: string; imageUrl:
     } else {
       const zi = drag.zone
       setZones((zs) => zs.map((z, i) =>
-        i === zi ? { ...z, polygon: z.polygon.map((pt, j) => (j === drag.idx ? p : pt)) } : z))
+        i === zi
+          ? { ...z, dirty: true, polygon: z.polygon.map((pt, j) => (j === drag.idx ? p : pt)) }
+          : z))
     }
   }
 
@@ -135,32 +171,68 @@ export function ZoneEditor({ cameraId, imageUrl }: { cameraId: string; imageUrl:
 
   const closeDraft = (): void => {
     if (draft.length < 3) return
-    setZones((zs) => [...zs, { name: `Зона ${zs.length + 1}`, kind: 'counter', polygon: draft }])
+    setZones((zs) => [...zs, {
+      id: null, name: `Зона ${zs.length + 1}`, kind: 'counter',
+      polygon: draft, config: {}, active: true, dirty: true,
+    }])
     setDraft([])
   }
 
-  const updateZone = (idx: number, patch: Partial<EditZone>): void =>
-    setZones((zs) => zs.map((z, i) => (i === idx ? { ...z, ...patch } : z)))
+  const patchZone = (idx: number, patch: Partial<EditZone>): void =>
+    setZones((zs) => zs.map((z, i) => (i === idx ? { ...z, ...patch, dirty: true } : z)))
 
-  const deleteZone = (idx: number): void =>
+  const patchConfig = (idx: number, key: string, raw: string): void =>
+    setZones((zs) => zs.map((z, i) => {
+      if (i !== idx) return z
+      const config = { ...z.config }
+      const n = Number(raw)
+      if (raw === '' || Number.isNaN(n)) delete config[key]
+      else config[key] = n
+      return { ...z, config, dirty: true }
+    }))
+
+  const removeZone = async (idx: number): Promise<void> => {
+    const z = zones[idx]
+    if (!z) return
+    if (z.id) {
+      if (!window.confirm(`Удалить зону «${z.name}»? Её события останутся в истории.`)) return
+      try {
+        await deleteZone(cameraId, z.id)
+      } catch {
+        setError('Не удалось удалить зону')
+        return
+      }
+    }
     setZones((zs) => zs.filter((_, i) => i !== idx))
+  }
 
   const save = async (): Promise<void> => {
     setSaving(true)
+    setError(null)
     try {
       for (const z of zones) {
-        if (z.saved) continue
-        await createZone(cameraId, { name: z.name, kind: z.kind, polygon: z.polygon })
+        if (!z.dirty) continue
+        const body = {
+          name: z.name, kind: z.kind, polygon: z.polygon,
+          config: z.config, active: z.active,
+        }
+        if (z.id) await updateZone(cameraId, z.id, body)
+        else await createZone(cameraId, body)
       }
-      setZones((zs) => zs.map((z) => ({ ...z, saved: true })))
+      await load() // сервер — источник истины (id новых зон и т.п.)
+    } catch {
+      setError('Не удалось сохранить изменения')
     } finally {
       setSaving(false)
     }
   }
 
+  const dirtyCount = zones.filter((z) => z.dirty).length
+
   return (
-    <div className="flex gap-4">
+    <div className="flex flex-wrap gap-4">
       <div className="relative w-fit select-none">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           ref={imgRef}
           src={imageUrl}
@@ -179,7 +251,7 @@ export function ZoneEditor({ cameraId, imageUrl }: { cameraId: string; imageUrl:
         />
       </div>
 
-      <div className="flex w-72 flex-col gap-3">
+      <div className="flex w-80 flex-col gap-3">
         <div className="flex gap-2">
           <Button size="sm" variant="secondary" onClick={closeDraft} disabled={draft.length < 3}>
             Замкнуть ({draft.length})
@@ -189,27 +261,79 @@ export function ZoneEditor({ cameraId, imageUrl }: { cameraId: string; imageUrl:
           </Button>
         </div>
 
+        {!loaded && !error && <p className="text-sm text-muted-foreground">Загрузка зон…</p>}
+        {loaded && zones.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            Зон пока нет. Кликами по кадру обведи область и замкни её двойным кликом.
+          </p>
+        )}
+
         {zones.map((z, i) => (
-          <div key={i} className="space-y-2 rounded-lg border border-border/70 bg-card/40 p-2.5">
-            <Input value={z.name} onChange={(e) => updateZone(i, { name: e.target.value })} />
-            <Select value={z.kind} onValueChange={(v) => updateZone(i, { kind: v as Kind })}>
+          <div key={z.id ?? `new-${i}`} className="space-y-2 rounded-lg border border-border/70 bg-card/40 p-2.5">
+            <div className="flex items-center gap-2">
+              <Input value={z.name} onChange={(e) => patchZone(i, { name: e.target.value })} />
+              <Button
+                size="sm" variant="ghost"
+                className="shrink-0 text-muted-foreground hover:text-red-300"
+                onClick={() => void removeZone(i)}
+                title="Удалить зону"
+              >
+                <IconTrash className="h-4 w-4" stroke={1.75} />
+              </Button>
+            </div>
+            <Select value={z.kind} onValueChange={(v) => patchZone(i, { kind: v as Kind })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {KINDS.map((k) => <SelectItem key={k} value={k}>{zoneKindLabels[k]}</SelectItem>)}
               </SelectContent>
             </Select>
+
+            {DWELL_KINDS.includes(z.kind) && (
+              <div className="flex items-center gap-2">
+                <span className="w-40 text-xs text-muted-foreground">Порог ожидания, сек</span>
+                <Input
+                  type="number" min={1} className="h-8"
+                  placeholder="нет"
+                  value={numField(z.config, 'dwell_seconds')}
+                  onChange={(e) => patchConfig(i, 'dwell_seconds', e.target.value)}
+                />
+              </div>
+            )}
+            {ALERTING_KINDS.includes(z.kind) && (
+              <div className="flex items-center gap-2">
+                <span className="w-40 text-xs text-muted-foreground">Пауза оповещений, сек</span>
+                <Input
+                  type="number" min={1} className="h-8"
+                  placeholder="по умолч."
+                  value={numField(z.config, 'cooldown_seconds')}
+                  onChange={(e) => patchConfig(i, 'cooldown_seconds', e.target.value)}
+                />
+              </div>
+            )}
+
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>{z.polygon.length} точек {z.saved && '· сохранено'}</span>
-              <Button size="sm" variant="destructive" onClick={() => deleteZone(i)}>Удалить</Button>
+              <span>
+                {z.polygon.length} точек
+                {z.dirty && <span className="text-amber-400"> · не сохранено</span>}
+              </span>
+              <Button
+                size="sm"
+                variant={z.active ? 'default' : 'outline'}
+                onClick={() => patchZone(i, { active: !z.active })}
+              >
+                {z.active ? 'Активна' : 'Выключена'}
+              </Button>
             </div>
           </div>
         ))}
 
-        <Button onClick={() => void save()} disabled={saving || zones.length === 0}>
-          {saving ? 'Сохранение…' : 'Сохранить зоны'}
+        <Button onClick={() => void save()} disabled={saving || dirtyCount === 0}>
+          {saving ? 'Сохранение…' : dirtyCount > 0 ? `Сохранить изменения (${dirtyCount})` : 'Изменений нет'}
         </Button>
+        {error && <p className="text-sm text-red-400">{error}</p>}
         <p className="text-xs text-muted-foreground">
           Клик — точка, двойной клик — замкнуть, перетаскивание — двигать точки.
+          Порог ожидания включает событие «Очередь» для зон подсчёта, стола выдачи и очереди.
         </p>
       </div>
     </div>

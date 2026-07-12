@@ -50,6 +50,7 @@ export interface EventsFilter {
   camera_id?: string | undefined
   type?: string | undefined
   severity?: string | undefined
+  resolved?: 'true' | 'false' | undefined
   from?: string | undefined
   to?: string | undefined
   cursor?: string | undefined
@@ -130,6 +131,7 @@ export async function getSnapshotObjectUrl(cameraId: string): Promise<string> {
 }
 
 const CreateZoneResult = ZoneSchema
+const ZonesListSchema = z.object({ items: z.array(ZoneSchema) })
 export interface CreateZoneInput {
   name: string
   kind: Zone['kind']
@@ -138,12 +140,62 @@ export interface CreateZoneInput {
   active?: boolean
 }
 
+export async function getZones(cameraId: string): Promise<Zone[]> {
+  return (await apiJson(`/api/v1/cameras/${cameraId}/zones`, ZonesListSchema)).items
+}
+
 export async function createZone(cameraId: string, input: CreateZoneInput): Promise<Zone> {
   return apiJson(`/api/v1/cameras/${cameraId}/zones`, CreateZoneResult, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   })
+}
+
+export async function updateZone(
+  cameraId: string, zoneId: string,
+  patch: Partial<CreateZoneInput>,
+): Promise<void> {
+  const res = await apiFetch(`/api/v1/cameras/${cameraId}/zones/${zoneId}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch),
+  })
+  if (!res.ok) throw new Error(`updateZone: ${res.status}`)
+}
+
+export async function deleteZone(cameraId: string, zoneId: string): Promise<void> {
+  const res = await apiFetch(`/api/v1/cameras/${cameraId}/zones/${zoneId}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error(`deleteZone: ${res.status}`)
+}
+
+export async function resolveEvent(eventId: string): Promise<void> {
+  const res = await apiFetch(`/api/v1/events/${eventId}/resolve`, { method: 'PATCH' })
+  if (!res.ok) throw new Error(`resolveEvent: ${res.status}`)
+}
+
+const SnapshotUrlSchema = z.object({ url: z.string() })
+export async function getEventSnapshotUrl(eventId: string): Promise<string | null> {
+  const res = await apiFetch(`/api/v1/events/${eventId}/snapshot`)
+  if (res.status === 409) return null // событие без снапшота
+  if (!res.ok) throw new Error(`snapshot: ${res.status}`)
+  return SnapshotUrlSchema.parse(await res.json()).url
+}
+
+// ── Analytics overview ────────────────────────────────────────
+const OverviewSchema = z.object({
+  series: z.array(z.object({ bucket: z.string(), type: z.string(), count: z.number() })),
+  byType: z.array(z.object({ type: z.string(), count: z.number(), critical: z.number() })),
+  byCamera: z.array(z.object({
+    camera_id: z.string(), camera_name: z.string(), count: z.number(),
+  })),
+  totals: z.object({ total: z.number(), critical: z.number(), unresolved: z.number() }),
+})
+export type AnalyticsOverview = z.infer<typeof OverviewSchema>
+
+export async function getAnalyticsOverview(params: {
+  from: string; to: string; bucket: 'hour' | 'day'
+}): Promise<AnalyticsOverview> {
+  const qs = new URLSearchParams(params)
+  return apiJson(`/api/v1/analytics/overview?${qs.toString()}`, OverviewSchema)
 }
 
 export async function requestClip(eventId: string): Promise<void> {
@@ -191,18 +243,53 @@ export async function setFeature(
 }
 
 // ── Live occupancy (counter plugin) ───────────────────────────
+// per-camera «сейчас» + per-site «за день» (посетители дедуплицируются reid)
 const OccupancySchema = z.object({
   items: z.array(z.object({
     cameraId: z.string(),
     occupancy: z.number(),
+    ts: z.number(),
+  })),
+  sites: z.array(z.object({
+    siteId: z.string(),
+    siteName: z.string(),
     visitors: z.number(),
     ts: z.number(),
   })),
 })
-export type Occupancy = z.infer<typeof OccupancySchema>['items'][number]
+export type OccupancyData = z.infer<typeof OccupancySchema>
+export type Occupancy = OccupancyData['items'][number]
 
-export async function getOccupancy(): Promise<Occupancy[]> {
-  return (await apiJson('/api/v1/occupancy', OccupancySchema)).items
+export async function getOccupancy(): Promise<OccupancyData> {
+  return apiJson('/api/v1/occupancy', OccupancySchema)
+}
+
+// ── People (reid): staff roster + recent visitors ─────────────
+const PersonSchema = z.object({
+  gid: z.string(),
+  staff: z.boolean(),
+  name: z.string().nullable(),
+  lastSeen: z.number().nullable(),
+  siteId: z.string().nullable(),
+  siteName: z.string().nullable(),
+  snapshotUrl: z.string(),
+})
+const PeopleSchema = z.object({ items: z.array(PersonSchema) })
+export type Person = z.infer<typeof PersonSchema>
+
+export async function getPeople(): Promise<Person[]> {
+  return (await apiJson('/api/v1/people', PeopleSchema)).items
+}
+
+export async function setPersonStaff(
+  gid: string, staff: boolean, name?: string,
+): Promise<void> {
+  const res = await apiFetch(`/api/v1/people/${encodeURIComponent(gid)}/staff`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(name !== undefined ? { staff, name } : { staff }),
+  })
+  if (!res.ok) throw new Error(`setPersonStaff: ${res.status}`)
 }
 
 // ── Role (decoded from the JWT payload; UX gating only) ───────
@@ -307,6 +394,8 @@ const AlertRuleSchema = z.object({
   channels: z.array(z.record(z.unknown())),
   cooldownSeconds: z.number(),
   enabled: z.boolean(),
+  conditions: z.record(z.unknown()),
+  schedule: z.record(z.unknown()),
 })
 const AlertRulesSchema = z.object({ items: z.array(AlertRuleSchema) })
 export type AlertRule = z.infer<typeof AlertRuleSchema>
@@ -316,6 +405,13 @@ export interface AlertRuleInput {
   channels: Record<string, unknown>[]
   cooldown_seconds: number
   enabled: boolean
+  conditions?: Record<string, unknown>
+  schedule?: Record<string, unknown>
+}
+
+export async function testAlertRule(id: string): Promise<void> {
+  const res = await apiFetch(`/api/v1/admin/alert-rules/${id}/test`, { method: 'POST' })
+  if (res.status !== 202 && !res.ok) throw new Error(`testAlertRule: ${res.status}`)
 }
 
 export async function getAlertRules(): Promise<AlertRule[]> {

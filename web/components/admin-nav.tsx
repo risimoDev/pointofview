@@ -19,6 +19,7 @@ type NavIcon = React.ComponentType<{ className?: string; stroke?: number }>
 const ITEMS: { href: string; label: string; icon: NavIcon; ready: boolean }[] = [
   { href: '/admin', label: 'Диагностика', icon: IconActivityHeartbeat, ready: true },
   { href: '/admin/org', label: 'Организация', icon: IconUsersGroup, ready: true },
+  { href: '/admin/people', label: 'Люди', icon: IconUsersGroup, ready: true },
   { href: '/admin/cameras', label: 'Камеры', icon: IconVideo, ready: true },
   { href: '/admin/features', label: 'Функции', icon: IconAdjustmentsHorizontal, ready: true },
   { href: '/admin/alerts', label: 'Алерты', icon: IconBell, ready: true },

@@ -19,6 +19,7 @@ from analyzer.ingest.video_source import (
     VideoSource,
 )
 from analyzer.plugins import FrameContext, PluginManager, TrackInfo
+from analyzer.reid import IdentityManager
 from analyzer.zones.engine import TrackEvent, ZoneEngine
 
 logger = logging.getLogger(__name__)
@@ -54,6 +55,7 @@ class AnalyzerWorker:
         self._tasks: dict[str, asyncio.Task[None]] = {}  # camera_id → consumer
         self.zones = ZoneEngine(self.redis, settings)
         self.plugins = PluginManager(settings, self.redis)
+        self.identity = IdentityManager(settings, self.redis)
 
     # ── camera discovery ──────────────────────────────────────
     async def _load_cameras(self) -> list[CameraConfig]:
@@ -97,6 +99,7 @@ class AnalyzerWorker:
 
         frame_h, frame_w = frame.data.shape[0], frame.data.shape[1]
         site_id = self._site_by_camera.get(frame.camera_id, "")
+        await self.identity.ensure_site(site_id)
         zone_events = []
         track_infos: list[TrackInfo] = []
 
@@ -108,6 +111,12 @@ class AnalyzerWorker:
             confidence = float(tracked.confidence[i]) if tracked.confidence is not None else 0.0
             class_id = int(tracked.class_id[i]) if tracked.class_id is not None else PERSON_CLASS
 
+            # cross-camera identity + staff flag (reid feature; no-op when off)
+            ident = self.identity.resolve(
+                frame.camera_id, site_id, int(track_id),
+                frame.data, (x1, y1, x2, y2), frame.ts,
+            )
+
             cx = (x1 + x2) / 2.0 / frame_w
             cy = (y1 + y2) / 2.0 / frame_h
             track_infos.append(TrackInfo(
@@ -116,6 +125,8 @@ class AnalyzerWorker:
                 center_norm=(cx, cy),
                 confidence=confidence,
                 zone_ids=frozenset(self.zones.zones_containing(frame.camera_id, cx, cy)),
+                global_id=ident.global_id,
+                staff=ident.staff,
             ))
 
             payload = {
@@ -128,6 +139,8 @@ class AnalyzerWorker:
                 "confidence": confidence,
                 "zone_id": None,   # zone_engine fills this downstream
                 "dwell_sec": 0.0,
+                "global_id": ident.global_id,
+                "staff": ident.staff,
                 "ts": _iso(frame.ts),
             }
             await self.redis.xadd(
@@ -148,6 +161,7 @@ class AnalyzerWorker:
                 frame_h=frame_h,
                 confidence=confidence,
                 ts=frame.ts,
+                staff=ident.staff,
             )
             zone_events.extend(self.zones.process(te))
 
@@ -195,10 +209,12 @@ class AnalyzerWorker:
         # started/stopped as the cameras:{tenant} set changes, so admin
         # add/remove/upload takes effect without restarting the worker.
         await self.plugins.load_features()
+        await self.identity.refresh()
         bg = [
             asyncio.create_task(self.zones.run_refresh()),
             asyncio.create_task(self._refresh_features()),
             asyncio.create_task(self._camera_supervisor()),
+            asyncio.create_task(self._identity_loop()),
         ]
         try:
             await asyncio.gather(*bg)
@@ -237,6 +253,16 @@ class AnalyzerWorker:
                 self._tasks[cam_id].cancel()
                 del self._tasks[cam_id]
                 logger.info("camera %s: removed, stopped", cam_id)
+
+    async def _identity_loop(self) -> None:
+        """Re-read reid config/staff gallery + persist dirty embeddings/crops."""
+        while True:
+            await asyncio.sleep(10)
+            try:
+                await self.identity.refresh()
+                await self.identity.sync()
+            except Exception:  # noqa: BLE001
+                logger.exception("reid sync failed")
 
     async def _refresh_features(self) -> None:
         """Re-read enabled features so admin toggles apply without a restart.

@@ -20,6 +20,7 @@ import peopleRoutes from './routes/people.js'
 import adminRoutes from './routes/admin.js'
 import internalRoutes from './routes/internal.js'
 import { EventConsumer } from './streams/event_consumer.js'
+import { startCameraWatchdog } from './camera_watchdog.js'
 import { WsHub } from './ws/events.js'
 
 declare module 'fastify' {
@@ -80,7 +81,11 @@ async function main(): Promise<void> {
   // Keep go2rtc's (in-memory, wiped on its restart) streams in sync with the DB
   const stopReconciler = startGo2rtcReconciler(app.log)
 
+  // Heartbeat loss > threshold → camera_offline event (→ alert rules)
+  const stopWatchdog = startCameraWatchdog(redisCmd, app.log)
+
   const shutdown = async (): Promise<void> => {
+    stopWatchdog()
     stopReconciler()
     consumer.stop()
     await app.close()

@@ -1,16 +1,16 @@
 # Graph Report - aipvzanalityc  (2026-07-12)
 
 ## Corpus Check
-- 123 files · ~53,104 words
+- 126 files · ~54,691 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1061 nodes · 1993 edges · 75 communities (64 shown, 11 thin omitted)
-- Extraction: 87% EXTRACTED · 13% INFERRED · 0% AMBIGUOUS · INFERRED: 250 edges (avg confidence: 0.53)
+- 1076 nodes · 2017 edges · 74 communities (63 shown, 11 thin omitted)
+- Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 250 edges (avg confidence: 0.53)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `d789e92d`
+- Built from commit: `855ee3dd`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -79,7 +79,6 @@
 - [[_COMMUNITY_Community 71|Community 71]]
 - [[_COMMUNITY_Community 72|Community 72]]
 - [[_COMMUNITY_Community 73|Community 73]]
-- [[_COMMUNITY_Community 74|Community 74]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `Settings` - 76 edges
@@ -113,11 +112,11 @@
 - **Dev infrastructure services** — docker_compose_dev_postgres, docker_compose_dev_redis, docker_compose_dev_minio, docker_compose_dev_go2rtc, docker_compose_dev_wireguard [EXTRACTED 1.00]
 - **Tenant data model hierarchy** — claude_tenant_entity, claude_site_entity, claude_camera_entity, claude_zone_entity, claude_event_entity [EXTRACTED 1.00]
 
-## Communities (75 total, 11 thin omitted)
+## Communities (74 total, 11 thin omitted)
 
 ### Community 0 - "Analyzer Config & Settings"
-Cohesion: 0.07
-Nodes (32): CameraConfig, One camera entry from Redis key cameras:{tenant_id} (JSON array)., Sub-stream is used for AI; fall back to main., CameraConfig, Settings, BaseModel, AnalyzerWorker, _iso() (+24 more)
+Cohesion: 0.06
+Nodes (34): CameraConfig, One camera entry from Redis key cameras:{tenant_id} (JSON array)., Sub-stream is used for AI; fall back to main., CameraConfig, Settings, Any, BaseModel, AnalyzerWorker (+26 more)
 
 ### Community 1 - "Architecture & Data Model"
 Cohesion: 0.06
@@ -125,7 +124,7 @@ Nodes (43): alert_rule (data model), Alerts (Telegram/Email/Webhook), Analyzer (
 
 ### Community 2 - "JSON Schema Definitions"
 Cohesion: 0.13
-Nodes (15): format, type, type, type, camera_id, class_id, dwell_sec, stream (+7 more)
+Nodes (15): $ref, format, type, type, type, bbox, camera_id, class_id (+7 more)
 
 ### Community 3 - "API Dependencies"
 Cohesion: 0.05
@@ -136,8 +135,8 @@ Cohesion: 0.06
 Nodes (32): dependencies, class-variance-authority, clsx, next, @radix-ui/react-label, @radix-ui/react-select, @radix-ui/react-slot, @radix-ui/react-toggle-group (+24 more)
 
 ### Community 5 - "Zone Engine"
-Cohesion: 0.07
-Nodes (59): Process config from env / .env (pydantic-settings)., Settings, Any, Event, Any, Event, FrameContext, Redis (+51 more)
+Cohesion: 0.08
+Nodes (56): Process config from env / .env (pydantic-settings)., Settings, Any, Event, Any, Event, FrameContext, Redis (+48 more)
 
 ### Community 6 - "Shared Events Schema"
 Cohesion: 0.22
@@ -145,7 +144,7 @@ Nodes (9): properties, x1, x2, y1, y2, type, type, type (+1 more)
 
 ### Community 7 - "Drizzle DB Schema & Enums"
 Cohesion: 0.08
-Nodes (23): Bbox, cameraStatusEnum, deploymentModeEnum, eventSeverityEnum, eventTypeEnum, featureIdEnum, NewAlertRule, NewAppUser (+15 more)
+Nodes (25): AlertRule, Bbox, cameraStatusEnum, deploymentModeEnum, eventSeverityEnum, eventTypeEnum, featureIdEnum, NewAlertRule (+17 more)
 
 ### Community 8 - "API TypeScript Config"
 Cohesion: 0.07
@@ -168,12 +167,12 @@ Cohesion: 0.09
 Nodes (20): ndarray, ndarray, Redis, Settings, cosine(), HistogramEmbedder, make_embedder(), OnnxEmbedder (+12 more)
 
 ### Community 13 - "API Auth (JWT)"
-Cohesion: 0.14
-Nodes (14): Event, FastifyInstance, FastifyJWT, FastifyRequest, JwtPayload, eventsRoutes(), Config, EnvSchema (+6 more)
+Cohesion: 0.18
+Nodes (10): 1. Текущее состояние (что работает), 2. Нерешённые проблемы (проверить в первую очередь), 3. Принятые решения (не пересматривать без причины), 4. План улучшений (приоритетный), 5. Полезное для новой сессии, ViziAI — план развития и контекст сессии (обновлено 2026-07-12), Блок A — быстрые победы (по дню, делать первыми), Блок B — вау + продажи (+2 more)
 
 ### Community 14 - "Alerts Worker"
-Cohesion: 0.16
-Nodes (20): Notification, buildText(), Channel, Channels, escapeHtml(), EventCtx, inQuietHours(), log() (+12 more)
+Cohesion: 0.17
+Nodes (19): buildText(), Channel, Channels, escapeHtml(), EventCtx, inQuietHours(), log(), main() (+11 more)
 
 ### Community 15 - "Zone Editor (Canvas)"
 Cohesion: 0.13
@@ -188,24 +187,24 @@ Cohesion: 0.07
 Nodes (33): StatusDot(), CameraRow(), SOURCES, STATUSES, CameraStream(), StreamState, EventLog(), severityVariant (+25 more)
 
 ### Community 18 - "Web Zod Schemas"
-Cohesion: 0.22
-Nodes (12): ArchiveSegment, internalRoutes(), ReidCropBody, ensureBucket(), minio, ClipJob, SegmentBody, ffmpegEscape() (+4 more)
+Cohesion: 0.12
+Nodes (23): ArchiveSegment, Zone, AlertRuleBody, RoleEnum, eventsRoutes(), internalRoutes(), ReidCropBody, Config (+15 more)
 
 ### Community 19 - "API DB Client & Analytics"
 Cohesion: 0.12
 Nodes (15): 0. Перед началом — чеклист, 1. Скачать ISO (на рабочем dev-ПК), 2. Загрузочная флешка (Rufus), 3. Настройки BIOS (Gigabyte H610M), 4. Установка (по экранам), 5.1 Обновление и часовой пояс, 5.2 Постоянный IP-адрес, 5.3 SSH по ключу (с dev-ПК) (+7 more)
 
 ### Community 20 - "Dashboard & Event Stream"
-Cohesion: 0.22
-Nodes (11): CameraConfig, Redis, Settings, AsyncClient, _load_cameras(), main(), main_async(), _parse_started() (+3 more)
+Cohesion: 0.21
+Nodes (12): CameraConfig, Redis, Settings, AsyncClient, datetime, _load_cameras(), main(), main_async() (+4 more)
 
 ### Community 22 - "Cameras Routes & go2rtc Sync"
 Cohesion: 0.33
 Nodes (5): Camera, analyticsRoutes(), OverviewQuery, SummaryRow, SummaryQuery
 
 ### Community 23 - "API Event Consumer (Redis)"
-Cohesion: 0.29
-Nodes (3): EventMessage, EventConsumer, fieldValue()
+Cohesion: 0.23
+Nodes (5): Event, EventMessage, EventMessageSchema, EventConsumer, fieldValue()
 
 ### Community 24 - "Deploy Script"
 Cohesion: 0.73
@@ -236,8 +235,8 @@ Cohesion: 0.32
 Nodes (6): Home(), config, middleware(), PUBLIC, redirect(), roleFromToken()
 
 ### Community 31 - "Home Page"
-Cohesion: 0.14
-Nodes (16): go2rtcSource(), reconcileGo2rtc(), registerGo2rtc(), VIDEO_EXT, BboxSchema, CameraIdParams, CreateCameraBody, CreateZoneBody (+8 more)
+Cohesion: 0.11
+Nodes (20): go2rtcSource(), reconcileGo2rtc(), registerGo2rtc(), startGo2rtcReconciler(), VIDEO_EXT, BboxSchema, CameraIdParams, CreateCameraBody (+12 more)
 
 ### Community 46 - "Community 46"
 Cohesion: 0.13
@@ -258,8 +257,8 @@ Nodes (10): build(), C, { FaVideo, FaChartBar, FaBell, FaShieldAlt, FaCloud, FaS
         FaLock, FaDatabase, FaBolt, FaCogs, FaMapMarkerAlt }, iconBase64(), makeShadow(), { MdAnalytics, MdSecurity, MdSpeed }, pptxgen, React (+2 more)
 
 ### Community 50 - "Community 50"
-Cohesion: 0.15
-Nodes (13): $ref, type, properties, type, bbox, confidence, meta, severity (+5 more)
+Cohesion: 0.12
+Nodes (16): type, properties, type, confidence, meta, severity, stream, ts_end (+8 more)
 
 ### Community 51 - "Community 51"
 Cohesion: 0.22
@@ -294,8 +293,8 @@ Cohesion: 0.83
 Nodes (3): diag-stream.sh script, line(), pyjson()
 
 ### Community 59 - "Community 59"
-Cohesion: 0.11
-Nodes (20): db, pool, AlertRule, AuditLog, Site, TenantFeature, Zone, adminRoutes() (+12 more)
+Cohesion: 0.16
+Nodes (13): db, pool, AuditLog, Site, TenantFeature, featuresRoutes(), GalleryJson, peopleRoutes() (+5 more)
 
 ### Community 60 - "Community 60"
 Cohesion: 0.67
@@ -314,8 +313,8 @@ Cohesion: 0.17
 Nodes (8): Period, TYPE_COLORS, DashboardPage(), useEventStream(), getAnalyticsOverview(), getOccupancy(), ToggleGroup, ToggleGroupItem
 
 ### Community 67 - "Community 67"
-Cohesion: 0.19
-Nodes (8): AppUser, authRoutes(), startGo2rtcReconciler(), FastifyInstance, main(), makeRedis(), LoginBody, WsHub
+Cohesion: 0.11
+Nodes (14): AppUser, FastifyInstance, FastifyJWT, FastifyRequest, JwtPayload, adminRoutes(), authRoutes(), camerasRoutes() (+6 more)
 
 ### Community 71 - "Community 71"
 Cohesion: 0.83
@@ -323,18 +322,14 @@ Nodes (3): diag-tunnel-camera.sh script, line(), tcp_open()
 
 ### Community 72 - "Community 72"
 Cohesion: 0.67
-Nodes (3): ts_start, format, type
+Nodes (3): tenant_id, format, type
 
 ### Community 73 - "Community 73"
 Cohesion: 0.33
 Nodes (5): getPeople(), Person, setPersonStaff(), fmtSeen(), PersonCard()
 
-### Community 74 - "Community 74"
-Cohesion: 0.67
-Nodes (3): ts, format, type
-
 ## Knowledge Gaps
-- **343 isolated node(s):** `VideoCapture`, `deploymentModeEnum`, `sourceTypeEnum`, `cameraStatusEnum`, `zoneKindEnum` (+338 more)
+- **351 isolated node(s):** `VideoCapture`, `deploymentModeEnum`, `sourceTypeEnum`, `cameraStatusEnum`, `zoneKindEnum` (+346 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **11 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -342,10 +337,10 @@ Nodes (3): ts, format, type
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `Settings` connect `Zone Engine` to `Analyzer Config & Settings`, `Dashboard & Event Stream`, `Video Grid (WebRTC)`?**
-  _High betweenness centrality (0.027) - this node is a cross-community bridge._
+  _High betweenness centrality (0.026) - this node is a cross-community bridge._
+- **Why does `cn()` connect `Event Log & Store` to `Community 64`, `API Events Routes & Queues`, `Web API Client & Clips`, `Zone Editor (Canvas)`, `Events Page (Web)`, `Community 52`, `Web Root Layout & Providers`?**
+  _High betweenness centrality (0.005) - this node is a cross-community bridge._
 - **Why does `Event` connect `Zone Engine` to `Analyzer Config & Settings`?**
-  _High betweenness centrality (0.004) - this node is a cross-community bridge._
-- **Why does `IdentityManager` connect `Video Grid (WebRTC)` to `Analyzer Config & Settings`, `Zone Engine`?**
   _High betweenness centrality (0.004) - this node is a cross-community bridge._
 - **Are the 61 inferred relationships involving `Settings` (e.g. with `CameraConfig` and `Settings`) actually correct?**
   _`Settings` has 61 INFERRED edges - model-reasoned connections that need verification._

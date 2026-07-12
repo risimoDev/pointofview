@@ -12,7 +12,7 @@ CREATE TYPE camera_status  AS ENUM ('online','offline','error');
 CREATE TYPE zone_kind      AS ENUM ('counter','desk','shelf','queue','forbidden','required_ppe');
 CREATE TYPE event_type     AS ENUM ('zone_entry','zone_exit','zone_violation','queue_alert',
                                     'ppe_violation','repack_event','shelf_violation','crowd',
-                                    'unknown_person');
+                                    'unknown_person','camera_offline','camera_online');
 CREATE TYPE event_severity AS ENUM ('info','warn','critical');
 CREATE TYPE user_role      AS ENUM ('super','admin','manager','operator');
 CREATE TYPE feature_kind   AS ENUM ('ppe','face_id','shelf','repack','queue','crowd','counter');

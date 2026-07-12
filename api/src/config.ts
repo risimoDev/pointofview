@@ -35,6 +35,8 @@ const EnvSchema = z.object({
 
   // Alerts
   TELEGRAM_BOT_TOKEN: z.string().default(''),
+  // camera watchdog: heartbeat gone longer than this → camera_offline event
+  CAMERA_OFFLINE_ALERT_SECONDS: z.coerce.number().default(300),
   MINIO_BUCKET_SNAPSHOTS: z.string().default('snapshots'),
 
   // Test-video upload → shared dir also mounted read-only into the analyzer.

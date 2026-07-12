@@ -13,6 +13,8 @@ export const eventTypeLabels: Record<UiEvent['type'], string> = {
   shelf_violation: 'Нарушение выкладки',
   crowd: 'Скопление людей',
   unknown_person: 'Неизвестный человек',
+  camera_offline: 'Камера не в сети',
+  camera_online: 'Камера снова в сети',
 }
 
 export const severityLabels: Record<UiEvent['severity'], string> = {

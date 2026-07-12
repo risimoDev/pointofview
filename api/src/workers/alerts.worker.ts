@@ -24,6 +24,7 @@ const TYPE_LABELS: Record<string, string> = {
   ppe_violation: 'Нарушение СИЗ', repack_event: 'Перепаковка',
   shelf_violation: 'Нарушение выкладки', crowd: 'Скопление людей',
   unknown_person: 'Неизвестный человек',
+  camera_offline: 'Камера не в сети', camera_online: 'Камера снова в сети',
 }
 
 const SEVERITY_RANK: Record<string, number> = { info: 0, warn: 1, critical: 2 }

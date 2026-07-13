@@ -58,7 +58,7 @@ export function DemoForm(): React.JSX.Element {
         <IconCircleCheck className="h-12 w-12 text-brand" stroke={1.5} />
         <p className="font-display text-lg font-semibold">Заявка отправлена</p>
         <p className="max-w-sm text-sm text-muted-foreground">
-          Свяжемся с вами в ближайшее время, покажем систему на живой точке
+          Свяжемся в ближайшее время, покажем систему на работающей точке
           и посчитаем стоимость под ваши камеры.
         </p>
       </div>
@@ -116,7 +116,7 @@ export function DemoForm(): React.JSX.Element {
         {error && <span className="text-sm text-destructive">{error}</span>}
       </div>
       <p className="text-xs text-muted-foreground">
-        Никакого спама: свяжемся один раз, чтобы договориться о показе.
+        Спама не будет. Напишем или позвоним один раз, чтобы договориться о показе.
       </p>
     </form>
   )

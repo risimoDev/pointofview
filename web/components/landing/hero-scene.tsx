@@ -608,7 +608,7 @@ export function HeroScene({ className }: { className?: string }): React.JSX.Elem
         {/* HUD (top row pushed below the fixed site header) */}
         <g fontFamily="ui-monospace, monospace" fontSize="11">
           <circle className="rec-dot" cx="26" cy="72" r="4.5" fill="hsl(0 72% 51%)" />
-          <text x="38" y="76" fill="hsl(210 22% 92% / 0.85)">REC · камера 2 — зал</text>
+          <text x="38" y="76" fill="hsl(210 22% 92% / 0.85)">REC · камера 2 · зал</text>
           <text className="hud-clock" x="934" y="76" textAnchor="end" fill="hsl(210 22% 92% / 0.7)">00:00:00</text>
           <text className="hud-occ" x="26" y="522" fill="hsl(172 70% 47% / 0.9)">в кадре: 0 · сотрудников: 1</text>
           <text x="934" y="522" textAnchor="end" fill="hsl(215 16% 60% / 0.7)">AI-анализ · поза · трекинг · 12 к/с</text>

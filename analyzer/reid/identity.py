@@ -27,6 +27,9 @@ STAFF_KEY = "reid:staff:{tenant_id}"     # hash gid -> json {emb, name} (API-man
 class IdentityResult:
     global_id: str | None
     staff: bool
+    # reid is on but the track hasn't earned an identity yet (probation /
+    # low-quality crops) — consumers must not count it as a distinct person
+    pending: bool = False
 
 
 @dataclass(slots=True)
@@ -36,6 +39,8 @@ class _TrackState:
     staff: bool = False
     last_match: float = 0.0
     last_seen: float = 0.0
+    first_seen: float = 0.0
+    samples: int = 0  # accepted (quality-gated) embedding samples
 
 
 @dataclass(slots=True)
@@ -152,6 +157,11 @@ class IdentityManager:
                 await self.redis.hset(key, mapping=mapping)
                 for e in dirty.values():
                     e.dirty = False
+            # adopt deletions made by the API («Люди»: удаление/поглощение
+            # дублей в сотрудника) so stale copies don't keep matching here
+            redis_gids = set(await self.redis.hkeys(key))
+            for gid in [g for g, e in entries.items() if g not in redis_gids and not e.dirty]:
+                del entries[gid]
 
         # forget tracks that vanished
         lost = self.settings.track_lost_seconds * 3
@@ -191,23 +201,36 @@ class IdentityManager:
         frame: np.ndarray,
         bbox: tuple[float, float, float, float],
         ts: float,
+        confidence: float = 1.0,
     ) -> IdentityResult:
         if not self.enabled:
             return IdentityResult(global_id=None, staff=False)
 
         tkey = f"{camera_id}:{track_id}"
         state = self._tracks.setdefault(tkey, _TrackState())
+        if state.first_seen == 0.0:
+            state.first_seen = ts
         state.last_seen = ts
 
+        def _res() -> IdentityResult:
+            return IdentityResult(
+                global_id=state.gid, staff=state.staff, pending=state.gid is None,
+            )
+
         if ts - state.last_match < self._f("match_interval_seconds", 2.0):
-            return IdentityResult(global_id=state.gid, staff=state.staff)
+            return _res()
         state.last_match = ts
 
+        # quality gates: weak detections and partial/occluded crops poison the
+        # rolling embedding and used to mint phantom "new visitors"
+        if confidence < self._f("min_confidence", 0.5):
+            return _res()
         crop = self._crop(frame, bbox)
         if crop is None:
-            return IdentityResult(global_id=state.gid, staff=state.staff)
+            return _res()
 
         emb = self.embedder(crop)
+        state.samples += 1
         if state.emb is None:
             state.emb = emb
         else:
@@ -244,9 +267,20 @@ class IdentityManager:
             state.gid = best_gid
             return IdentityResult(global_id=best_gid, staff=False)
 
-        # new person at this site
+        # New person — only from a mature track with several good samples, so a
+        # flickering/fragmented track can't register a person per fragment.
+        if state.samples < int(self._f("min_samples", 3)) \
+                or ts - state.first_seen < self._f("min_track_age_seconds", 3.0):
+            return _res()
+        # The color-histogram embedder is blind on near-grayscale (night/IR)
+        # frames: every re-entry would look "new". Don't mint identities from
+        # colorless crops — the ONNX (OSNet) embedder has no such limit.
+        if getattr(self.embedder, "color_based", False) \
+                and self._mean_saturation(crop) < self._f("min_saturation", 25.0):
+            return _res()
+
         if len(entries) >= int(self._f("max_gallery", 500)):
-            return IdentityResult(global_id=state.gid, staff=False)
+            return _res()
         gid = uuid.uuid4().hex[:12]
         entries[gid] = _GalleryEntry(emb=state.emb.copy(), last_seen=ts)
         state.gid = gid
@@ -259,7 +293,17 @@ class IdentityManager:
         h, w = frame.shape[0], frame.shape[1]
         x1 = max(0, int(bbox[0])); y1 = max(0, int(bbox[1]))
         x2 = min(w, int(bbox[2])); y2 = min(h, int(bbox[3]))
-        min_px = int(self._f("min_crop_px", 48))
-        if x2 - x1 < min_px or y2 - y1 < min_px:
+        cw, ch = x2 - x1, y2 - y1
+        min_px = int(self._f("min_crop_px", 64))
+        if cw < min_px or ch < min_px:
+            return None
+        # a standing person is tall; wide/square boxes are merges or partials
+        aspect = ch / cw if cw > 0 else 0.0
+        if not (1.2 <= aspect <= 4.5):
             return None
         return frame[y1:y2, x1:x2]
+
+    @staticmethod
+    def _mean_saturation(crop_bgr: np.ndarray) -> float:
+        hsv = cv2.cvtColor(crop_bgr, cv2.COLOR_BGR2HSV)
+        return float(hsv[:, :, 1].mean())

@@ -19,8 +19,10 @@ import featuresRoutes from './routes/features.js'
 import peopleRoutes from './routes/people.js'
 import adminRoutes from './routes/admin.js'
 import internalRoutes from './routes/internal.js'
+import publicRoutes from './routes/public.js'
 import { EventConsumer } from './streams/event_consumer.js'
 import { startCameraWatchdog } from './camera_watchdog.js'
+import { startRetention } from './retention.js'
 import { WsHub } from './ws/events.js'
 
 declare module 'fastify' {
@@ -59,6 +61,7 @@ async function main(): Promise<void> {
   await app.register(peopleRoutes, { prefix: '/api/v1' })
   await app.register(adminRoutes, { prefix: '/api/v1/admin' })
   await app.register(internalRoutes, { prefix: '/internal' })
+  await app.register(publicRoutes, { prefix: '/api/v1/public' })
 
   // WebSocket live events
   const hub = new WsHub(redisSub, app.log)
@@ -84,7 +87,11 @@ async function main(): Promise<void> {
   // Heartbeat loss > threshold → camera_offline event (→ alert rules)
   const stopWatchdog = startCameraWatchdog(redisCmd, app.log)
 
+  // Hourly cleanup: old events (drop_chunks) + archive segments + disk floor
+  const stopRetention = startRetention(app.log)
+
   const shutdown = async (): Promise<void> => {
+    stopRetention()
     stopWatchdog()
     stopReconciler()
     consumer.stop()

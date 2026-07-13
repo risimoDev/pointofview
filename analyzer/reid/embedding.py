@@ -22,6 +22,7 @@ class HistogramEmbedder:
     """HSV histogram of upper/lower body halves, L2-normalized."""
 
     dim = EMBED_DIM
+    color_based = True  # unreliable on near-grayscale (night/IR) frames
 
     def __call__(self, crop_bgr: np.ndarray) -> np.ndarray:
         img = cv2.resize(crop_bgr, (_CROP_W, _CROP_H), interpolation=cv2.INTER_AREA)
@@ -42,6 +43,8 @@ class HistogramEmbedder:
 
 class OnnxEmbedder:
     """OSNet-style ONNX Re-ID model (optional upgrade, needs onnxruntime)."""
+
+    color_based = False
 
     def __init__(self, model_path: str) -> None:
         import onnxruntime as ort  # optional dep; import only when configured

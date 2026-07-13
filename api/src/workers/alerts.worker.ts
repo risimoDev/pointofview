@@ -7,6 +7,7 @@ import { alertRule, camera, event, notification, site, zone } from '../../db/sch
 import { config } from '../config.js'
 import { ALERTS_QUEUE, type AlertJob } from '../queues.js'
 import { minio } from '../minio.js'
+import { settingSecret } from '../settings.js'
 
 const log = (msg: string, extra?: unknown): void => {
   // eslint-disable-next-line no-console
@@ -95,10 +96,12 @@ async function sendWebhook(url: string, ctx: EventCtx): Promise<void> {
   if (!res.ok) throw new Error(`webhook ${url}: HTTP ${res.status}`)
 }
 
-const tgBase = (): string => `https://api.telegram.org/bot${config.TELEGRAM_BOT_TOKEN}`
+// token from /admin/settings wins; env is the fallback
+const tgToken = async (): Promise<string> =>
+  (await settingSecret('telegram_bot_token')) || config.TELEGRAM_BOT_TOKEN
 
-async function tgJson(method: string, body: unknown): Promise<void> {
-  const res = await fetch(`${tgBase()}/${method}`, {
+async function tgJson(token: string, method: string, body: unknown): Promise<void> {
+  const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -108,9 +111,10 @@ async function tgJson(method: string, body: unknown): Promise<void> {
 }
 
 async function sendTelegram(chatId: string | number, ctx: EventCtx): Promise<void> {
-  if (!config.TELEGRAM_BOT_TOKEN) throw new Error('TELEGRAM_BOT_TOKEN not configured')
+  const token = await tgToken()
+  if (!token) throw new Error('telegram bot token not configured (settings/env)')
   const text = buildText(ctx)
-  await tgJson('sendMessage', { chat_id: chatId, text, parse_mode: 'HTML' })
+  await tgJson(token, 'sendMessage', { chat_id: chatId, text, parse_mode: 'HTML' })
 
   if (ctx.snapshotKey) {
     const url = await minio.presignedGetObject(config.MINIO_BUCKET_SNAPSHOTS, ctx.snapshotKey, 300)
@@ -120,7 +124,7 @@ async function sendTelegram(chatId: string | number, ctx: EventCtx): Promise<voi
     const form = new FormData()
     form.append('chat_id', String(chatId))
     form.append('photo', new Blob([bytes], { type: 'image/jpeg' }), 'snapshot.jpg')
-    const res = await fetch(`${tgBase()}/sendPhoto`, { method: 'POST', body: form })
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: 'POST', body: form })
     const data = (await res.json()) as { ok: boolean; description?: string }
     if (!data.ok) throw new Error(`telegram sendPhoto: ${data.description ?? res.status}`)
   }

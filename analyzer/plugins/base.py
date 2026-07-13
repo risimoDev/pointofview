@@ -18,6 +18,9 @@ class TrackInfo:
     # cross-camera identity (reid feature); None when reid is disabled
     global_id: str | None = None
     staff: bool = False                        # matched the staff gallery
+    # reid is on but this track has no identity yet (probation/low quality) —
+    # visitor counting must skip it instead of falling back to the track id
+    reid_pending: bool = False
 
 
 @dataclass(slots=True)

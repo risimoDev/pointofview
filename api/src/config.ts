@@ -22,6 +22,9 @@ const EnvSchema = z.object({
   MINIO_SECRET_KEY: z.string().min(1),
   MINIO_BUCKET_CLIPS: z.string().default('clips'),
 
+  // Video archive (recorder writes, retention deletes)
+  ARCHIVE_ROOT: z.string().default('/archive'),
+
   // Clips worker
   CLIP_TMP_DIR: z.string().default('/tmp/clips'),
   CLIP_PRE_ROLL_SEC: z.coerce.number().default(10),

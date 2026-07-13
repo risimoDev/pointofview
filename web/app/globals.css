@@ -66,6 +66,10 @@
     @apply bg-background text-foreground;
     font-feature-settings: 'ss01', 'cv01', 'tnum';
   }
+  /* anchor navigation on the public landing */
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 /* go2rtc <video-stream> player: fill the tile, hide its built-in debug overlay

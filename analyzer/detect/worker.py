@@ -114,7 +114,7 @@ class AnalyzerWorker:
             # cross-camera identity + staff flag (reid feature; no-op when off)
             ident = self.identity.resolve(
                 frame.camera_id, site_id, int(track_id),
-                frame.data, (x1, y1, x2, y2), frame.ts,
+                frame.data, (x1, y1, x2, y2), frame.ts, confidence,
             )
 
             cx = (x1 + x2) / 2.0 / frame_w
@@ -127,6 +127,7 @@ class AnalyzerWorker:
                 zone_ids=frozenset(self.zones.zones_containing(frame.camera_id, cx, cy)),
                 global_id=ident.global_id,
                 staff=ident.staff,
+                reid_pending=ident.pending,
             ))
 
             payload = {

@@ -62,6 +62,9 @@ class CounterPlugin:
 
         seen = self._seen.setdefault(ctx.site_id, set())
         for t in present:
+            # reid on but identity unresolved yet: don't count noise as a visitor
+            if t.reid_pending:
+                continue
             # global identity dedupes across cameras; fallback keeps old behavior
             seen.add(t.global_id or f"{ctx.camera_id}:{t.track_id}")
 

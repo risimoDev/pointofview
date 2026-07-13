@@ -28,12 +28,16 @@ function redirect(req: NextRequest, path: string): NextResponse {
 export function middleware(req: NextRequest): NextResponse {
   const token = req.cookies.get('token')?.value
   const { pathname } = req.nextUrl
-  const isPublic = PUBLIC.some((p) => pathname.startsWith(p))
+  // '/' is the public landing; /api/v1/public/* is the landing's lead form
+  const isPublic = pathname === '/'
+    || PUBLIC.some((p) => pathname.startsWith(p))
+    || pathname.startsWith('/api/v1/public')
 
   if (!token && !isPublic) {
     return redirect(req, '/login')
   }
-  if (token && pathname === '/login') {
+  // logged-in users land straight in the product
+  if (token && (pathname === '/login' || pathname === '/')) {
     return redirect(req, '/dashboard')
   }
   // Super-admin area: UX gate (the API enforces role=super for real).

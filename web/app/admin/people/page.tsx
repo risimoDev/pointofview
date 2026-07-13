@@ -3,8 +3,8 @@
 import type * as React from 'react'
 import { useState } from 'react'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
-import { IconUserCheck, IconUserMinus, IconUsers } from '@tabler/icons-react'
-import { getPeople, setPersonStaff, type Person } from '@/lib/api'
+import { IconUserCheck, IconUserMinus, IconUsers, IconTrash } from '@tabler/icons-react'
+import { deletePerson, getPeople, setPersonStaff, type Person } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -23,6 +23,10 @@ function PersonCard({ person, onChanged }: {
 
   const mark = useMutation({
     mutationFn: (staff: boolean) => setPersonStaff(person.gid, staff, name.trim() || undefined),
+    onSuccess: onChanged,
+  })
+  const remove = useMutation({
+    mutationFn: () => deletePerson(person.gid),
     onSuccess: onChanged,
   })
 
@@ -77,6 +81,13 @@ function PersonCard({ person, onChanged }: {
               onClick={() => mark.mutate(true)}
             >
               <IconUserCheck className="mr-1 h-4 w-4" stroke={1.75} /> Это сотрудник
+            </Button>
+            <Button
+              size="sm" variant="outline" className="w-full"
+              disabled={remove.isPending}
+              onClick={() => remove.mutate()}
+            >
+              <IconTrash className="mr-1 h-4 w-4" stroke={1.75} /> Удалить
             </Button>
           </>
         )}

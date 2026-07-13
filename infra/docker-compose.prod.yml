@@ -98,6 +98,8 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ${DATA_ROOT}/testvideo:/data
+      # rw: retention (/admin/settings) deletes expired archive segments
+      - ${DATA_ROOT}/archive:/archive
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -165,11 +167,15 @@ services:
       DEFAULT_FRAME_SKIP: ${DEFAULT_FRAME_SKIP}
       INTERNAL_API_URL: http://api:3000
       INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+      # optional OSNet ONNX for re-id (e.g. /models/osnet_x0_25.onnx);
+      # empty → HSV-histogram fallback. See docs/REID-OSNET.md
+      REID_ONNX: ${REID_ONNX:-}
     volumes:
       - yolo_cache:/root/.cache
       # test/file-source videos: a `file` camera with url /data/<name>.mp4
       # reads from here (empty dir is harmless if unused)
       - ${DATA_ROOT}/testvideo:/data:ro
+      - ${DATA_ROOT}/models:/models:ro
     depends_on:
       redis: { condition: service_healthy }
     deploy:

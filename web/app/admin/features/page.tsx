@@ -44,11 +44,18 @@ const FEATURE_META: Record<string, FeatureMeta> = {
   },
   reid: {
     label: 'Сквозная идентификация',
-    note: 'Один человек на всех камерах точки. Сотрудники отмечаются на странице «Люди».',
+    note: 'Один человек на всех камерах точки. Сотрудники отмечаются на странице «Люди». '
+      + 'Новая личность создаётся только после нескольких качественных замеров — '
+      + 'это защита от двойного счёта при мерцании трекинга и ночной ИК-съёмке.',
     fields: [
       { key: 'match_threshold', label: 'Порог совпадения (0..1)', type: 'number', def: 0.88 },
       { key: 'staff_threshold', label: 'Порог сотрудника (0..1)', type: 'number', def: 0.90 },
       { key: 'gallery_ttl_hours', label: 'Память о посетителе, ч', type: 'number', def: 12 },
+      { key: 'min_samples', label: 'Замеров до новой личности', type: 'number', def: 3 },
+      { key: 'min_track_age_seconds', label: 'Мин. время наблюдения, сек', type: 'number', def: 3 },
+      { key: 'min_confidence', label: 'Мин. уверенность детекции (0..1)', type: 'number', def: 0.5 },
+      { key: 'min_crop_px', label: 'Мин. размер кадра человека, пикс', type: 'number', def: 64 },
+      { key: 'min_saturation', label: 'Мин. цветность кадра (0-255)', type: 'number', def: 25 },
     ],
   },
   queue: { label: 'Очередь', note: 'Порог времени нахождения задаётся в настройках зоны.', fields: [] },

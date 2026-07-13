@@ -1,10 +1,10 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '../db/client.js'
-import { site } from '../../db/schema.js'
+import { site, tenantFeature } from '../../db/schema.js'
 import { config } from '../config.js'
-import { minioPublic } from '../minio.js'
+import { minio, minioPublic } from '../minio.js'
 import { writeAudit } from '../audit.js'
 
 // Redis keys owned by the analyzer's IdentityManager (embeddings included) —
@@ -25,6 +25,28 @@ const StaffBody = z.object({
   staff: z.boolean(),
   name: z.string().max(80).optional(),
 })
+
+/** Embeddings are L2-normalized → cosine similarity is a plain dot product. */
+function cos(a: number[], b: number[]): number {
+  if (a.length !== b.length) return 0
+  let s = 0
+  for (let i = 0; i < a.length; i++) s += a[i]! * b[i]!
+  return s
+}
+
+async function reidMatchThreshold(tenantId: string): Promise<number> {
+  const [row] = await db.select({ config: tenantFeature.config }).from(tenantFeature)
+    .where(and(eq(tenantFeature.tenantId, tenantId), eq(tenantFeature.feature, 'reid')))
+    .limit(1)
+  const v = row?.config?.match_threshold
+  return typeof v === 'number' && v > 0 && v <= 1 ? v : 0.88
+}
+
+async function removeCrop(tenantId: string, gid: string): Promise<void> {
+  try {
+    await minio.removeObject(config.MINIO_BUCKET_SNAPSHOTS, `reid/${tenantId}/${gid}.jpg`)
+  } catch { /* crop may not exist */ }
+}
 
 const peopleRoutes: FastifyPluginAsyncZod = async (app) => {
   // Everyone recently seen at the tenant's sites + the staff roster.
@@ -118,11 +140,55 @@ const peopleRoutes: FastifyPluginAsyncZod = async (app) => {
     if (!emb) return reply.code(404).send({ message: 'identity not found (gallery expired?)' })
 
     await app.redis.hset(staffKey(req.tenantId), gid, JSON.stringify({ emb, name: name ?? null }))
+
+    // Absorb duplicates: the same person often minted several visitor
+    // identities before being marked (night/IR, re-entries). Drop every
+    // gallery entry similar to the new staff embedding so they stop showing
+    // up as visitors; the analyzer picks the deletions up on its next sync.
+    const thr = await reidMatchThreshold(req.tenantId)
+    let absorbed = 0
+    for (const s of sites) {
+      const raw = await app.redis.hgetall(galleryKey(s.id))
+      const drop: string[] = []
+      for (const [g, payload] of Object.entries(raw)) {
+        if (g === gid) { drop.push(g); continue }
+        try {
+          const e = (JSON.parse(payload) as GalleryJson).emb
+          if (Array.isArray(e) && cos(e, emb) >= thr) drop.push(g)
+        } catch { /* skip bad entry */ }
+      }
+      if (drop.length > 0) {
+        await app.redis.hdel(galleryKey(s.id), ...drop)
+        // keep the marked gid's crop — it's the staff photo on «Люди»
+        for (const g of drop) if (g !== gid) await removeCrop(req.tenantId, g)
+        absorbed += drop.filter((g) => g !== gid).length
+      }
+    }
+
     await writeAudit({
       tenantId: req.tenantId, userId: req.userId, action: 'person.staff',
-      resourceType: 'person', resourceId: gid, details: { name: name ?? null },
+      resourceType: 'person', resourceId: gid, details: { name: name ?? null, absorbed },
     })
-    return { gid, staff: true }
+    return { gid, staff: true, absorbed }
+  })
+
+  // Remove a visitor identity everywhere (galleries + crop). For staff use
+  // the unstaff toggle first; this also drops a staff row if present.
+  app.delete('/people/:gid', {
+    preHandler: [app.requireRole('super', 'admin')],
+    schema: { params: z.object({ gid: z.string().min(1).max(64) }) },
+  }, async (req) => {
+    const { gid } = req.params
+    const sites = await db.select({ id: site.id }).from(site)
+      .where(eq(site.tenantId, req.tenantId))
+    for (const s of sites) await app.redis.hdel(galleryKey(s.id), gid)
+    await app.redis.hdel(staffKey(req.tenantId), gid)
+    await removeCrop(req.tenantId, gid)
+    await writeAudit({
+      tenantId: req.tenantId, userId: req.userId, action: 'person.delete',
+      resourceType: 'person', resourceId: gid,
+    })
+    return { deleted: true }
   })
 }
 

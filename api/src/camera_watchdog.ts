@@ -4,6 +4,7 @@ import { eq, ne } from 'drizzle-orm'
 import { db } from './db/client.js'
 import { camera, site } from '../db/schema.js'
 import { config } from './config.js'
+import { settingNumber } from './settings.js'
 
 const TICK_MS = 60_000
 
@@ -42,7 +43,7 @@ export async function checkCameras(redis: Redis, log?: FastifyBaseLogger): Promi
     redis.mget(ids.map((id) => `camera_down:${id}`)),
   ])
   const now = Date.now()
-  const thresholdMs = config.CAMERA_OFFLINE_ALERT_SECONDS * 1000
+  const thresholdMs = (await settingNumber('camera_offline_alert_seconds')) * 1000
 
   for (let i = 0; i < cams.length; i++) {
     const c = cams[i]!

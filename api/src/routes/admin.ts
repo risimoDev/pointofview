@@ -10,6 +10,8 @@ import { EventTypeEnum, SeverityEnum } from '../schemas.js'
 import { config } from '../config.js'
 import { CLIPS_BUCKET, minio } from '../minio.js'
 import { alertsQueue } from '../queues.js'
+import { SETTING_DEFS, loadSettings, saveSetting } from '../settings.js'
+import { statfs } from 'node:fs/promises'
 
 const RoleEnum = z.enum(['super', 'admin', 'manager', 'operator'])
 const AlertRuleBody = z.object({
@@ -368,6 +370,88 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
     const cleared = await app.redis.xlen(config.FAILED_STREAM)
     await app.redis.del(config.FAILED_STREAM)
     return { cleared }
+  })
+
+  // ── Server settings (/admin/settings) ───────────────────────
+  app.get('/settings', { preHandler: [requireSuper] }, async () => {
+    const values = await loadSettings(true)
+    const items = SETTING_DEFS.map((d) => ({
+      key: d.key,
+      group: d.group,
+      type: d.type,
+      label: d.label,
+      hint: d.hint ?? null,
+      // secrets never leave the server; the UI only sees whether one is set
+      value: d.type === 'secret'
+        ? (typeof values[d.key] === 'string' && values[d.key] !== '' ? '•••••' : '')
+        : (values[d.key] ?? d.def),
+      def: d.type === 'secret' ? '' : d.def,
+      overridden: values[d.key] !== undefined,
+    }))
+    return { items }
+  })
+
+  app.put('/settings', {
+    preHandler: [requireSuper],
+    schema: { body: z.record(z.unknown()) },
+  }, async (req, reply) => {
+    const saved: string[] = []
+    for (const [key, value] of Object.entries(req.body)) {
+      try {
+        await saveSetting(key, value)
+        saved.push(key)
+      } catch (err) {
+        return reply.code(400).send({
+          message: err instanceof Error ? err.message : `invalid setting: ${key}`,
+        })
+      }
+    }
+    await writeAudit({
+      tenantId: req.tenantId, userId: req.userId, action: 'settings.update',
+      resourceType: 'settings', details: { keys: saved },
+    })
+    return { saved }
+  })
+
+  // ── System panel: disk / DB / archive usage ──────────────────
+  app.get('/system', { preHandler: [requireSuper] }, async () => {
+    let archiveDisk: { totalGb: number; freeGb: number } | null = null
+    try {
+      const s = await statfs(config.ARCHIVE_ROOT)
+      archiveDisk = {
+        totalGb: Math.round((s.blocks * s.bsize) / 1024 ** 3 * 10) / 10,
+        freeGb: Math.round((s.bavail * s.bsize) / 1024 ** 3 * 10) / 10,
+      }
+    } catch { /* archive dir not mounted (dev) */ }
+
+    const dbRes = await db.execute(sql`SELECT pg_database_size(current_database()) AS size`)
+    const dbSizeBytes = Number((dbRes.rows[0] as { size?: unknown } | undefined)?.size ?? 0)
+
+    const evRes = await db.execute(sql`SELECT count(*) AS n FROM event`)
+    const eventCount = Number((evRes.rows[0] as { n?: unknown } | undefined)?.n ?? 0)
+
+    const arRes = await db.execute(sql`
+      SELECT count(*) AS n, coalesce(sum(size_bytes), 0) AS bytes,
+             min(started_at) AS oldest, max(started_at) AS newest
+      FROM archive_segment
+    `)
+    const ar = (arRes.rows[0] ?? {}) as {
+      n?: unknown; bytes?: unknown; oldest?: unknown; newest?: unknown
+    }
+
+    return {
+      archiveDisk,
+      dbSizeBytes,
+      eventCount,
+      archive: {
+        segments: Number(ar.n ?? 0),
+        bytes: Number(ar.bytes ?? 0),
+        oldest: ar.oldest ? String(ar.oldest) : null,
+        newest: ar.newest ? String(ar.newest) : null,
+      },
+      uptimeSec: Math.round(process.uptime()),
+      node: process.version,
+    }
   })
 
   app.get('/timescale', { preHandler: [requireSuper] }, async () => {

@@ -7,3 +7,4 @@ redis==5.2.*
 httpx==0.28.*
 pydantic==2.10.*
 pydantic-settings==2.7.*
+onnxruntime==1.20.*

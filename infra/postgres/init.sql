@@ -152,6 +152,13 @@ CREATE TABLE tenant_feature (
   PRIMARY KEY (tenant_id, feature)
 );
 
+-- ── Server-wide settings (editable from /admin/settings) ────
+CREATE TABLE system_setting (
+  key        text PRIMARY KEY,
+  value      jsonb NOT NULL,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
 -- ── Notifications (alert delivery log) ──────────────────────
 -- event_id has no FK: event is a hypertable, its id alone is not unique.
 CREATE TYPE notification_status AS ENUM ('pending','sent','failed');

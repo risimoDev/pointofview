@@ -10,6 +10,7 @@ import { archiveSegment, camera, event, site } from '../../db/schema.js'
 import { config } from '../config.js'
 import { CLIPS_QUEUE, type ClipJob } from '../queues.js'
 import { CLIPS_BUCKET, ensureBucket, minio } from '../minio.js'
+import { settingBool, settingNumber } from '../settings.js'
 
 const log = (msg: string, extra?: unknown): void => {
   // eslint-disable-next-line no-console
@@ -41,8 +42,13 @@ function runFfmpeg(args: string[]): Promise<void> {
 async function processClip(job: Job<ClipJob>): Promise<{ clipKey: string }> {
   const { event_id, camera_id, ts_start, ts_end, tenant_id } = job.data
 
-  const startWindow = new Date(new Date(ts_start).getTime() - config.CLIP_PRE_ROLL_SEC * 1000)
-  const endWindow = new Date(new Date(ts_end).getTime() + config.CLIP_POST_ROLL_SEC * 1000)
+  // rolls/watermark are admin-tunable (/admin/settings); env is the fallback
+  const preRoll = await settingNumber('clip_pre_roll_sec')
+  const postRoll = await settingNumber('clip_post_roll_sec')
+  const watermark = await settingBool('clip_watermark')
+
+  const startWindow = new Date(new Date(ts_start).getTime() - preRoll * 1000)
+  const endWindow = new Date(new Date(ts_end).getTime() + postRoll * 1000)
 
   // 1. segments covering the window
   const segs = await db.select().from(archiveSegment)
@@ -78,7 +84,7 @@ async function processClip(job: Job<ClipJob>): Promise<{ clipKey: string }> {
     '-ss', ss.toFixed(3), '-t', dur.toFixed(3)]
 
   let args: string[]
-  if (config.CLIP_WATERMARK && meta) {
+  if (watermark && meta) {
     const tsLocal = new Intl.DateTimeFormat('ru-RU', {
       timeZone: meta.tz, dateStyle: 'short', timeStyle: 'medium',
     }).format(new Date(ts_start))

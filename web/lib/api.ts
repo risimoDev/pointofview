@@ -292,6 +292,11 @@ export async function setPersonStaff(
   if (!res.ok) throw new Error(`setPersonStaff: ${res.status}`)
 }
 
+export async function deletePerson(gid: string): Promise<void> {
+  const res = await apiFetch(`/api/v1/people/${encodeURIComponent(gid)}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error(`deletePerson: ${res.status}`)
+}
+
 // ── Role (decoded from the JWT payload; UX gating only) ───────
 export async function getRole(): Promise<string | null> {
   try {
@@ -474,4 +479,53 @@ export async function clearDeadLetter(): Promise<number> {
 const TimescaleSchema = z.object({ event: z.object({ chunks: z.number(), compressed: z.number() }) })
 export async function getTimescale(): Promise<z.infer<typeof TimescaleSchema>> {
   return apiJson('/api/v1/admin/timescale', TimescaleSchema)
+}
+
+// ── Server settings (/admin/settings) ─────────────────────────
+const ServerSettingSchema = z.object({
+  key: z.string(),
+  group: z.string(),
+  type: z.enum(['number', 'boolean', 'secret', 'text']),
+  label: z.string(),
+  hint: z.string().nullable(),
+  value: z.union([z.number(), z.boolean(), z.string()]),
+  def: z.union([z.number(), z.boolean(), z.string()]),
+  overridden: z.boolean(),
+})
+const ServerSettingsSchema = z.object({ items: z.array(ServerSettingSchema) })
+export type ServerSetting = z.infer<typeof ServerSettingSchema>
+
+export async function getServerSettings(): Promise<ServerSetting[]> {
+  return (await apiJson('/api/v1/admin/settings', ServerSettingsSchema)).items
+}
+
+export async function saveServerSettings(patch: Record<string, unknown>): Promise<void> {
+  const res = await apiFetch('/api/v1/admin/settings', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  })
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { message?: string } | null
+    throw new Error(body?.message ?? `saveServerSettings: ${res.status}`)
+  }
+}
+
+const SystemInfoSchema = z.object({
+  archiveDisk: z.object({ totalGb: z.number(), freeGb: z.number() }).nullable(),
+  dbSizeBytes: z.number(),
+  eventCount: z.number(),
+  archive: z.object({
+    segments: z.number(),
+    bytes: z.number(),
+    oldest: z.string().nullable(),
+    newest: z.string().nullable(),
+  }),
+  uptimeSec: z.number(),
+  node: z.string(),
+})
+export type SystemInfo = z.infer<typeof SystemInfoSchema>
+
+export async function getSystemInfo(): Promise<SystemInfo> {
+  return apiJson('/api/v1/admin/system', SystemInfoSchema)
 }

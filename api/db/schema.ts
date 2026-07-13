@@ -173,6 +173,13 @@ export const tenantFeature = pgTable('tenant_feature', {
   primaryKey({ columns: [t.tenantId, t.feature] }),
 ])
 
+// ── Server-wide settings (editable from /admin/settings) ─────
+export const systemSetting = pgTable('system_setting', {
+  key: text('key').primaryKey(),
+  value: jsonb('value').$type<unknown>().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
 // ── Notifications (alert delivery log) ────────────────────────
 // event_id has no FK: `event` is a hypertable, its `id` alone is not unique
 // (PK is composite (id, ts_start)), so it cannot be referenced.
@@ -212,3 +219,4 @@ export type TenantFeature = InferSelectModel<typeof tenantFeature>
 export type NewTenantFeature = InferInsertModel<typeof tenantFeature>
 export type Notification = InferSelectModel<typeof notification>
 export type NewNotification = InferInsertModel<typeof notification>
+export type SystemSetting = InferSelectModel<typeof systemSetting>

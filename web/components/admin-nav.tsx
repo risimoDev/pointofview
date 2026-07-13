@@ -11,6 +11,7 @@ import {
   IconBell,
   IconPlayerPlay,
   IconTool,
+  IconSettings,
 } from '@tabler/icons-react'
 import { cn } from '@/lib/utils'
 
@@ -24,6 +25,7 @@ const ITEMS: { href: string; label: string; icon: NavIcon; ready: boolean }[] = 
   { href: '/admin/features', label: 'Функции', icon: IconAdjustmentsHorizontal, ready: true },
   { href: '/admin/alerts', label: 'Алерты', icon: IconBell, ready: true },
   { href: '/admin/video', label: 'Видео-тесты', icon: IconPlayerPlay, ready: true },
+  { href: '/admin/settings', label: 'Настройки', icon: IconSettings, ready: true },
   { href: '/admin/maintenance', label: 'Обслуживание', icon: IconTool, ready: true },
 ]
 

@@ -17,7 +17,9 @@ import {
 } from '@/components/ui/select'
 import { eventTypeLabels, severityLabels } from '@/lib/labels'
 
-const EVENT_TYPES = EventType.options
+// entries/exits are statistics — they never alert (were the main flood source)
+const NON_ALERTABLE = new Set(['zone_entry', 'zone_exit'])
+const EVENT_TYPES = EventType.options.filter((t) => !NON_ALERTABLE.has(t))
 const SEVERITIES = ['info', 'warn', 'critical'] as const
 const eventTypeLabel = (t: string): string =>
   eventTypeLabels[t as keyof typeof eventTypeLabels] ?? t
@@ -247,8 +249,11 @@ export default function AdminAlertsPage(): React.JSX.Element {
       </div>
       <p className="text-sm text-muted-foreground">
         Событие выбранного типа рассылается в Telegram и/или на webhook. Дубликаты гасятся паузой
-        на пару (правило, камера). «Мин. важность» отсекает менее важные события, «тихие часы»
-        (в часовом поясе точки) откладывают уведомления на ночь. Кнопка со стрелкой — тестовая отправка.
+        на пару (правило, человек) — один и тот же посетитель на всех камерах считается одним.
+        Критичные события уходят сразу; остальные копятся и приходят одной сводкой
+        (интервал — в «Настройках»). Входы/выходы из зон в уведомления не попадают —
+        они видны в ленте событий и статистике. «Тихие часы» (в часовом поясе точки)
+        откладывают уведомления на ночь. Кнопка со стрелкой — тестовая отправка.
       </p>
 
       <div className="overflow-hidden rounded-lg border border-border/70">

@@ -33,6 +33,7 @@ async function syncCameras(app: { redis: Redis }, tenantId: string): Promise<voi
     source_type: camera.sourceType,
     url_main: camera.urlMain,
     url_sub: camera.urlSub,
+    tz: site.timezone,
     config: camera.config,
   }).from(camera).innerJoin(site, eq(camera.siteId, site.id))
     .where(eq(site.tenantId, tenantId))
@@ -124,6 +125,7 @@ async function syncZones(app: { redis: Redis }, cameraId: string): Promise<void>
     pipe.hset(key, z.id, JSON.stringify({
       id: z.id, name: z.name, kind: z.kind,
       polygon: z.polygon, config: z.config, active: z.active,
+      schedule: z.schedule,
     }))
   }
   await pipe.exec()

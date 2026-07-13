@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     def enabled_plugin_ids(self) -> list[str]:
         return [p.strip() for p in self.enabled_plugins.split(",") if p.strip()]
 
+    # staff face-id (OpenCV YuNet + SFace); missing files disable the path
+    face_detect_onnx: str = "/opt/models/face_detection_yunet.onnx"
+    face_recog_onnx: str = "/opt/models/face_recognition_sface.onnx"
+
     # archive recorder
     archive_root: str = "/mnt/archive"
     segment_seconds: int = 300
@@ -59,6 +63,7 @@ class CameraConfig(BaseModel):
     source_type: Literal["rtsp_pull", "srt_push", "file"]
     url_main: str | None = None
     url_sub: str | None = None
+    tz: str = "Europe/Moscow"  # site timezone (zone schedules)
     config: dict[str, Any] = Field(default_factory=dict)
 
     def ai_url(self) -> str:

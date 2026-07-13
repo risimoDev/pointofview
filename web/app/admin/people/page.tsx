@@ -1,12 +1,19 @@
 'use client'
 
 import type * as React from 'react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
-import { IconUserCheck, IconUserMinus, IconUsers, IconTrash } from '@tabler/icons-react'
-import { deletePerson, getPeople, setPersonStaff, type Person } from '@/lib/api'
+import {
+  IconUserCheck, IconUserMinus, IconUsers, IconTrash, IconCamera, IconUserPlus,
+} from '@tabler/icons-react'
+import {
+  deletePerson, getPeople, setPersonStaff, uploadFacePhoto, type Person,
+} from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
 
 function fmtSeen(ts: number | null): string {
   if (!ts) return ''
@@ -15,19 +22,31 @@ function fmtSeen(ts: number | null): string {
   })
 }
 
-function PersonCard({ person, onChanged }: {
-  person: Person; onChanged: () => void
+function PersonCard({ person, staffList, onChanged }: {
+  person: Person; staffList: Person[]; onChanged: () => void
 }): React.JSX.Element {
   const [name, setName] = useState(person.name ?? '')
+  const [mergeInto, setMergeInto] = useState('')
   const [imgOk, setImgOk] = useState(true)
+  const [msg, setMsg] = useState<string | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
 
   const mark = useMutation({
-    mutationFn: (staff: boolean) => setPersonStaff(person.gid, staff, name.trim() || undefined),
+    mutationFn: (args: { staff: boolean; mergeInto?: string }) =>
+      setPersonStaff(person.gid, args.staff, name.trim() || undefined, args.mergeInto),
     onSuccess: onChanged,
   })
   const remove = useMutation({
     mutationFn: () => deletePerson(person.gid),
     onSuccess: onChanged,
+  })
+  const face = useMutation({
+    mutationFn: (file: File) => uploadFacePhoto(person.gid, file),
+    onSuccess: () => {
+      setMsg('Фото в обработке (≈10 с)')
+      setTimeout(onChanged, 12_000)
+    },
+    onError: () => setMsg('Не удалось загрузить фото'),
   })
 
   return (
@@ -56,13 +75,33 @@ function PersonCard({ person, onChanged }: {
         {person.staff ? (
           <>
             <div className="truncate text-sm font-medium">{person.name || 'Без имени'}</div>
+            <div className="text-[11px] text-muted-foreground">
+              Образцы: одежда {person.clothingSamples} · лицо {person.faceSamples}
+            </div>
+            <input
+              ref={fileRef} type="file" accept="image/jpeg,image/png" className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (f) face.mutate(f)
+                e.target.value = ''
+              }}
+            />
+            <Button
+              size="sm" variant="outline" className="w-full"
+              disabled={face.isPending}
+              onClick={() => fileRef.current?.click()}
+              title="Чёткое фото лица (анфас) — сотрудник будет узнаваться даже в новой одежде"
+            >
+              <IconCamera className="mr-1 h-4 w-4" stroke={1.75} /> Добавить фото лица
+            </Button>
             <Button
               size="sm" variant="outline" className="w-full"
               disabled={mark.isPending}
-              onClick={() => mark.mutate(false)}
+              onClick={() => mark.mutate({ staff: false })}
             >
               <IconUserMinus className="mr-1 h-4 w-4" stroke={1.75} /> Убрать из сотрудников
             </Button>
+            {msg && <p className="text-[11px] text-brand">{msg}</p>}
           </>
         ) : (
           <>
@@ -78,10 +117,34 @@ function PersonCard({ person, onChanged }: {
             <Button
               size="sm" className="w-full"
               disabled={mark.isPending}
-              onClick={() => mark.mutate(true)}
+              onClick={() => mark.mutate({ staff: true })}
             >
               <IconUserCheck className="mr-1 h-4 w-4" stroke={1.75} /> Это сотрудник
             </Button>
+            {staffList.length > 0 && (
+              <div className="flex gap-1.5">
+                <Select value={mergeInto} onValueChange={setMergeInto}>
+                  <SelectTrigger className="h-8 flex-1 text-xs">
+                    <SelectValue placeholder="…или добавить к…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {staffList.map((s) => (
+                      <SelectItem key={s.gid} value={s.gid}>
+                        {s.name || s.gid.slice(0, 8)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  size="sm" variant="outline" className="h-8 shrink-0 px-2"
+                  disabled={!mergeInto || mark.isPending}
+                  onClick={() => mark.mutate({ staff: true, mergeInto })}
+                  title="Добавить этот образ как ещё один образец выбранного сотрудника"
+                >
+                  <IconUserPlus className="h-4 w-4" stroke={1.75} />
+                </Button>
+              </div>
+            )}
             <Button
               size="sm" variant="outline" className="w-full"
               disabled={remove.isPending}
@@ -111,10 +174,11 @@ export default function PeoplePage(): React.JSX.Element {
         <h1 className="font-display text-lg font-semibold tracking-tight">Люди</h1>
       </div>
       <p className="text-sm text-muted-foreground">
-        Система запоминает внешний вид людей на камерах точки (функция «Сквозная
-        идентификация»). Отметь сотрудников — они перестанут учитываться как посетители
-        и не будут вызывать оповещения об очередях, скоплениях и запретных зонах.
-        Список посетителей очищается автоматически (по умолчанию через 12 часов).
+        Посетители различаются по внешнему виду (одежда, силуэт) — без биометрии.
+        Сотрудники — по нескольким образцам одежды и, если загрузить фото, по лицу:
+        так система узнаёт сотрудника даже после переодевания и не путает его с посетителем.
+        Увидел сотрудника в списке «замеченных» — добавь его образ к существующей карточке
+        (кнопка со значком +), а не создавай нового.
       </p>
 
       <section className="space-y-2">
@@ -125,7 +189,9 @@ export default function PeoplePage(): React.JSX.Element {
           </p>
         )}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-          {staff.map((p) => <PersonCard key={p.gid} person={p} onChanged={onChanged} />)}
+          {staff.map((p) => (
+            <PersonCard key={p.gid} person={p} staffList={staff} onChanged={onChanged} />
+          ))}
         </div>
       </section>
 
@@ -140,7 +206,9 @@ export default function PeoplePage(): React.JSX.Element {
           </p>
         )}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-          {visitors.map((p) => <PersonCard key={p.gid} person={p} onChanged={onChanged} />)}
+          {visitors.map((p) => (
+            <PersonCard key={p.gid} person={p} staffList={staff} onChanged={onChanged} />
+          ))}
         </div>
       </section>
     </main>

@@ -30,6 +30,15 @@ RUN python -m pip install --upgrade pip && \
     python -m pip install torch --index-url "https://download.pytorch.org/whl/${TORCH_VARIANT}" && \
     python -m pip install -r requirements.txt
 
+# staff face-id models (YuNet + SFace, ~40MB total). media.githubusercontent
+# resolves git-lfs binaries. Failure only disables face-id at runtime.
+RUN mkdir -p /opt/models && \
+    (curl -fsSL -o /opt/models/face_detection_yunet.onnx \
+        https://media.githubusercontent.com/media/opencv/opencv_zoo/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx && \
+     curl -fsSL -o /opt/models/face_recognition_sface.onnx \
+        https://media.githubusercontent.com/media/opencv/opencv_zoo/main/models/face_recognition_sface/face_recognition_sface_2021dec.onnx) \
+    || echo "WARN: face models download failed — staff face-id will be disabled"
+
 COPY . /app/analyzer
 ENV PYTHONPATH=/app \
     ANALYZER_DEVICE=cuda

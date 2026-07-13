@@ -336,7 +336,8 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
   app.post('/resync', { preHandler: [requireSuper] }, async (req) => {
     const cams = await db.select({
       id: camera.id, site_id: camera.siteId, source_type: camera.sourceType,
-      url_main: camera.urlMain, url_sub: camera.urlSub, config: camera.config,
+      url_main: camera.urlMain, url_sub: camera.urlSub, tz: site.timezone,
+      config: camera.config,
     }).from(camera).innerJoin(site, eq(camera.siteId, site.id))
       .where(eq(site.tenantId, req.tenantId))
     await app.redis.set(`cameras:${req.tenantId}`, JSON.stringify(cams))
@@ -357,7 +358,7 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
       for (const zz of zs) {
         pipe.hset(key, zz.id, JSON.stringify({
           id: zz.id, name: zz.name, kind: zz.kind, polygon: zz.polygon,
-          config: zz.config, active: zz.active,
+          config: zz.config, active: zz.active, schedule: zz.schedule,
         }))
         zoneCount++
       }

@@ -4,7 +4,7 @@ import json
 import logging
 import time
 import uuid
-from base64 import b64encode
+from base64 import b64decode, b64encode
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -15,12 +15,20 @@ import redis.asyncio as aioredis
 
 from analyzer.config import Settings
 from analyzer.reid.embedding import cosine, make_embedder
+from analyzer.reid.face import FaceEngine
 
 logger = logging.getLogger(__name__)
 
 EMA_ALPHA = 0.3           # smoothing of a track's rolling embedding
 GALLERY_KEY = "reid:gallery:{site_id}"   # hash gid -> json {emb, last_seen}
-STAFF_KEY = "reid:staff:{tenant_id}"     # hash gid -> json {emb, name} (API-managed)
+# staff clothing refs: hash gid -> json {embs: [[...]], name} (API-managed;
+# legacy single-{emb} payloads still accepted)
+STAFF_KEY = "reid:staff:{tenant_id}"
+# staff face refs: hash gid -> json {embs: [[...]], photos, failed}
+FACE_STAFF_KEY = "face:staff:{tenant_id}"
+FACE_ENROLL_KEY = "face_enroll:{tenant_id}"  # list of {gid, jpeg_b64}
+MAX_STAFF_EMBS = 8
+MAX_FACE_EMBS = 10
 
 
 @dataclass(slots=True)
@@ -41,6 +49,7 @@ class _TrackState:
     last_seen: float = 0.0
     first_seen: float = 0.0
     samples: int = 0  # accepted (quality-gated) embedding samples
+    last_face_try: float = 0.0
 
 
 @dataclass(slots=True)
@@ -74,11 +83,13 @@ class IdentityManager:
         self.settings = settings
         self.redis = redis
         self.embedder = make_embedder()
+        self.face = FaceEngine(settings)
         self.enabled = False
         self._cfg: dict[str, Any] = {}
         self._tracks: dict[str, _TrackState] = {}          # "{cam}:{tid}"
         self._gallery: dict[str, dict[str, _GalleryEntry]] = {}   # site -> gid -> entry
-        self._staff: dict[str, np.ndarray] = {}            # gid -> emb
+        self._staff: dict[str, list[np.ndarray]] = {}      # gid -> clothing embs
+        self._face_staff: dict[str, list[np.ndarray]] = {}  # gid -> face embs
         self._gallery_loaded: set[str] = set()
         self._pending_crops: list[_PendingCrop] = []
 
@@ -103,15 +114,32 @@ class IdentityManager:
         if not self.enabled:
             return
         staff_raw = await self.redis.hgetall(STAFF_KEY.format(tenant_id=self.settings.tenant_id))
-        staff: dict[str, np.ndarray] = {}
+        staff: dict[str, list[np.ndarray]] = {}
         for gid, payload in staff_raw.items():
             try:
-                emb = np.asarray(json.loads(payload)["emb"], dtype=np.float32)
-                if emb.shape[0] == self.embedder.dim:
-                    staff[gid] = emb
-            except (KeyError, ValueError, json.JSONDecodeError):
+                d = json.loads(payload)
+                raw_embs = d.get("embs") or ([d["emb"]] if d.get("emb") else [])
+                embs = [np.asarray(e, dtype=np.float32) for e in raw_embs]
+                embs = [e for e in embs if e.shape[0] == self.embedder.dim]
+                if embs:
+                    staff[gid] = embs
+            except (KeyError, ValueError, TypeError, json.JSONDecodeError):
                 continue
         self._staff = staff
+
+        if self.face.ready:
+            face_raw = await self.redis.hgetall(
+                FACE_STAFF_KEY.format(tenant_id=self.settings.tenant_id))
+            face_staff: dict[str, list[np.ndarray]] = {}
+            for gid, payload in face_raw.items():
+                try:
+                    embs = [np.asarray(e, dtype=np.float32)
+                            for e in (json.loads(payload).get("embs") or [])]
+                    if embs:
+                        face_staff[gid] = embs
+                except (ValueError, TypeError, json.JSONDecodeError):
+                    continue
+            self._face_staff = face_staff
 
     async def ensure_site(self, site_id: str) -> None:
         """Lazy-load the site gallery once (no-op afterwards)."""
@@ -169,6 +197,42 @@ class IdentityManager:
             del self._tracks[tkey]
 
         await self._flush_crops()
+        if self.face.ready:
+            await self._process_face_enrollments()
+
+    async def _process_face_enrollments(self) -> None:
+        """Photos queued by the API («Люди»: фото сотрудника / кроп с камеры)
+        → face embeddings in the persistent staff face gallery."""
+        key = FACE_ENROLL_KEY.format(tenant_id=self.settings.tenant_id)
+        fkey = FACE_STAFF_KEY.format(tenant_id=self.settings.tenant_id)
+        for _ in range(5):  # bounded batch per sync tick
+            raw = await self.redis.lpop(key)
+            if not raw:
+                return
+            try:
+                d = json.loads(raw)
+                gid = str(d["gid"])
+                arr = np.frombuffer(b64decode(d["jpeg_b64"]), dtype=np.uint8)
+                img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+                emb = self.face.embed_largest(img) if img is not None else None
+
+                cur_raw = await self.redis.hget(fkey, gid)
+                cur: dict[str, Any] = json.loads(cur_raw) if cur_raw else {}
+                embs: list[Any] = list(cur.get("embs") or [])
+                photos = int(cur.get("photos") or 0) + 1
+                failed = int(cur.get("failed") or 0)
+                if emb is None:
+                    failed += 1
+                    logger.warning("face enroll %s: no usable face in photo", gid)
+                else:
+                    embs.append(emb.tolist())
+                    embs = embs[-MAX_FACE_EMBS:]
+                    self._face_staff[gid] = [np.asarray(e, dtype=np.float32) for e in embs]
+                    logger.info("face enroll %s: %d sample(s) total", gid, len(embs))
+                await self.redis.hset(fkey, gid, json.dumps(
+                    {"embs": embs, "photos": photos, "failed": failed}))
+            except Exception:  # noqa: BLE001 — one bad photo must not wedge the queue
+                logger.exception("face enrollment item failed")
 
     async def _flush_crops(self) -> None:
         if not self._pending_crops or not self.settings.internal_api_url:
@@ -238,14 +302,28 @@ class IdentityManager:
             norm = float(np.linalg.norm(mixed))
             state.emb = mixed / norm if norm > 0 else mixed
 
-        # staff match is sticky for the whole track
+        # staff match is sticky for the whole track. Clothing refs first
+        # (cheap, several samples per person), then the face check on
+        # close-up crops — it survives a change of clothes.
         if not state.staff:
             staff_thr = self._f("staff_threshold", 0.90)
-            for gid, semb in self._staff.items():
-                if cosine(state.emb, semb) >= staff_thr:
+            for gid, sembs in self._staff.items():
+                if max(cosine(state.emb, e) for e in sembs) >= staff_thr:
                     state.staff = True
                     state.gid = gid
                     break
+        if not state.staff and self.face.ready and self._face_staff \
+                and crop.shape[0] >= self._f("face_min_px", 140) \
+                and ts - state.last_face_try >= self._f("face_interval_seconds", 3.0):
+            state.last_face_try = ts
+            femb = self.face.embed_largest(crop)
+            if femb is not None:
+                face_thr = self._f("face_threshold", 0.36)
+                for gid, fembs in self._face_staff.items():
+                    if max(cosine(femb, e) for e in fembs) >= face_thr:
+                        state.staff = True
+                        state.gid = gid
+                        break
         if state.staff:
             return IdentityResult(global_id=state.gid, staff=True)
 

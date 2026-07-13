@@ -61,6 +61,12 @@ export const SETTING_DEFS: SettingDef[] = [
     def: config.CLIP_WATERMARK,
   },
   {
+    key: 'alert_digest_minutes', group: 'alerts', type: 'number',
+    label: 'Интервал сводки алертов, мин', min: 5, max: 240,
+    hint: 'Некритичные события копятся и приходят одним сообщением раз в этот интервал; critical — сразу',
+    def: 30,
+  },
+  {
     key: 'telegram_bot_token', group: 'alerts', type: 'secret',
     label: 'Telegram bot token',
     hint: 'Пусто — используется токен из .env на сервере',

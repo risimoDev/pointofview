@@ -273,6 +273,8 @@ const PersonSchema = z.object({
   siteId: z.string().nullable(),
   siteName: z.string().nullable(),
   snapshotUrl: z.string(),
+  clothingSamples: z.number(),
+  faceSamples: z.number(),
 })
 const PeopleSchema = z.object({ items: z.array(PersonSchema) })
 export type Person = z.infer<typeof PersonSchema>
@@ -282,14 +284,27 @@ export async function getPeople(): Promise<Person[]> {
 }
 
 export async function setPersonStaff(
-  gid: string, staff: boolean, name?: string,
+  gid: string, staff: boolean, name?: string, mergeInto?: string,
 ): Promise<void> {
+  const body: Record<string, unknown> = { staff }
+  if (name !== undefined) body.name = name
+  if (mergeInto !== undefined) body.merge_into = mergeInto
   const res = await apiFetch(`/api/v1/people/${encodeURIComponent(gid)}/staff`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(name !== undefined ? { staff, name } : { staff }),
+    body: JSON.stringify(body),
   })
   if (!res.ok) throw new Error(`setPersonStaff: ${res.status}`)
+}
+
+export async function uploadFacePhoto(gid: string, file: File): Promise<void> {
+  const form = new FormData()
+  form.append('photo', file)
+  const res = await apiFetch(`/api/v1/people/${encodeURIComponent(gid)}/face-photo`, {
+    method: 'POST',
+    body: form,
+  })
+  if (!res.ok) throw new Error(`uploadFacePhoto: ${res.status}`)
 }
 
 export async function deletePerson(gid: string): Promise<void> {

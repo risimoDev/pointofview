@@ -6,12 +6,32 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import redis.asyncio as aioredis
 
 from analyzer.config import Settings
 
 logger = logging.getLogger(__name__)
+
+_TZ_CACHE: dict[str, ZoneInfo | None] = {}
+
+
+def _local_hhmm(ts: float, tz_name: str) -> str:
+    if tz_name not in _TZ_CACHE:
+        try:
+            _TZ_CACHE[tz_name] = ZoneInfo(tz_name)
+        except Exception:  # noqa: BLE001 — unknown tz → UTC fallback
+            _TZ_CACHE[tz_name] = None
+    dt = datetime.fromtimestamp(ts, tz=_TZ_CACHE[tz_name] or timezone.utc)
+    return dt.strftime("%H:%M")
+
+
+def _in_window(hhmm: str, frm: Any, to: Any) -> bool:
+    """[frm, to) window in HH:MM, may wrap midnight. Empty/equal → False."""
+    if not isinstance(frm, str) or not isinstance(to, str) or not frm or not to or frm == to:
+        return False
+    return (frm <= hhmm < to) if frm < to else (hhmm >= frm or hhmm < to)
 
 # kind groups
 DWELL_KINDS = {"counter", "desk", "queue"}        # entry/exit + dwell → queue_alert
@@ -53,6 +73,8 @@ class TrackEvent:
     confidence: float
     ts: float
     staff: bool = False  # reid: staff don't trigger visitor alerts
+    global_id: str | None = None  # reid identity: dedupes person across cameras
+    tz: str = "Europe/Moscow"     # site timezone for zone schedules
 
     def center_norm(self) -> tuple[float, float]:
         x1, y1, x2, y2 = self.bbox
@@ -70,6 +92,7 @@ class Zone:
     polygon: list[tuple[float, float]]
     config: dict[str, Any]
     active: bool
+    schedule: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def from_json(cls, raw: str) -> "Zone":
@@ -81,6 +104,7 @@ class Zone:
             polygon=poly,
             config=d.get("config") or {},
             active=bool(d.get("active", True)),
+            schedule=d.get("schedule") or {},
         )
 
 
@@ -88,6 +112,7 @@ class Zone:
 class EntryState:
     entered_at: float
     last_seen_at: float
+    track_id: int = 0  # last track carrying this person (state is per-identity)
     alerted: bool = False
     last_alert_at: float | None = None  # debounce anchor
 
@@ -167,26 +192,53 @@ class ZoneEngine:
                 await self.emit(stale)
 
     # ── core geofencing ───────────────────────────────────────
+    @staticmethod
+    def _subject(te: TrackEvent) -> str:
+        # identity survives tracker churn and re-entries; track id is the fallback
+        return te.global_id or f"trk:{te.track_id}"
+
     def process(self, te: TrackEvent) -> list[Event]:
         zones = self._zones.get(te.camera_id)
         if not zones:
             return []
         cx, cy = te.center_norm()
         now = te.ts
+        hhmm: str | None = None
         out: list[Event] = []
 
         for zone in zones:
             if not zone.active:
                 continue
+            key = (te.camera_id, self._subject(te), zone.id)
+
+            # schedule: active window + night «alert everyone» window (site tz)
+            night_all = False
+            if zone.schedule:
+                if hhmm is None:
+                    hhmm = _local_hhmm(now, te.tz)
+                a_from = zone.schedule.get("active_from")
+                a_to = zone.schedule.get("active_to")
+                if isinstance(a_from, str) and isinstance(a_to, str) and a_from and a_to \
+                        and not _in_window(hhmm, a_from, a_to):
+                    self._state.pop(key, None)  # zone is off-shift: drop silently
+                    continue
+                night_all = _in_window(hhmm, zone.schedule.get("all_from"),
+                                       zone.schedule.get("all_to"))
+
+            # staff are invisible to the zone unless the zone says otherwise
+            # or the night window makes everyone a subject (охрана)
+            if te.staff and bool(zone.config.get("ignore_staff", True)) and not night_all:
+                self._state.pop(key, None)
+                continue
+
             inside = _point_in_polygon(cx, cy, zone.polygon)
-            key = (te.camera_id, str(te.track_id), zone.id)
             state = self._state.get(key)
 
             if inside:
                 if state is None:
-                    state = EntryState(entered_at=now, last_seen_at=now)
+                    state = EntryState(entered_at=now, last_seen_at=now, track_id=te.track_id)
                     self._state[key] = state
-                    if zone.kind == "forbidden" and not te.staff:
+                    if zone.kind == "forbidden":
                         state.alerted = True
                         state.last_alert_at = now
                         out.append(self._event(te, zone, "zone_violation", "critical",
@@ -196,12 +248,9 @@ class ZoneEngine:
                                                {"kind": zone.kind}))
                 else:
                     state.last_seen_at = now
+                    state.track_id = te.track_id
                     dwell = now - state.entered_at
-                    if te.staff:
-                        # staff don't queue and may enter forbidden areas —
-                        # keep entry/exit history, suppress visitor alerts
-                        pass
-                    elif zone.kind in DWELL_KINDS:
+                    if zone.kind in DWELL_KINDS:
                         limit = zone.config.get("dwell_seconds")
                         if (limit and dwell >= float(limit)
                                 and self._cooldown_ok(zone, state, now)):
@@ -240,14 +289,17 @@ class ZoneEngine:
             state = self._state[key]
             if now - state.last_seen_at <= timeout:
                 continue
-            cam, track, zone_id = key
+            cam, subject, zone_id = key
             del self._state[key]
             zone = self._find_zone(cam, zone_id)
             if zone and zone.kind in ENTRY_EXIT_KINDS:
+                meta: dict[str, Any] = {"kind": zone.kind, "lost": True}
+                if not subject.startswith("trk:"):
+                    meta["global_id"] = subject
                 out.append(Event(
                     tenant_id="", site_id="", camera_id=cam, zone_id=zone_id,
-                    type="zone_exit", severity="info", track_id=int(track),
-                    confidence=0.0, bbox={}, meta={"kind": zone.kind, "lost": True},
+                    type="zone_exit", severity="info", track_id=state.track_id,
+                    confidence=0.0, bbox={}, meta=meta,
                     ts_start=state.entered_at, ts_end=state.last_seen_at,
                 ))
         return out
@@ -278,6 +330,8 @@ class ZoneEngine:
                meta: dict[str, Any]) -> Event:
         if te.staff:
             meta = {**meta, "staff": True}
+        if te.global_id:
+            meta = {**meta, "global_id": te.global_id}
         return Event(
             tenant_id=te.tenant_id, site_id=te.site_id, camera_id=te.camera_id,
             zone_id=zone.id, type=type_, severity=severity, track_id=te.track_id,
@@ -285,11 +339,17 @@ class ZoneEngine:
         )
 
     def _exit_event(self, te: TrackEvent, zone: Zone, state: EntryState) -> Event:
+        meta: dict[str, Any] = {
+            "kind": zone.kind, "dwell_sec": state.last_seen_at - state.entered_at,
+        }
+        if te.staff:
+            meta["staff"] = True
+        if te.global_id:
+            meta["global_id"] = te.global_id
         return Event(
             tenant_id=te.tenant_id, site_id=te.site_id, camera_id=te.camera_id,
             zone_id=zone.id, type="zone_exit", severity="info", track_id=te.track_id,
-            confidence=te.confidence, bbox=te.bbox_dict(),
-            meta={"kind": zone.kind, "dwell_sec": state.last_seen_at - state.entered_at},
+            confidence=te.confidence, bbox=te.bbox_dict(), meta=meta,
             ts_start=state.entered_at, ts_end=te.ts,
         )
 

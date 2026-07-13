@@ -9,6 +9,10 @@ import { alertsQueue } from '../queues.js'
 const BLOCK_MS = 5000
 const BATCH = 20
 
+// entries/exits are statistics, not alarms — they persist and hit the WS feed
+// but never spawn alert jobs (this alone was most of the 5k-a-day flood)
+const NO_ALERT_TYPES = new Set(['zone_entry', 'zone_exit'])
+
 /**
  * Redis Streams consumer group on `events`.
  * XREADGROUP → insert into PostgreSQL → XACK. Bad/failed messages are
@@ -73,10 +77,12 @@ export class EventConsumer {
       const msg = EventMessageSchema.parse(JSON.parse(raw ?? '{}'))
       const eventId = await this.insert(msg)
       await this.pub.publish(`events:${msg.tenant_id}`, raw ?? '')
-      await alertsQueue.add('notify', { event_id: eventId, tenant_id: msg.tenant_id }, {
-        removeOnComplete: 200, removeOnFail: 500, attempts: 3,
-        backoff: { type: 'exponential', delay: 3000 },
-      })
+      if (!NO_ALERT_TYPES.has(msg.type)) {
+        await alertsQueue.add('notify', { event_id: eventId, tenant_id: msg.tenant_id }, {
+          removeOnComplete: 200, removeOnFail: 500, attempts: 3,
+          backoff: { type: 'exponential', delay: 3000 },
+        })
+      }
       await this.redis.xack(config.EVENTS_STREAM, config.CONSUMER_GROUP, id)
     } catch (err) {
       this.log.warn({ err, id }, 'event insert failed → dead letter')

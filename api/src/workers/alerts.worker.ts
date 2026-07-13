@@ -5,9 +5,9 @@ import { z } from 'zod'
 import { db } from '../db/client.js'
 import { alertRule, camera, event, notification, site, zone } from '../../db/schema.js'
 import { config } from '../config.js'
-import { ALERTS_QUEUE, type AlertJob } from '../queues.js'
+import { ALERTS_QUEUE, alertsQueue, type AlertJob } from '../queues.js'
 import { minio } from '../minio.js'
-import { settingSecret } from '../settings.js'
+import { settingNumber, settingSecret } from '../settings.js'
 
 const log = (msg: string, extra?: unknown): void => {
   // eslint-disable-next-line no-console
@@ -59,6 +59,17 @@ interface EventCtx {
   cameraName: string
   tz: string
   zoneName: string | null
+  meta?: Record<string, unknown>
+}
+
+// digest buffer entry (Redis list digest:{rule_id})
+interface DigestEntry {
+  type: string
+  zone: string | null
+  camera: string
+  gid: string | null
+  tz: string
+  ts: string
 }
 
 function escapeHtml(s: string): string {
@@ -153,14 +164,95 @@ async function processTest(ruleId: string, tenantId: string): Promise<void> {
   }
 }
 
+/** Periodic flush: one summary message per rule instead of an event stream.
+ *  A rule flushes when its buffer is older than `alert_digest_minutes`. */
+async function processDigest(redis: IORedis): Promise<void> {
+  const minutes = await settingNumber('alert_digest_minutes')
+  const ruleIds = await redis.smembers('digest:rules')
+  for (const ruleId of ruleIds) {
+    const lastRaw = await redis.get(`digest:last:${ruleId}`)
+    if (lastRaw && Date.now() - Number(lastRaw) < minutes * 60_000) continue
+
+    const rawEntries = await redis.lrange(`digest:${ruleId}`, 0, -1)
+    if (rawEntries.length === 0) {
+      await redis.srem('digest:rules', ruleId)
+      continue
+    }
+    const [rule] = await db.select().from(alertRule).where(eq(alertRule.id, ruleId)).limit(1)
+    if (!rule || !rule.enabled) {
+      await redis.del(`digest:${ruleId}`)
+      await redis.srem('digest:rules', ruleId)
+      continue
+    }
+
+    const entries: DigestEntry[] = []
+    for (const raw of rawEntries) {
+      try { entries.push(JSON.parse(raw) as DigestEntry) } catch { /* skip */ }
+    }
+    const tz = entries[0]?.tz ?? 'Europe/Moscow'
+    // hold the digest through quiet hours; it goes out in the morning
+    if (inQuietHours(rule.schedule, tz, new Date())) continue
+
+    await redis.del(`digest:${ruleId}`)
+    await redis.set(`digest:last:${ruleId}`, String(Date.now()))
+
+    // group by type+zone, count events and distinct people
+    const groups = new Map<string, { count: number; people: Set<string> }>()
+    for (const e of entries) {
+      const label = `${TYPE_LABELS[e.type] ?? e.type}${e.zone ? ` — ${e.zone}` : ''}`
+      const g = groups.get(label) ?? { count: 0, people: new Set<string>() }
+      g.count++
+      if (e.gid) g.people.add(e.gid)
+      groups.set(label, g)
+    }
+    const lines = [`📊 <b>Сводка за ${minutes} мин</b>`]
+    for (const [label, g] of groups) {
+      const people = g.people.size > 0 ? `, людей: ${g.people.size}` : ''
+      lines.push(`• ${escapeHtml(label)}: ${g.count}${people}`)
+    }
+    const text = lines.join('\n')
+
+    const channels = Channels.safeParse(rule.channels)
+    if (!channels.success) continue
+    for (const ch of channels.data) {
+      try {
+        if (ch.type === 'telegram') {
+          const token = await tgToken()
+          if (!token) throw new Error('telegram bot token not configured')
+          await tgJson(token, 'sendMessage', {
+            chat_id: (ch as z.infer<typeof TelegramChannel>).chat_id,
+            text, parse_mode: 'HTML',
+          })
+        } else if (ch.type === 'webhook') {
+          const res = await fetch((ch as z.infer<typeof WebhookChannel>).url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ digest: true, minutes, entries }),
+            signal: AbortSignal.timeout(10_000),
+          })
+          if (!res.ok) throw new Error(`webhook HTTP ${res.status}`)
+        }
+      } catch (err) {
+        log('digest dispatch failed', {
+          ruleId, channel: ch.type,
+          error: err instanceof Error ? err.message : String(err),
+        })
+      }
+    }
+    log('digest sent', { ruleId, events: entries.length })
+  }
+}
+
 async function processAlert(job: Job<AlertJob>, redis: IORedis): Promise<void> {
-  const { event_id, tenant_id, test_rule_id } = job.data
+  const { event_id, tenant_id, test_rule_id, digest } = job.data
+  if (digest) { await processDigest(redis); return }
   if (test_rule_id) { await processTest(test_rule_id, tenant_id); return }
 
   const [ctx] = await db.select({
     type: event.type, severity: event.severity, tsStart: event.tsStart,
     cameraId: event.cameraId, snapshotKey: event.snapshotKey,
     cameraName: camera.name, tz: site.timezone, zoneName: zone.name,
+    meta: event.meta,
   }).from(event)
     .innerJoin(camera, eq(event.cameraId, camera.id))
     .innerJoin(site, eq(event.siteId, site.id))
@@ -175,6 +267,9 @@ async function processAlert(job: Job<AlertJob>, redis: IORedis): Promise<void> {
     eq(alertRule.enabled, true),
   ))
 
+  // cross-camera person identity: the same visitor on 4 cameras is ONE subject
+  const gid = typeof ctx.meta?.global_id === 'string' ? ctx.meta.global_id : null
+
   for (const rule of rules) {
     // conditions.min_severity: skip events below the rule's threshold
     const minSev = typeof rule.conditions.min_severity === 'string'
@@ -184,10 +279,23 @@ async function processAlert(job: Job<AlertJob>, redis: IORedis): Promise<void> {
     // schedule.quiet_from/quiet_to: silence the rule during quiet hours (site tz)
     if (inQuietHours(rule.schedule, ctx.tz, ctx.tsStart)) continue
 
-    // cooldown per (rule, camera) via atomic SET NX EX
-    const key = `cooldown:${rule.id}:${ctx.cameraId}`
+    // cooldown per (rule, person) — camera is only the fallback subject,
+    // so a person flickering between cameras can't re-trigger the rule
+    const key = `cooldown:${rule.id}:${gid ?? ctx.cameraId}`
     const ok = await redis.set(key, '1', 'EX', Math.max(1, rule.cooldownSeconds), 'NX')
     if (ok !== 'OK') continue
+
+    // non-critical events accumulate into a periodic digest instead of
+    // spamming a message each — critical ones still go out instantly
+    if (ctx.severity !== 'critical') {
+      const entry: DigestEntry = {
+        type: ctx.type, zone: ctx.zoneName, camera: ctx.cameraName,
+        gid, tz: ctx.tz, ts: ctx.tsStart.toISOString(),
+      }
+      await redis.rpush(`digest:${rule.id}`, JSON.stringify(entry))
+      await redis.sadd('digest:rules', rule.id)
+      continue
+    }
 
     const channels = Channels.safeParse(rule.channels)
     if (!channels.success) {
@@ -231,6 +339,12 @@ async function main(): Promise<void> {
   })
 
   worker.on('failed', (job, err) => log('alert job failed', { id: job?.id, err: err.message }))
+
+  // digest tick: every minute check which rule buffers are due to flush
+  await alertsQueue.add('digest', { event_id: '', tenant_id: '', digest: true }, {
+    repeat: { every: 60_000 }, jobId: 'digest-tick',
+    removeOnComplete: 5, removeOnFail: 5,
+  })
 
   const shutdown = async (): Promise<void> => {
     await worker.close()

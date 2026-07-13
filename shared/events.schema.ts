@@ -86,6 +86,7 @@ export const ZoneSchema = z.object({
   polygon: z.array(z.tuple([z.number(), z.number()])),
   config: z.record(z.unknown()),
   active: z.boolean(),
+  schedule: z.record(z.unknown()),
 })
 export type Zone = z.infer<typeof ZoneSchema>
 

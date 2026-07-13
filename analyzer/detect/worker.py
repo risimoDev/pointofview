@@ -52,6 +52,7 @@ class AnalyzerWorker:
         self._infer_pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="yolo")
         self._trackers: dict[str, sv.ByteTrack] = {}
         self._site_by_camera: dict[str, str] = {}
+        self._tz_by_camera: dict[str, str] = {}
         self._tasks: dict[str, asyncio.Task[None]] = {}  # camera_id → consumer
         self.zones = ZoneEngine(self.redis, settings)
         self.plugins = PluginManager(settings, self.redis)
@@ -66,6 +67,7 @@ class AnalyzerWorker:
 
     def _make_source(self, cfg: CameraConfig) -> VideoSource:
         self._site_by_camera[cfg.id] = cfg.site_id
+        self._tz_by_camera[cfg.id] = cfg.tz
         skip = cfg.frame_skip(self.settings.default_frame_skip)
         if cfg.source_type == "file":
             return FileSource(cfg.id, self.settings.tenant_id, cfg.ai_url(), frame_skip=skip)
@@ -163,6 +165,8 @@ class AnalyzerWorker:
                 confidence=confidence,
                 ts=frame.ts,
                 staff=ident.staff,
+                global_id=ident.global_id,
+                tz=self._tz_by_camera.get(frame.camera_id, "Europe/Moscow"),
             )
             zone_events.extend(self.zones.process(te))
 

@@ -26,6 +26,7 @@ interface EditZone {
   kind: Kind
   polygon: Point[]
   config: Record<string, unknown>
+  schedule: Record<string, unknown>
   active: boolean
   dirty: boolean
 }
@@ -36,6 +37,11 @@ const HANDLE_HIT = 12 // px
 function numField(cfg: Record<string, unknown>, key: string): string {
   const v = cfg[key]
   return typeof v === 'number' || typeof v === 'string' ? String(v) : ''
+}
+
+function strField(obj: Record<string, unknown>, key: string): string {
+  const v = obj[key]
+  return typeof v === 'string' ? v : ''
 }
 
 export function ZoneEditor({ cameraId, imageUrl }: { cameraId: string; imageUrl: string }): React.JSX.Element {
@@ -55,7 +61,7 @@ export function ZoneEditor({ cameraId, imageUrl }: { cameraId: string; imageUrl:
     setZones(items.map((z) => ({
       id: z.id, name: z.name, kind: z.kind,
       polygon: z.polygon.map((p) => [p[0], p[1]] as Point),
-      config: z.config, active: z.active, dirty: false,
+      config: z.config, schedule: z.schedule, active: z.active, dirty: false,
     })))
     setLoaded(true)
   }, [cameraId])
@@ -173,7 +179,7 @@ export function ZoneEditor({ cameraId, imageUrl }: { cameraId: string; imageUrl:
     if (draft.length < 3) return
     setZones((zs) => [...zs, {
       id: null, name: `Зона ${zs.length + 1}`, kind: 'counter',
-      polygon: draft, config: {}, active: true, dirty: true,
+      polygon: draft, config: {}, schedule: {}, active: true, dirty: true,
     }])
     setDraft([])
   }
@@ -189,6 +195,19 @@ export function ZoneEditor({ cameraId, imageUrl }: { cameraId: string; imageUrl:
       if (raw === '' || Number.isNaN(n)) delete config[key]
       else config[key] = n
       return { ...z, config, dirty: true }
+    }))
+
+  const patchConfigBool = (idx: number, key: string, value: boolean): void =>
+    setZones((zs) => zs.map((z, i) =>
+      (i === idx ? { ...z, config: { ...z.config, [key]: value }, dirty: true } : z)))
+
+  const patchSchedule = (idx: number, key: string, raw: string): void =>
+    setZones((zs) => zs.map((z, i) => {
+      if (i !== idx) return z
+      const schedule = { ...z.schedule }
+      if (raw === '') delete schedule[key]
+      else schedule[key] = raw
+      return { ...z, schedule, dirty: true }
     }))
 
   const removeZone = async (idx: number): Promise<void> => {
@@ -214,7 +233,7 @@ export function ZoneEditor({ cameraId, imageUrl }: { cameraId: string; imageUrl:
         if (!z.dirty) continue
         const body = {
           name: z.name, kind: z.kind, polygon: z.polygon,
-          config: z.config, active: z.active,
+          config: z.config, schedule: z.schedule, active: z.active,
         }
         if (z.id) await updateZone(cameraId, z.id, body)
         else await createZone(cameraId, body)
@@ -310,6 +329,45 @@ export function ZoneEditor({ cameraId, imageUrl }: { cameraId: string; imageUrl:
                 />
               </div>
             )}
+
+            <div className="flex items-center gap-2">
+              <span className="w-40 text-xs text-muted-foreground">Не срабатывать на сотрудников</span>
+              <Button
+                type="button" size="sm" variant={(z.config.ignore_staff ?? true) ? 'default' : 'outline'}
+                className="h-7 w-16"
+                onClick={() => patchConfigBool(i, 'ignore_staff', !(z.config.ignore_staff ?? true))}
+              >
+                {(z.config.ignore_staff ?? true) ? 'Да' : 'Нет'}
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-40 shrink-0 text-xs text-muted-foreground">Активна с … до …</span>
+              <Input
+                type="time" className="h-8"
+                value={strField(z.schedule, 'active_from')}
+                onChange={(e) => patchSchedule(i, 'active_from', e.target.value)}
+              />
+              <Input
+                type="time" className="h-8"
+                value={strField(z.schedule, 'active_to')}
+                onChange={(e) => patchSchedule(i, 'active_to', e.target.value)}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-40 shrink-0 text-xs text-muted-foreground" title="В этом окне зона срабатывает на всех, включая сотрудников (режим охраны)">
+                Ночной режим с … до …
+              </span>
+              <Input
+                type="time" className="h-8"
+                value={strField(z.schedule, 'all_from')}
+                onChange={(e) => patchSchedule(i, 'all_from', e.target.value)}
+              />
+              <Input
+                type="time" className="h-8"
+                value={strField(z.schedule, 'all_to')}
+                onChange={(e) => patchSchedule(i, 'all_to', e.target.value)}
+              />
+            </div>
 
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>

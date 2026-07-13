@@ -22,6 +22,8 @@ export interface AlertJob {
   // test mode: dispatch a synthetic message to the rule's channels,
   // bypassing cooldown/quiet-hours (event_id is ignored)
   test_rule_id?: string
+  // repeatable tick: flush pending digest buffers instead of processing an event
+  digest?: boolean
 }
 
 export const ALERTS_QUEUE = 'alerts'

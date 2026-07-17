@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from analyzer.config import Settings
-from analyzer.plugins.base import FrameContext
+from analyzer.plugins.base import BasePlugin, FrameContext
 from analyzer.zones.engine import Event
 
 
@@ -14,7 +14,7 @@ class _Visit:
     emitted: bool = False
 
 
-class RepackPlugin:
+class RepackPlugin(BasePlugin):
     """Service / repack activity at a counter desk (ПВЗ).
 
     Heuristic MVP: a track that stays inside a `desk` zone longer than

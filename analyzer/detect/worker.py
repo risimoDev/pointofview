@@ -7,11 +7,12 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
+import numpy as np
 import redis.asyncio as aioredis
 import supervision as sv
-from ultralytics import YOLO
 
 from analyzer.config import CameraConfig, Settings
+from analyzer.detect.base import PERSON_CLASS, Detection, make_detector
 from analyzer.ingest.video_source import (
     FileSource,
     Frame,
@@ -24,8 +25,6 @@ from analyzer.zones.engine import TrackEvent, ZoneEngine
 
 logger = logging.getLogger(__name__)
 
-PERSON_CLASS = 0  # COCO person
-
 # Liveness heartbeat: refreshed while frames flow, expires on stall/crash.
 # The API maps key presence to the camera's online/offline badge.
 HEARTBEAT_KEY = "camera_alive:{camera_id}"
@@ -37,6 +36,17 @@ def _iso(ts: float) -> str:
     return datetime.fromtimestamp(ts, tz=timezone.utc).isoformat().replace("+00:00", "Z")
 
 
+def _to_sv(dets: list[Detection]) -> sv.Detections:
+    """Person detections → sv.Detections for ByteTrack (its native input)."""
+    if not dets:
+        return sv.Detections.empty()
+    return sv.Detections(
+        xyxy=np.array([d.bbox for d in dets], dtype=np.float32),
+        confidence=np.array([d.confidence for d in dets], dtype=np.float32),
+        class_id=np.array([d.class_id for d in dets], dtype=int),
+    )
+
+
 class AnalyzerWorker:
     """Single GPU process. Runs all tenant cameras concurrently via asyncio;
     YOLO inference is serialized on one executor thread to share the GPU.
@@ -46,16 +56,18 @@ class AnalyzerWorker:
         self.settings = settings
         self.redis = aioredis.from_url(settings.redis_url, decode_responses=True)
 
-        self.model = YOLO(settings.yolo_model)
-        self.model.to(settings.analyzer_device)
+        self.detector = make_detector(settings)
 
-        self._infer_pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="yolo")
+        # single GPU thread: main detector AND plugin models share it, so GPU
+        # work stays serialized no matter how many models are enabled
+        self._infer_pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="gpu")
         self._trackers: dict[str, sv.ByteTrack] = {}
         self._site_by_camera: dict[str, str] = {}
         self._tz_by_camera: dict[str, str] = {}
         self._tasks: dict[str, asyncio.Task[None]] = {}  # camera_id → consumer
+        self._infer_ms_ema = 0.0  # capacity metric (docs/CAPACITY-ANALYSIS.md, 9)
         self.zones = ZoneEngine(self.redis, settings)
-        self.plugins = PluginManager(settings, self.redis)
+        self.plugins = PluginManager(settings, self.redis, self._infer_pool)
         self.identity = IdentityManager(settings, self.redis)
 
     # ── camera discovery ──────────────────────────────────────
@@ -81,23 +93,24 @@ class AnalyzerWorker:
         )
 
     # ── inference (runs in the single GPU thread) ─────────────
-    def _infer(self, frame: Frame) -> sv.Detections:
-        result = self.model.predict(
-            frame.data,
-            classes=[PERSON_CLASS],
-            conf=self.settings.yolo_conf,
-            imgsz=self.settings.yolo_imgsz,
-            device=self.settings.analyzer_device,
-            verbose=False,
-        )[0]
-        return sv.Detections.from_ultralytics(result)
+    def _infer(self, frame: Frame, classes: list[int]) -> list[Detection]:
+        t0 = time.perf_counter()
+        detections = self.detector.detect(frame.data, classes)
+        elapsed_ms = (time.perf_counter() - t0) * 1000.0
+        self._infer_ms_ema = self._infer_ms_ema * 0.95 + elapsed_ms * 0.05
+        return detections
 
     async def _process(self, frame: Frame) -> None:
         loop = asyncio.get_running_loop()
-        detections = await loop.run_in_executor(self._infer_pool, self._infer, frame)
+        # person always; active plugins may request extra classes (future
+        # multi-class model — PPE etc.); plugins with their own model don't
+        classes = sorted({PERSON_CLASS, *self.plugins.extra_detector_classes()})
+        detections = await loop.run_in_executor(self._infer_pool, self._infer, frame, classes)
+        persons = [d for d in detections if d.class_id == PERSON_CLASS]
+        others = [d for d in detections if d.class_id != PERSON_CLASS]
 
         tracker = self._trackers.setdefault(frame.camera_id, sv.ByteTrack())
-        tracked = tracker.update_with_detections(detections)
+        tracked = tracker.update_with_detections(_to_sv(persons))
 
         frame_h, frame_w = frame.data.shape[0], frame.data.shape[1]
         site_id = self._site_by_camera.get(frame.camera_id, "")
@@ -171,6 +184,9 @@ class AnalyzerWorker:
             zone_events.extend(self.zones.process(te))
 
         if zone_events:
+            # zone events come from the main detector's tracks (AI-17)
+            for ev in zone_events:
+                ev.meta.setdefault("model_version", self.detector.model_version)
             await self.zones.emit(zone_events)
 
         # feature plugins run on the whole-frame view (all tracks + zones)
@@ -184,6 +200,7 @@ class AnalyzerWorker:
             tracks=track_infos,
             zones=self.zones.active_zones(frame.camera_id),
             frame=frame.data,
+            detections=others,
         )
         plugin_events = await self.plugins.dispatch(ctx)
         if plugin_events:
@@ -235,7 +252,34 @@ class AnalyzerWorker:
                 await self._sync_sources()
             except Exception:  # noqa: BLE001
                 logger.exception("camera sync failed")
+            try:
+                await self._publish_metrics()
+            except Exception:  # noqa: BLE001
+                logger.exception("metrics publish failed")
             await asyncio.sleep(self.settings.zone_refresh_seconds)
+
+    async def _publish_metrics(self) -> None:
+        """Capacity numbers the admin UI / future monitoring can read; until
+        these are measured, capacity planning is a guess (CAPACITY-ANALYSIS, 9)."""
+        payload = {
+            "infer_ms": round(self._infer_ms_ema, 1),
+            "detector": self.detector.model_version,
+            "cameras": len(self._tasks),
+            "ts": time.time(),
+        }
+        try:
+            import torch
+
+            if torch.cuda.is_available():
+                payload["vram_allocated_mb"] = round(torch.cuda.memory_allocated() / 1e6)
+                payload["vram_total_mb"] = round(
+                    torch.cuda.get_device_properties(0).total_memory / 1e6
+                )
+        except Exception:  # noqa: BLE001
+            pass
+        await self.redis.set(
+            f"analyzer_metrics:{self.settings.tenant_id}", json.dumps(payload), ex=120,
+        )
 
     async def _sync_sources(self) -> None:
         wanted = {c.id: c for c in await self._load_cameras()}

@@ -89,6 +89,10 @@ function CameraRow(
             </Select>
           </div>
           <Button disabled={save.isPending} onClick={() => save.mutate()}>Сохранить</Button>
+          <p className="w-full text-xs text-muted-foreground">
+            Пароль в URL скрыт как ***. Оставьте *** без изменений — пароль сохранится;
+            чтобы сменить, введите URL с новым паролем.
+          </p>
         </div>
       )}
     </div>

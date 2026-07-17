@@ -2,27 +2,28 @@
 # Enable: systemctl enable --now awg-quick@awg0
 #
 # Jc/Jmin/Jmax/S1-S4/H1-H4 must be IDENTICAL to the VPS hub config
-# (wg0-vps.conf.example) — copy them verbatim, do not regenerate.
+# (wg0-vps.conf.example) — copy the real values from the VPS, do not regenerate.
+# Real values live only in the local awg0.conf (gitignored), never in git.
 
 [Interface]
 Address = 10.9.0.2/24
-PrivateKey = ePaDV2tU2XsLk3FonMBsQkmvcLWfujEWGYKeOGp7RUg=
+PrivateKey = <HOME_PRIVATE_KEY>
 
-Jc = 8
-Jmin = 50
-Jmax = 1000
-S1 = 63
-S2 = 87
-S3 = 120
-S4 = 88
-H1 = 1268669336
-H2 = 1181444535
-H3 = 1492208221
-H4 = 1793099654
+Jc = <JC>
+Jmin = <JMIN>
+Jmax = <JMAX>
+S1 = <S1>
+S2 = <S2>
+S3 = <S3>
+S4 = <S4>
+H1 = <H1>
+H2 = <H2>
+H3 = <H3>
+H4 = <H4>
 
 [Peer]
-PublicKey = DUK2xYhWPXmW2YZ2e5hwLoGRoHdE6FT9wFaO/xJiXXo=
-Endpoint = 170.168.1.138:51820
+PublicKey = <VPS_PUBLIC_KEY>
+Endpoint = <VPS_PUBLIC_IP>:51820
 # whole WG subnet routes through the VPS (cameras included)
 AllowedIPs = 10.9.0.0/24
 # home server is behind NAT: keep the tunnel open

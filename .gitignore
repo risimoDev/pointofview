@@ -32,11 +32,17 @@ env/
 !.env.example
 !.env.prod.example
 
+# === AmneziaWG: real configs never in git (only .example templates) ===
+infra/vps/*.conf
+!infra/vps/*.conf.example
+
 # === Model weights ===
 *.pt
 *.onnx
 *.engine
 *.trt
+doc.md
+docs
 
 # === Runtime data / volumes ===
 data/

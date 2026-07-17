@@ -4,7 +4,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
-export default function LoginPage(): React.JSX.Element {
+export default async function LoginPage(
+  { searchParams }: { searchParams: Promise<{ error?: string }> },
+): Promise<React.JSX.Element> {
+  const { error } = await searchParams
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden p-4">
       <div
@@ -36,6 +39,13 @@ export default function LoginPage(): React.JSX.Element {
           <Label htmlFor="password">Пароль</Label>
           <Input id="password" name="password" type="password" required autoComplete="current-password" />
         </div>
+        {error && (
+          <p className="text-center text-sm text-red-400">
+            {error === 'rate'
+              ? 'Слишком много попыток входа. Попробуйте позже.'
+              : 'Неверная почта или пароль.'}
+          </p>
+        )}
         <Button type="submit" className="w-full">Войти</Button>
       </form>
     </main>

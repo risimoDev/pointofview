@@ -2,6 +2,7 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { z } from 'zod'
 import { config } from '../config.js'
 import { settingSecret, settingText } from '../settings.js'
+import { clientIp } from '../ratelimit.js'
 
 // Unauthenticated endpoints for the public landing page.
 
@@ -29,8 +30,10 @@ const publicRoutes: FastifyPluginAsyncZod = async (app) => {
   app.post('/demo-request', {
     schema: { body: DemoRequestBody },
   }, async (req, reply) => {
-    // rate limit: 5 requests per hour per IP (public, unauthenticated)
-    const rlKey = `demo_req:${req.ip}`
+    // rate limit: 5 requests per hour per IP (public, unauthenticated).
+    // clientIp, not req.ip: behind nginx req.ip is the proxy container —
+    // the limit would silently become global for every visitor.
+    const rlKey = `demo_req:${clientIp(req)}`
     const hits = await app.redis.incr(rlKey)
     if (hits === 1) await app.redis.expire(rlKey, 3600)
     if (hits > 5) return reply.code(429).send({ message: 'Слишком много заявок, попробуйте позже' })

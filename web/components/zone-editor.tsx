@@ -201,6 +201,19 @@ export function ZoneEditor({ cameraId, imageUrl }: { cameraId: string; imageUrl:
     setZones((zs) => zs.map((z, i) =>
       (i === idx ? { ...z, config: { ...z.config, [key]: value }, dirty: true } : z)))
 
+  // required_ppe zones: toggle an item in config.required (helmet/vest)
+  const togglePpeItem = (idx: number, item: string): void =>
+    setZones((zs) => zs.map((z, i) => {
+      if (i !== idx) return z
+      const current = Array.isArray(z.config.required)
+        ? (z.config.required as unknown[]).filter((v): v is string => typeof v === 'string')
+        : ['helmet']
+      const required = current.includes(item)
+        ? current.filter((v) => v !== item)
+        : [...current, item]
+      return { ...z, config: { ...z.config, required }, dirty: true }
+    }))
+
   const patchSchedule = (idx: number, key: string, raw: string): void =>
     setZones((zs) => zs.map((z, i) => {
       if (i !== idx) return z
@@ -327,6 +340,27 @@ export function ZoneEditor({ cameraId, imageUrl }: { cameraId: string; imageUrl:
                   value={numField(z.config, 'cooldown_seconds')}
                   onChange={(e) => patchConfig(i, 'cooldown_seconds', e.target.value)}
                 />
+              </div>
+            )}
+
+            {z.kind === 'required_ppe' && (
+              <div className="flex items-center gap-2">
+                <span className="w-40 text-xs text-muted-foreground">Обязательные СИЗ</span>
+                {([['helmet', 'Каска'], ['vest', 'Жилет']] as const).map(([item, label]) => {
+                  const required = Array.isArray(z.config.required)
+                    ? (z.config.required as unknown[])
+                    : ['helmet']
+                  const on = required.includes(item)
+                  return (
+                    <Button
+                      key={item} type="button" size="sm"
+                      variant={on ? 'default' : 'outline'} className="h-7"
+                      onClick={() => togglePpeItem(i, item)}
+                    >
+                      {label}
+                    </Button>
+                  )
+                })}
               </div>
             )}
 

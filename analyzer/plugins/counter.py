@@ -7,11 +7,11 @@ from typing import Any
 import redis.asyncio as aioredis
 
 from analyzer.config import Settings
-from analyzer.plugins.base import FrameContext
+from analyzer.plugins.base import BasePlugin, FrameContext
 from analyzer.zones.engine import Event
 
 
-class CounterPlugin:
+class CounterPlugin(BasePlugin):
     """People counting / occupancy. Produces no events — writes throttled
     metrics to Redis for the API/dashboard:
 

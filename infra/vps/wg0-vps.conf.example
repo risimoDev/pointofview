@@ -5,25 +5,30 @@
 # Keys: awg genkey | tee privatekey | awg pubkey > publickey
 #
 # Jc/Jmin/Jmax/S1-S4/H1-H4 ДОЛЖНЫ БЫТЬ ОДИНАКОВЫМИ на всех пирах этой сети
-# (VPS + домашний сервер + все точки ПВЗ). Сгенерированы случайно один раз —
-# при добавлении новой точки просто скопируй эти же значения, не генерируй заново.
+# (VPS + домашний сервер + все точки). Генерируются случайно ОДИН РАЗ при
+# создании сети (диапазоны: Jc 3–10, Jmin 50, Jmax 1000, S1/S2 15–150,
+# H1–H4 — четыре РАЗНЫХ числа 5–2147483647) — при добавлении нового пира
+# просто скопируй значения с VPS, не генерируй заново.
+#
+# РЕАЛЬНЫЕ значения (ключи, IP, обфускационные параметры) — только в локальном
+# awg0.conf, он в .gitignore и в git не попадает.
 
 [Interface]
 Address = 10.9.0.1/24
 ListenPort = 51820
-PrivateKey = sB4uquaBL5Bz7F0CXO3ZfwFvwkWa/XQxaGEdFHw5C0s=
+PrivateKey = <VPS_PRIVATE_KEY>
 
-Jc = 8
-Jmin = 50
-Jmax = 1000
-S1 = 63
-S2 = 87
-S3 = 120
-S4 = 88
-H1 = 1268669336
-H2 = 1181444535
-H3 = 1492208221
-H4 = 1793099654
+Jc = <JC>
+Jmin = <JMIN>
+Jmax = <JMAX>
+S1 = <S1>
+S2 = <S2>
+S3 = <S3>
+S4 = <S4>
+H1 = <H1>
+H2 = <H2>
+H3 = <H3>
+H4 = <H4>
 
 # route between peers + expose go2rtc WebRTC (:8555) at the public IP
 PostUp = sysctl -w net.ipv4.ip_forward=1
@@ -40,7 +45,7 @@ PostDown = iptables -t nat -D POSTROUTING -o awg0 -j MASQUERADE
 
 # ── home GPU server ─────────────────────────────────────────
 [Peer]
-PublicKey = mvjP1gNLQCa2lDzWGirLmY55PrqVrzcIrw0YdTM9LEw=
+PublicKey = <HOME_PUBLIC_KEY>
 AllowedIPs = 10.9.0.2/32
 
 # ── camera site (ПВЗ №1): router or camera with WG client ──

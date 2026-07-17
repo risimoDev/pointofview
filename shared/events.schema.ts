@@ -4,7 +4,7 @@ import { z } from 'zod'
 export const EventType = z.enum([
   'zone_entry', 'zone_exit', 'zone_violation', 'queue_alert', 'ppe_violation',
   'repack_event', 'shelf_violation', 'crowd', 'unknown_person',
-  'camera_offline', 'camera_online',
+  'camera_offline', 'camera_online', 'fall_detected',
 ])
 export const Severity = z.enum(['info', 'warn', 'critical'])
 export const SourceType = z.enum(['rtsp_pull', 'srt_push', 'file'])

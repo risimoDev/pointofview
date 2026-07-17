@@ -3,11 +3,11 @@ from __future__ import annotations
 from typing import Any
 
 from analyzer.config import Settings
-from analyzer.plugins.base import FrameContext
+from analyzer.plugins.base import BasePlugin, FrameContext
 from analyzer.zones.engine import Event
 
 
-class CrowdPlugin:
+class CrowdPlugin(BasePlugin):
     """Emits a `crowd` event when too many people are present at once.
 
     Frame-wide by default; scope to specific zones with config zone_ids.

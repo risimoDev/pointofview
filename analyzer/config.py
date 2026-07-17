@@ -17,9 +17,22 @@ class Settings(BaseSettings):
     tenant_id: str  # this worker serves one tenant: reads cameras:{tenant_id}
 
     analyzer_device: Literal["cuda", "cpu"] = "cuda"
+    detector_kind: Literal["yolo"] = "yolo"  # main detector implementation
     yolo_model: str = "yolov8n.pt"
     yolo_conf: float = 0.3
     yolo_imgsz: int = 640
+
+    # Soft VRAM budget (MB) for plugin models: a plugin whose setup pushes
+    # torch allocation past the budget is torn down and marked vram_exceeded
+    # instead of starving the main detector. 0 = unlimited.
+    vram_budget_mb: int = 0
+
+    # Plugin model weights. Paths point at the /models mount in prod
+    # (${DATA_ROOT}/models); pose falls back to an ultralytics model name
+    # (auto-download) for dev. Missing file = plugin reports "model missing"
+    # and stays inactive — never kills the worker.
+    ppe_model: str = "/models/ppe.pt"
+    pose_model: str = "yolov8n-pose.pt"
 
     default_frame_skip: int = 0
     max_backoff_seconds: float = 60.0

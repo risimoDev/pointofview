@@ -26,6 +26,7 @@ const TYPE_COLORS: Record<string, string> = {
   unknown_person: 'hsl(330 50% 50%)',
   camera_offline: 'hsl(15 70% 50%)',
   camera_online: 'hsl(150 45% 42%)',
+  fall_detected: 'hsl(355 75% 45%)',
 }
 const FALLBACK_COLOR = 'hsl(215 15% 50%)'
 

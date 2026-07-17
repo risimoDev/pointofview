@@ -4,7 +4,10 @@ import type * as React from 'react'
 import { useState } from 'react'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { IconAdjustmentsHorizontal } from '@tabler/icons-react'
-import { getFeatures, setFeature, type Feature } from '@/lib/api'
+import {
+  getFeatures, getFeatureStatus, setFeature,
+  type Feature, type PluginStatus,
+} from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -59,13 +62,62 @@ const FEATURE_META: Record<string, FeatureMeta> = {
     ],
   },
   queue: { label: 'Очередь', note: 'Порог времени нахождения задаётся в настройках зоны.', fields: [] },
-  ppe: { label: 'Средства защиты (СИЗ)', note: 'В разработке: требует серверной модели (RTX 3070).', fields: [] },
+  ppe: {
+    label: 'Средства защиты (СИЗ)',
+    note: 'Каски и жилеты в зонах «Зона СИЗ». Нужен файл модели на сервере '
+      + '(/models/ppe.pt); без него функция включится, но покажет ошибку ниже. '
+      + 'Требуемый набор (helmet/vest) задаётся в настройках зоны, поле required.',
+    fields: [
+      { key: 'grace_seconds', label: 'Отсрочка после входа, сек', type: 'number', def: 10 },
+      { key: 'min_checks_without', label: 'Проверок без СИЗ до события', type: 'number', def: 5 },
+      { key: 'min_confidence', label: 'Мин. уверенность (0..1)', type: 'number', def: 0.6 },
+      { key: 'min_person_px', label: 'Мин. рост человека, пикс', type: 'number', def: 120 },
+      { key: 'cooldown_seconds', label: 'Пауза по человеку, сек', type: 'number', def: 300 },
+      { key: 'check_interval_seconds', label: 'Интервал проверки, сек', type: 'number', def: 1 },
+    ],
+  },
+  pose: {
+    label: 'Падение человека',
+    note: 'Оценка позы (yolov8-pose): лежащий человек дольше нескольких проверок '
+      + '— критическое событие «Падение человека». Модель входит в поставку.',
+    fields: [
+      { key: 'fall_angle_deg', label: 'Угол корпуса от вертикали, °', type: 'number', def: 65 },
+      { key: 'min_checks_down', label: 'Проверок лёжа до события', type: 'number', def: 3 },
+      { key: 'min_person_px', label: 'Мин. рост человека, пикс', type: 'number', def: 80 },
+      { key: 'min_confidence', label: 'Мин. уверенность (0..1)', type: 'number', def: 0.4 },
+      { key: 'cooldown_seconds', label: 'Пауза по человеку, сек', type: 'number', def: 300 },
+      { key: 'check_interval_seconds', label: 'Интервал проверки, сек', type: 'number', def: 0.7 },
+    ],
+  },
   face_id: { label: 'Распознавание лиц', note: 'В разработке: требует серверной модели + согласие по 152-ФЗ.', fields: [] },
 }
 
+// Analyzer-side model state → RU chip
+const STATE_LABELS: Record<string, { text: string; cls: string }> = {
+  active: { text: 'Работает', cls: 'border-emerald-500/30 bg-emerald-500/15 text-emerald-300' },
+  off: { text: 'Выключен', cls: 'border-zinc-500/30 bg-zinc-500/15 text-zinc-300' },
+  error: { text: 'Ошибка', cls: 'border-red-500/30 bg-red-500/15 text-red-300' },
+  vram_exceeded: { text: 'Не хватает VRAM', cls: 'border-amber-500/30 bg-amber-500/15 text-amber-300' },
+}
+
+function StatusChip({ status }: { status: PluginStatus | undefined }): React.JSX.Element | null {
+  if (!status) return null
+  const s = STATE_LABELS[status.state] ?? { text: status.state, cls: STATE_LABELS.off!.cls }
+  return (
+    <span className="flex items-center gap-2 text-xs">
+      <span className={cn('rounded-full border px-2 py-0.5', s.cls)}>{s.text}</span>
+      {status.vram_mb !== null && status.state === 'active' && (
+        <span className="text-muted-foreground">{Math.round(status.vram_mb)} МБ VRAM</span>
+      )}
+      {status.error && <span className="text-red-400">{status.error}</span>}
+    </span>
+  )
+}
+
 function FeatureCard(
-  { feature, meta, current, onSaved }:
-  { feature: string; meta: FeatureMeta; current: Feature | undefined; onSaved: () => void },
+  { feature, meta, current, status, onSaved }:
+  { feature: string; meta: FeatureMeta; current: Feature | undefined
+    status: PluginStatus | undefined; onSaved: () => void },
 ): React.JSX.Element {
   const [enabled, setEnabled] = useState(current?.enabled ?? false)
   const [vals, setVals] = useState<Record<string, string | boolean>>(() => {
@@ -99,6 +151,7 @@ function FeatureCard(
     <div className="rounded-lg border border-border/70 bg-card/40 p-4">
       <div className="flex items-center gap-3">
         <span className="font-display text-sm font-semibold tracking-tight">{meta.label}</span>
+        <StatusChip status={status} />
         <Button
           size="sm"
           variant={enabled ? 'default' : 'outline'}
@@ -151,7 +204,13 @@ function FeatureCard(
 export default function AdminFeaturesPage(): React.JSX.Element {
   const qc = useQueryClient()
   const features = useQuery({ queryKey: ['admin', 'features'], queryFn: getFeatures })
+  const status = useQuery({
+    queryKey: ['admin', 'feature-status'],
+    queryFn: getFeatureStatus,
+    refetchInterval: 15_000,
+  })
   const onSaved = (): void => void qc.invalidateQueries({ queryKey: ['admin', 'features'] })
+  const m = status.data?.metrics
 
   return (
     <main className="space-y-4">
@@ -163,6 +222,20 @@ export default function AdminFeaturesPage(): React.JSX.Element {
         Включение плагинов и пороги срабатывания. Изменения сразу уходят в Redis
         (<span className="font-mono text-xs">features:{'{tenant}'}</span>) и подхватываются анализатором.
       </p>
+      {m && (
+        <p className="text-xs text-muted-foreground">
+          Анализатор: инференс {m.infer_ms ?? '—'} мс · камер {m.cameras ?? '—'}
+          {m.vram_allocated_mb !== undefined && m.vram_total_mb !== undefined && (
+            <> · VRAM {Math.round(m.vram_allocated_mb / 1000 * 10) / 10} / {Math.round(m.vram_total_mb / 1000 * 10) / 10} ГБ</>
+          )}
+          {m.detector && <> · детектор <span className="font-mono">{m.detector}</span></>}
+        </p>
+      )}
+      {status.data && !m && (
+        <p className="text-xs text-amber-400">
+          Анализатор не отвечает: статусы моделей и метрики недоступны.
+        </p>
+      )}
 
       <div className="grid gap-3">
         {Object.entries(FEATURE_META).map(([feature, meta]) => (
@@ -171,6 +244,7 @@ export default function AdminFeaturesPage(): React.JSX.Element {
             feature={feature}
             meta={meta}
             current={features.data?.find((f) => f.feature === feature)}
+            status={status.data?.items.find((s) => s.feature_id === feature)}
             onSaved={onSaved}
           />
         ))}

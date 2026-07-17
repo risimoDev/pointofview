@@ -3,24 +3,25 @@
 # itself stays in the site LAN; the router forwards RTSP :554 from its WG
 # address to the camera.
 #
-# Jc/Jmin/Jmax/S1-S4/H1-H4 must be IDENTICAL to the VPS hub config
-# (wg0-vps.conf.example) — copy them verbatim, do not regenerate.
+# Jc/Jmin/Jmax/S1-S4/H1-H4 must be IDENTICAL to the VPS hub config —
+# copy the real values from the VPS awg0.conf, do not regenerate.
+# Real values live only in local configs (gitignored), never in git.
 
 [Interface]
 Address = 10.9.0.11/32
 PrivateKey = <SITE_PRIVATE_KEY>
 
-Jc = 8
-Jmin = 50
-Jmax = 1000
-S1 = 63
-S2 = 87
-S3 = 120
-S4 = 88
-H1 = 1268669336
-H2 = 1181444535
-H3 = 1492208221
-H4 = 1793099654
+Jc = <JC>
+Jmin = <JMIN>
+Jmax = <JMAX>
+S1 = <S1>
+S2 = <S2>
+S3 = <S3>
+S4 = <S4>
+H1 = <H1>
+H2 = <H2>
+H3 = <H3>
+H4 = <H4>
 
 [Peer]
 PublicKey = <VPS_PUBLIC_KEY>

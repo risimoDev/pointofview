@@ -15,12 +15,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const email = String(form.get('email') ?? '')
   const password = String(form.get('password') ?? '')
 
+  // Forward the proxy-built client IP chain so the API can rate-limit logins
+  // per real client, not per web container.
+  const fwd = req.headers.get('x-forwarded-for')
   const res = await fetch(`${API_URL}/api/v1/auth/login`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(fwd ? { 'x-forwarded-for': fwd } : {}),
+    },
     body: JSON.stringify({ email, password }),
   })
 
+  if (res.status === 429) return seeOther('/login?error=rate')
   if (!res.ok) return seeOther('/login?error=1')
 
   const { token } = (await res.json()) as { token: string }

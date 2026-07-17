@@ -31,6 +31,22 @@ const featuresRoutes: FastifyPluginAsyncZod = async (app) => {
     return { items: rows }
   })
 
+  // Analyzer-published plugin/model state (plugin_status:{tenant}) and
+  // capacity metrics (analyzer_metrics:{tenant}). Both keys are TTL'd by the
+  // analyzer: absence means the analyzer is down or hasn't ticked yet.
+  app.get('/features/status', {
+    preHandler: [app.authenticate],
+  }, async (req) => {
+    const [rawStatus, rawMetrics] = await app.redis.mget(
+      `plugin_status:${req.tenantId}`,
+      `analyzer_metrics:${req.tenantId}`,
+    )
+    return {
+      items: rawStatus ? JSON.parse(rawStatus) as unknown[] : [],
+      metrics: rawMetrics ? JSON.parse(rawMetrics) as Record<string, unknown> : null,
+    }
+  })
+
   app.put('/features/:feature', {
     preHandler: [app.authenticate],
     schema: { params: FeatureParams, body: UpsertFeatureBody },

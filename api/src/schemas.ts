@@ -4,7 +4,7 @@ import { z } from 'zod'
 export const EventTypeEnum = z.enum([
   'zone_entry', 'zone_exit', 'zone_violation', 'queue_alert', 'ppe_violation',
   'repack_event', 'shelf_violation', 'crowd', 'unknown_person',
-  'camera_offline', 'camera_online',
+  'camera_offline', 'camera_online', 'fall_detected',
 ])
 export const SeverityEnum = z.enum(['info', 'warn', 'critical'])
 export const SourceTypeEnum = z.enum(['rtsp_pull', 'srt_push', 'file'])
@@ -12,7 +12,7 @@ export const ZoneKindEnum = z.enum([
   'counter', 'desk', 'shelf', 'queue', 'forbidden', 'required_ppe',
 ])
 export const FeatureKindEnum = z.enum([
-  'ppe', 'face_id', 'shelf', 'repack', 'queue', 'crowd', 'counter', 'reid',
+  'ppe', 'face_id', 'shelf', 'repack', 'queue', 'crowd', 'counter', 'reid', 'pose',
 ])
 
 export const BboxSchema = z.object({

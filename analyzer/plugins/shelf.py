@@ -7,7 +7,7 @@ import numpy as np
 import numpy.typing as npt
 
 from analyzer.config import Settings
-from analyzer.plugins.base import FrameContext, TrackInfo
+from analyzer.plugins.base import BasePlugin, FrameContext, TrackInfo
 from analyzer.zones.engine import Event, Zone
 
 _SIG = 32  # signature grid size (downsampled gray)
@@ -48,7 +48,7 @@ class _ShelfState:
     clear_since: float | None = None
 
 
-class ShelfPlugin:
+class ShelfPlugin(BasePlugin):
     """Detects item taken/placed on a `shelf` zone by comparing the region to a
     reference frame. A change only counts as a `shelf_violation` if a person
     occluded the shelf beforehand (a real interaction); pure lighting drift just

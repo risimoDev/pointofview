@@ -11,6 +11,9 @@ import { camera, site, zone } from '../../db/schema.js'
 import { config } from '../config.js'
 import { writeAudit } from '../audit.js'
 import {
+  hasMaskedPassword, maskCameraUrls, maskStreamUrl, restoreMaskedPassword,
+} from '../stream_url.js'
+import {
   CameraIdParams, CreateCameraBody, CreateZoneBody, UpdateCameraBody,
   UpdateZoneBody, ZoneParams,
 } from '../schemas.js'
@@ -147,7 +150,7 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
       ? await app.redis.mget(rows.map((r) => `camera_alive:${r.id}`))
       : []
     const items = rows.map((r, i) => ({
-      ...r,
+      ...maskCameraUrls(r),
       status: alive[i]
         ? 'online' as const
         : (r.status === 'error' ? 'error' as const : 'offline' as const),
@@ -217,7 +220,7 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
       tenantId: req.tenantId, userId: req.userId, action: 'camera.upload',
       resourceType: 'camera', resourceId: row!.id, details: { name: row!.name },
     })
-    return reply.code(201).send(row)
+    return reply.code(201).send(maskCameraUrls(row!))
   })
 
   app.post('/cameras', {
@@ -225,6 +228,10 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
     schema: { body: CreateCameraBody },
   }, async (req, reply) => {
     const b = req.body
+    // the `***` sentinel only makes sense on edit — there is no stored password yet
+    if (hasMaskedPassword(b.url_main) || hasMaskedPassword(b.url_sub)) {
+      return reply.code(400).send({ message: 'url contains *** placeholder — enter the real password' })
+    }
     // tenant isolation: site must belong to caller's tenant
     const [s] = await db.select({ id: site.id }).from(site)
       .where(and(eq(site.id, b.site_id), eq(site.tenantId, req.tenantId))).limit(1)
@@ -246,7 +253,7 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
       tenantId: req.tenantId, userId: req.userId, action: 'camera.create',
       resourceType: 'camera', resourceId: row!.id, details: { name: b.name },
     })
-    return reply.code(201).send(row)
+    return reply.code(201).send(maskCameraUrls(row!))
   })
 
   app.patch('/cameras/:id', {
@@ -254,7 +261,12 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
     schema: { params: CameraIdParams, body: UpdateCameraBody },
   }, async (req, reply) => {
     const { id } = req.params
-    if (!(await ownsCamera(req.tenantId, id))) {
+    // stored URLs are needed to resolve the `***` password sentinel
+    const [current] = await db.select({
+      id: camera.id, urlMain: camera.urlMain, urlSub: camera.urlSub,
+    }).from(camera).innerJoin(site, eq(camera.siteId, site.id))
+      .where(and(eq(camera.id, id), eq(site.tenantId, req.tenantId))).limit(1)
+    if (!current) {
       return reply.code(404).send({ message: 'camera not found' })
     }
     const b = req.body
@@ -263,8 +275,22 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
       status?: 'online' | 'offline' | 'error'; config?: Record<string, unknown>
     } = {}
     if (b.name !== undefined) patch.name = b.name
-    if (b.url_main !== undefined) patch.urlMain = b.url_main
-    if (b.url_sub !== undefined) patch.urlSub = b.url_sub
+    // `***` in place of a password = keep the stored one (the edit form
+    // round-trips masked URLs); anything else is taken verbatim
+    if (b.url_main !== undefined) {
+      if (b.url_main && hasMaskedPassword(b.url_main)) {
+        const restored = restoreMaskedPassword(b.url_main, current.urlMain)
+        if (!restored) return reply.code(400).send({ message: 'no stored password to keep — enter the password' })
+        patch.urlMain = restored
+      } else patch.urlMain = b.url_main
+    }
+    if (b.url_sub !== undefined) {
+      if (b.url_sub && hasMaskedPassword(b.url_sub)) {
+        const restored = restoreMaskedPassword(b.url_sub, current.urlSub)
+        if (!restored) return reply.code(400).send({ message: 'no stored password to keep — enter the password' })
+        patch.urlSub = restored
+      } else patch.urlSub = b.url_sub
+    }
     if (b.status !== undefined) patch.status = b.status
     if (b.config !== undefined) patch.config = b.config
     if (Object.keys(patch).length === 0) {
@@ -273,11 +299,15 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
     const [row] = await db.update(camera).set(patch).where(eq(camera.id, id)).returning()
     await syncCameras(app, req.tenantId)
     await registerGo2rtc(row!.id, row!.urlSub ?? row!.urlMain, row!.sourceType)
+    // audit must not persist raw camera passwords
+    const auditDetails: Record<string, unknown> = { ...patch }
+    if (patch.urlMain !== undefined) auditDetails.urlMain = maskStreamUrl(patch.urlMain)
+    if (patch.urlSub !== undefined) auditDetails.urlSub = maskStreamUrl(patch.urlSub)
     await writeAudit({
       tenantId: req.tenantId, userId: req.userId, action: 'camera.update',
-      resourceType: 'camera', resourceId: id, details: patch,
+      resourceType: 'camera', resourceId: id, details: auditDetails,
     })
-    return row
+    return maskCameraUrls(row!)
   })
 
   app.delete('/cameras/:id', {

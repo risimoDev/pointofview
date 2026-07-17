@@ -229,6 +229,33 @@ export async function getFeatures(): Promise<Feature[]> {
   return (await apiJson('/api/v1/features', FeaturesSchema)).items
 }
 
+// Analyzer-side model/plugin state (loaded / off / error / vram_exceeded)
+const PluginStatusSchema = z.object({
+  feature_id: z.string(),
+  state: z.string(),
+  version: z.string(),
+  model: z.string().nullable(),
+  vram_mb: z.number().nullable(),
+  error: z.string().nullable(),
+  ts: z.number(),
+})
+const FeatureStatusSchema = z.object({
+  items: z.array(PluginStatusSchema),
+  metrics: z.object({
+    infer_ms: z.number().optional(),
+    detector: z.string().optional(),
+    cameras: z.number().optional(),
+    vram_allocated_mb: z.number().optional(),
+    vram_total_mb: z.number().optional(),
+  }).nullable(),
+})
+export type PluginStatus = z.infer<typeof PluginStatusSchema>
+export type FeatureStatus = z.infer<typeof FeatureStatusSchema>
+
+export async function getFeatureStatus(): Promise<FeatureStatus> {
+  return apiJson('/api/v1/features/status', FeatureStatusSchema)
+}
+
 export async function setFeature(
   feature: string,
   enabled: boolean,

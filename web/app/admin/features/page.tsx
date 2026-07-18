@@ -238,12 +238,16 @@ export default function AdminFeaturesPage(): React.JSX.Element {
       )}
 
       <div className="grid gap-3">
-        {Object.entries(FEATURE_META).map(([feature, meta]) => (
+        {/* cards mount only after the list loads: FeatureCard seeds its local
+            state from `current` once, so mounting early froze every toggle
+            at «Выключено» regardless of the DB state */}
+        {!features.data && <p className="text-sm text-muted-foreground">Загрузка…</p>}
+        {features.data && Object.entries(FEATURE_META).map(([feature, meta]) => (
           <FeatureCard
             key={feature}
             feature={feature}
             meta={meta}
-            current={features.data?.find((f) => f.feature === feature)}
+            current={features.data.find((f) => f.feature === feature)}
             status={status.data?.items.find((s) => s.feature_id === feature)}
             onSaved={onSaved}
           />

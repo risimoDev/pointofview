@@ -1,5 +1,7 @@
 # torch installed separately in Dockerfile (CUDA vs CPU wheel index)
-ultralytics==8.3.*
+# 8.4: required to load the YOLO26 PPE checkpoint (trained on 8.4.x);
+# YOLOv8 detect/pose weights remain fully supported
+ultralytics==8.4.*
 supervision==0.25.*
 opencv-python-headless==4.11.*
 numpy==2.1.*

@@ -25,6 +25,11 @@ logger = logging.getLogger(__name__)
 STATUS_KEY = "plugin_status:{tenant_id}"
 STATUS_TTL = 120  # seconds; stale status disappears with a dead worker
 
+# an errored/vram_exceeded setup is retried at most this often — without the
+# backoff a vram_exceeded plugin would load+unload its model every refresh
+# tick. Toggling the feature off/on clears the backoff (instant retry).
+SETUP_RETRY_SECONDS = 300.0
+
 
 def _vram_allocated_mb() -> float | None:
     """Torch-allocated VRAM of this process, MB. None on CPU-only."""
@@ -72,6 +77,7 @@ class PluginManager:
         self._active: list[FeaturePlugin] = []
         # feature_id → {state, vram_mb, error, ...} for plugin_status:{tenant}
         self._status: dict[str, dict[str, Any]] = {}
+        self._failed_at: dict[str, float] = {}  # feature_id → last setup failure ts
 
     # ── lifecycle ─────────────────────────────────────────────
     async def load_features(self) -> None:
@@ -88,17 +94,27 @@ class PluginManager:
                 await self._deactivate(plugin)
 
         active: list[FeaturePlugin] = []
+        now = time.time()
         for plugin in wanted:
             if plugin in self._active:
                 active.append(plugin)
                 continue
+            failed_at = self._failed_at.get(plugin.feature_id)
+            if failed_at is not None and now - failed_at < SETUP_RETRY_SECONDS:
+                continue  # backoff; previous error status stays published
             cfg = (feats.get(plugin.feature_id) or {}).get("config") or {}
             if await self._activate(plugin, cfg):
                 active.append(plugin)
+                self._failed_at.pop(plugin.feature_id, None)
+            else:
+                self._failed_at[plugin.feature_id] = now
         self._active = active
 
         for plugin in self._all:
             if plugin not in wanted:
+                # errored plugins were never in _active, so clear their backoff
+                # here too — toggling off/on must always retry immediately
+                self._failed_at.pop(plugin.feature_id, None)
                 self._set_status(plugin, "off")
         await self._publish_status()
 
@@ -137,6 +153,7 @@ class PluginManager:
 
     async def _deactivate(self, plugin: FeaturePlugin) -> None:
         await self._safe_teardown(plugin)
+        self._failed_at.pop(plugin.feature_id, None)  # off/on = instant retry
         self._set_status(plugin, "off")
         logger.info("plugin %s: teardown (disabled)", plugin.feature_id)
 

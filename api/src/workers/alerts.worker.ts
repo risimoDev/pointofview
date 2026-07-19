@@ -8,6 +8,7 @@ import { config } from '../config.js'
 import { ALERTS_QUEUE, alertsQueue, type AlertJob } from '../queues.js'
 import { minio } from '../minio.js'
 import { settingNumber, settingSecret } from '../settings.js'
+import { TYPE_LABELS } from '../event_labels.js'
 
 const log = (msg: string, extra?: unknown): void => {
   // eslint-disable-next-line no-console
@@ -18,16 +19,8 @@ const SEVERITY_EMOJI: Record<string, string> = {
   critical: '🔴', warn: '🟡', info: 'ℹ️',
 }
 
-// human-readable RU event names for outgoing notifications
-const TYPE_LABELS: Record<string, string> = {
-  zone_entry: 'Вход в зону', zone_exit: 'Выход из зоны',
-  zone_violation: 'Нарушение зоны', queue_alert: 'Очередь',
-  ppe_violation: 'Нарушение СИЗ', repack_event: 'Перепаковка',
-  shelf_violation: 'Нарушение выкладки', crowd: 'Скопление людей',
-  unknown_person: 'Неизвестный человек',
-  camera_offline: 'Камера не в сети', camera_online: 'Камера снова в сети',
-  fall_detected: 'Падение человека',
-}
+// human-readable RU event names for outgoing notifications — shared with the
+// PDF/Excel reports (see event_labels.ts)
 
 const SEVERITY_RANK: Record<string, number> = { info: 0, warn: 1, critical: 2 }
 

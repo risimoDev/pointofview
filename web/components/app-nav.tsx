@@ -10,6 +10,7 @@ import {
   IconLayoutGrid,
   IconActivity,
   IconChartHistogram,
+  IconFileAnalytics,
   IconVideo,
   IconAdjustmentsHorizontal,
 } from '@tabler/icons-react'
@@ -23,6 +24,7 @@ const NAV: { href: string; label: string; icon: NavIcon }[] = [
   { href: '/dashboard', label: 'Дашборд', icon: IconLayoutGrid },
   { href: '/events', label: 'События', icon: IconActivity },
   { href: '/analytics', label: 'Аналитика', icon: IconChartHistogram },
+  { href: '/reports', label: 'Отчёты', icon: IconFileAnalytics },
   { href: '/settings/cameras', label: 'Камеры', icon: IconVideo },
   { href: '/settings/features', label: 'Функции', icon: IconAdjustmentsHorizontal },
 ]

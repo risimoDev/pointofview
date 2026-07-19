@@ -216,6 +216,78 @@ export async function getClipUrl(eventId: string): Promise<string | null> {
   return ClipUrlSchema.parse(await res.json()).url
 }
 
+// ── Safety reports (охрана труда) ─────────────────────────────
+const SafetyReportSchema = z.object({
+  from: z.string(),
+  to: z.string(),
+  tz: z.string(),
+  siteName: z.string().nullable(),
+  totals: z.object({
+    total: z.number(),
+    critical: z.number(),
+    resolved: z.number(),
+    avg_resolve_min: z.number().nullable(),
+  }),
+  byDay: z.array(z.object({ day: z.string(), count: z.number(), critical: z.number() })),
+  byType: z.array(z.object({ type: z.string(), count: z.number(), critical: z.number() })),
+  byZone: z.array(z.object({ zone_name: z.string(), count: z.number(), critical: z.number() })),
+  byCamera: z.array(z.object({ camera_name: z.string(), count: z.number() })),
+  recent: z.array(z.object({
+    id: z.string(),
+    ts_start: z.string(),
+    type: z.string(),
+    severity: z.string(),
+    camera_name: z.string(),
+    zone_name: z.string().nullable(),
+    resolved: z.boolean(),
+  })),
+  modelVersions: z.array(z.string()),
+})
+export type SafetyReport = z.infer<typeof SafetyReportSchema>
+
+function reportParams(from: string, to: string, siteId?: string): string {
+  const p = new URLSearchParams({ from, to })
+  if (siteId) p.set('site_id', siteId)
+  return p.toString()
+}
+
+export async function getSafetyReport(
+  from: string, to: string, siteId?: string,
+): Promise<SafetyReport> {
+  return apiJson(`/api/v1/reports/safety?${reportParams(from, to, siteId)}`, SafetyReportSchema)
+}
+
+// Auth is a Bearer header (not a cookie), so a plain <a href> can't download —
+// fetch the blob and hand it to the browser as a synthetic link.
+export async function downloadSafetyReport(
+  kind: 'pdf' | 'xlsx', from: string, to: string, siteId?: string,
+): Promise<void> {
+  const res = await apiFetch(`/api/v1/reports/safety.${kind}?${reportParams(from, to, siteId)}`)
+  if (!res.ok) throw new Error(`report ${kind}: ${res.status}`)
+  const blob = await res.blob()
+  const name = res.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1]
+    ?? `safety.${kind}`
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = name
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+export async function sendSafetyReportTelegram(
+  from: string, to: string, siteId?: string,
+): Promise<void> {
+  const res = await apiFetch(
+    `/api/v1/reports/safety/telegram?${reportParams(from, to, siteId)}`,
+    { method: 'POST' },
+  )
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { message?: string } | null
+    throw new Error(body?.message ?? `telegram: ${res.status}`)
+  }
+}
+
 // ── Feature flags ─────────────────────────────────────────────
 const FeatureSchema = z.object({
   feature: z.string(),

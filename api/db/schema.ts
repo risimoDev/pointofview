@@ -26,7 +26,7 @@ export const zoneKindEnum = pgEnum('zone_kind', [
 export const eventTypeEnum = pgEnum('event_type', [
   'zone_entry', 'zone_exit', 'zone_violation', 'queue_alert', 'ppe_violation',
   'repack_event', 'shelf_violation', 'crowd', 'unknown_person',
-  'camera_offline', 'camera_online', 'fall_detected',
+  'camera_offline', 'camera_online', 'fall_detected', 'lone_worker',
 ])
 export const eventSeverityEnum = pgEnum('event_severity', ['info', 'warn', 'critical'])
 export const userRoleEnum = pgEnum('user_role', ['super', 'admin', 'manager', 'operator'])

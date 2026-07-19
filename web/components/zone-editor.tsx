@@ -343,6 +343,20 @@ export function ZoneEditor({ cameraId, imageUrl }: { cameraId: string; imageUrl:
               </div>
             )}
 
+            <div className="flex items-center gap-2">
+              <span
+                className="w-40 text-xs text-muted-foreground"
+                title="Работа в одиночку: если в зоне людей меньше этого числа (но не ноль) дольше 30 секунд — критическое событие. Пусто — правило выключено."
+              >
+                Мин. людей в зоне
+              </span>
+              <Input
+                type="number" min={2} className="h-8 w-20"
+                placeholder="выкл"
+                value={numField(z.config, 'min_people')}
+                onChange={(e) => patchConfig(i, 'min_people', e.target.value)}
+              />
+            </div>
             {z.kind === 'required_ppe' && (
               <div className="flex items-center gap-2">
                 <span className="w-40 text-xs text-muted-foreground">Обязательные СИЗ</span>

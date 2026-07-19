@@ -16,6 +16,7 @@ export const eventTypeLabels: Record<UiEvent['type'], string> = {
   camera_offline: 'Камера не в сети',
   camera_online: 'Камера снова в сети',
   fall_detected: 'Падение человека',
+  lone_worker: 'Работа в одиночку',
 }
 
 export const severityLabels: Record<UiEvent['severity'], string> = {

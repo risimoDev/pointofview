@@ -78,6 +78,12 @@ export const SETTING_DEFS: SettingDef[] = [
     hint: 'Сюда бот присылает заявки «Запросить демо» с публичной страницы. Пусто — форма отключена',
     def: '',
   },
+  {
+    key: 'report_telegram_chat_id', group: 'alerts', type: 'text',
+    label: 'Telegram chat_id для отчётов',
+    hint: 'Сюда бот отправляет PDF-отчёты по охране труда (кнопка «В Telegram» на странице «Отчёты»)',
+    def: '',
+  },
 ]
 
 const defByKey = new Map(SETTING_DEFS.map((d) => [d.key, d]))

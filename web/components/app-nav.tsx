@@ -16,34 +16,40 @@ import {
 } from '@tabler/icons-react'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/theme-toggle'
-import { getRole } from '@/lib/api'
+import { getClaims, leaveOrg, type Claims } from '@/lib/api'
+import { effectivePermsOf, type PermissionCode } from '@shared/events.schema'
 
 type NavIcon = React.ComponentType<{ className?: string; stroke?: number }>
 
-const NAV: { href: string; label: string; icon: NavIcon }[] = [
-  { href: '/dashboard', label: 'Дашборд', icon: IconLayoutGrid },
-  { href: '/events', label: 'События', icon: IconActivity },
-  { href: '/analytics', label: 'Аналитика', icon: IconChartHistogram },
-  { href: '/reports', label: 'Отчёты', icon: IconFileAnalytics },
-  { href: '/settings/cameras', label: 'Камеры', icon: IconVideo },
-  { href: '/settings/features', label: 'Функции', icon: IconAdjustmentsHorizontal },
+const NAV: { href: string; label: string; icon: NavIcon; perm: PermissionCode }[] = [
+  { href: '/dashboard', label: 'Дашборд', icon: IconLayoutGrid, perm: 'live' },
+  { href: '/events', label: 'События', icon: IconActivity, perm: 'events' },
+  { href: '/analytics', label: 'Аналитика', icon: IconChartHistogram, perm: 'analytics' },
+  { href: '/reports', label: 'Отчёты', icon: IconFileAnalytics, perm: 'reports' },
+  { href: '/settings/cameras', label: 'Камеры', icon: IconVideo, perm: 'zones' },
+  { href: '/settings/features', label: 'Функции', icon: IconAdjustmentsHorizontal, perm: 'features' },
 ]
 
 /** Global top bar for authenticated pages. Hidden on login and the redirect
  *  root so those stay full-bleed. */
 export function AppNav(): React.JSX.Element | null {
   const pathname = usePathname()
-  const [isSuper, setIsSuper] = useState(false)
+  const [claims, setClaims] = useState<Claims | null>(null)
 
   useEffect(() => {
     let active = true
-    getRole()
-      .then((r) => { if (active) setIsSuper(r === 'super') })
+    getClaims()
+      .then((c) => { if (active) setClaims(c) })
       .catch(() => undefined)
     return () => { active = false }
-  }, [])
+  }, [pathname])
 
-  if (pathname === '/login' || pathname === '/') return null
+  if (pathname === '/login' || pathname === '/' || pathname.startsWith('/invite')) return null
+
+  // UX gating only — the API enforces permissions server-side
+  const perms = new Set(effectivePermsOf(claims?.role ?? null, claims?.perms ?? null))
+  const items = claims ? NAV.filter((i) => perms.has(i.perm)) : NAV
+  const showAdmin = claims?.role === 'super' || claims?.role === 'admin' || perms.has('users')
 
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center gap-0.5 border-b border-border/70 bg-background/80 px-2 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:gap-1 sm:px-4">
@@ -57,7 +63,7 @@ export function AppNav(): React.JSX.Element | null {
       </Link>
 
       <nav className="flex min-w-0 items-center gap-0.5 overflow-x-auto sm:gap-1">
-        {NAV.map(({ href, label, icon: Icon }) => {
+        {items.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`)
           return (
             <Link
@@ -77,7 +83,17 @@ export function AppNav(): React.JSX.Element | null {
       </nav>
 
       <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
-        {isSuper && (
+        {claims?.imp && (
+          <button
+            type="button"
+            onClick={() => { void leaveOrg().then(() => { window.location.href = '/admin/orgs' }) }}
+            className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-300 transition-colors hover:bg-amber-500/20"
+            title="Вы вошли в организацию из платформы"
+          >
+            ← В платформу
+          </button>
+        )}
+        {showAdmin && (
           <Link
             href="/admin"
             title="Админ"

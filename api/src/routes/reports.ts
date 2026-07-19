@@ -390,7 +390,7 @@ function reportFilename(data: SafetyData, ext: string): string {
 }
 
 const reportsRoutes: FastifyPluginAsyncZod = async (app) => {
-  const guard = app.requireRole('super', 'admin', 'manager')
+  const guard = app.requirePerm('reports')
 
   app.get('/reports/safety', {
     preHandler: [guard],

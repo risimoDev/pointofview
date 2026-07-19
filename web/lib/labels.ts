@@ -49,9 +49,22 @@ export const zoneKindLabels: Record<Zone['kind'], string> = {
 export type UserRole = 'super' | 'admin' | 'manager' | 'operator'
 export const roleLabels: Record<UserRole, string> = {
   super: 'Суперадмин',
-  admin: 'Администратор',
+  admin: 'Владелец',
   manager: 'Менеджер',
   operator: 'Оператор',
+}
+
+export const permissionLabels: Record<string, string> = {
+  live: 'Дашборд и живое видео',
+  events: 'События',
+  analytics: 'Аналитика',
+  reports: 'Отчёты',
+  zones: 'Редактор зон',
+  cameras: 'Настройка камер',
+  people: 'Люди (сотрудники)',
+  alerts: 'Оповещения',
+  features: 'Функции ИИ',
+  users: 'Пользователи',
 }
 
 /** Safe lookup: fall back to the raw code if an unknown value slips through. */

@@ -21,7 +21,7 @@ async function syncFeatures(app: { redis: Redis }, tenantId: string): Promise<vo
 
 const featuresRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get('/features', {
-    preHandler: [app.authenticate],
+    preHandler: [app.requirePerm('features')],
   }, async (req) => {
     const rows = await db.select({
       feature: tenantFeature.feature,
@@ -35,7 +35,7 @@ const featuresRoutes: FastifyPluginAsyncZod = async (app) => {
   // capacity metrics (analyzer_metrics:{tenant}). Both keys are TTL'd by the
   // analyzer: absence means the analyzer is down or hasn't ticked yet.
   app.get('/features/status', {
-    preHandler: [app.authenticate],
+    preHandler: [app.requirePerm('features')],
   }, async (req) => {
     const [rawStatus, rawMetrics] = await app.redis.mget(
       `plugin_status:${req.tenantId}`,
@@ -48,12 +48,9 @@ const featuresRoutes: FastifyPluginAsyncZod = async (app) => {
   })
 
   app.put('/features/:feature', {
-    preHandler: [app.authenticate],
+    preHandler: [app.requirePerm('features')],
     schema: { params: FeatureParams, body: UpsertFeatureBody },
   }, async (req, reply) => {
-    if (req.role !== 'admin' && req.role !== 'super') {
-      return reply.code(403).send({ message: 'admin role required' })
-    }
     const { feature } = req.params
     const { enabled, config } = req.body
     const [row] = await db.insert(tenantFeature).values({

@@ -87,7 +87,7 @@ async function queueFaceEnrollFromCrop(
 const peopleRoutes: FastifyPluginAsyncZod = async (app) => {
   // Everyone recently seen at the tenant's sites + the staff roster.
   app.get('/people', {
-    preHandler: [app.requireRole('super', 'admin')],
+    preHandler: [app.requirePerm('people')],
   }, async (req) => {
     const sites = await db.select({ id: site.id, name: site.name }).from(site)
       .where(eq(site.tenantId, req.tenantId))
@@ -169,7 +169,7 @@ const peopleRoutes: FastifyPluginAsyncZod = async (app) => {
   // start empty: the analyzer auto-learns today's outfit from the first face
   // confirmation (reid:staff_auto).
   app.post('/people/staff', {
-    preHandler: [app.requireRole('super', 'admin')],
+    preHandler: [app.requirePerm('people')],
     schema: { body: z.object({ name: z.string().trim().min(1).max(80) }) },
   }, async (req, reply) => {
     const gid = `s${randomBytes(6).toString('hex')}`
@@ -186,7 +186,7 @@ const peopleRoutes: FastifyPluginAsyncZod = async (app) => {
   // gallery into the persistent staff hash; the analyzer reloads it within ~10s
   // and stops counting/alerting on that person everywhere on the site.
   app.post('/people/:gid/staff', {
-    preHandler: [app.requireRole('super', 'admin')],
+    preHandler: [app.requirePerm('people')],
     schema: { params: z.object({ gid: z.string().min(1).max(64) }), body: StaffBody },
   }, async (req, reply) => {
     const { gid } = req.params
@@ -276,7 +276,7 @@ const peopleRoutes: FastifyPluginAsyncZod = async (app) => {
   // Upload a clean face photo for a staff member (biometrics of employees
   // only — with their written consent; visitors are never face-matched).
   app.post('/people/:gid/face-photo', {
-    preHandler: [app.requireRole('super', 'admin')],
+    preHandler: [app.requirePerm('people')],
     schema: { params: z.object({ gid: z.string().min(1).max(64) }) },
   }, async (req, reply) => {
     const { gid } = req.params
@@ -318,7 +318,7 @@ const peopleRoutes: FastifyPluginAsyncZod = async (app) => {
   // Remove a visitor identity everywhere (galleries + crop). For staff use
   // the unstaff toggle first; this also drops a staff row if present.
   app.delete('/people/:gid', {
-    preHandler: [app.requireRole('super', 'admin')],
+    preHandler: [app.requirePerm('people')],
     schema: { params: z.object({ gid: z.string().min(1).max(64) }) },
   }, async (req) => {
     const { gid } = req.params

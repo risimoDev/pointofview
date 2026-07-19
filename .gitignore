@@ -36,6 +36,9 @@ env/
 infra/vps/*.conf
 !infra/vps/*.conf.example
 
+# === Offline bundle build output ===
+dist-offline/
+
 # === Model weights ===
 *.pt
 *.onnx

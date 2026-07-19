@@ -133,8 +133,32 @@ export const appUser = pgTable('app_user', {
   passwordHash: text('password_hash').notNull(),
   role: userRoleEnum('role').notNull().default('operator'),
   allowedCameraIds: uuid('allowed_camera_ids').array().notNull().default([]),
+  name: text('name').notNull().default(''),
+  // capability checkboxes (shared/events.schema.ts PermissionCodes);
+  // null = legacy role defaults
+  permissions: jsonb('permissions').$type<string[] | null>(),
+  disabled: boolean('disabled').notNull().default(false),
 }, (t) => [
   index('idx_user_tenant').on(t.tenantId),
+])
+
+// Invite links: the owner creates one with pre-set capabilities, sends the
+// link themselves (no email infra needed); the employee sets their password.
+export const userInvite = pgTable('user_invite', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenant.id, { onDelete: 'cascade' }),
+  token: text('token').notNull().unique(),
+  name: text('name').notNull().default(''),
+  email: text('email'),
+  role: userRoleEnum('role').notNull().default('operator'),
+  permissions: jsonb('permissions').$type<string[] | null>(),
+  allowedCameraIds: uuid('allowed_camera_ids').array().notNull().default([]),
+  createdBy: uuid('created_by'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  usedAt: timestamp('used_at', { withTimezone: true }),
+}, (t) => [
+  index('idx_invite_tenant').on(t.tenantId),
 ])
 
 export const auditLog = pgTable('audit_log', {

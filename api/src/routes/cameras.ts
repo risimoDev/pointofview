@@ -138,12 +138,16 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get('/cameras', {
     preHandler: [app.authenticate],
   }, async (req) => {
-    const rows = await db.select({
+    const allRows = await db.select({
       id: camera.id, siteId: camera.siteId, name: camera.name,
       sourceType: camera.sourceType, urlMain: camera.urlMain,
       urlSub: camera.urlSub, status: camera.status, config: camera.config,
     }).from(camera).innerJoin(site, eq(camera.siteId, site.id))
       .where(eq(site.tenantId, req.tenantId))
+    // per-user camera restriction (empty = all cameras)
+    const rows = req.allowedCameraIds.length > 0
+      ? allRows.filter((r) => req.allowedCameraIds.includes(r.id))
+      : allRows
     // Live status from the analyzer heartbeat (camera_alive:{id}, TTL 15s) —
     // the DB column is a manual override only for the sticky `error` state.
     const alive = rows.length > 0
@@ -162,7 +166,7 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
   // create a `file` camera pointing at it. The analyzer's camera supervisor
   // picks it up on its next refresh (no worker restart needed).
   app.post('/cameras/upload', {
-    preHandler: [app.requireRole('super', 'admin')],
+    preHandler: [app.requirePerm('cameras')],
   }, async (req, reply) => {
     let siteId = ''
     let name = ''
@@ -224,7 +228,7 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
   })
 
   app.post('/cameras', {
-    preHandler: [app.requireRole('super', 'admin')],
+    preHandler: [app.requirePerm('cameras')],
     schema: { body: CreateCameraBody },
   }, async (req, reply) => {
     const b = req.body
@@ -257,7 +261,7 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
   })
 
   app.patch('/cameras/:id', {
-    preHandler: [app.requireRole('super', 'admin')],
+    preHandler: [app.requirePerm('cameras')],
     schema: { params: CameraIdParams, body: UpdateCameraBody },
   }, async (req, reply) => {
     const { id } = req.params
@@ -311,7 +315,7 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
   })
 
   app.delete('/cameras/:id', {
-    preHandler: [app.requireRole('super', 'admin')],
+    preHandler: [app.requirePerm('cameras')],
     schema: { params: CameraIdParams },
   }, async (req, reply) => {
     const { id } = req.params

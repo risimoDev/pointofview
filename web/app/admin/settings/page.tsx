@@ -185,6 +185,29 @@ export default function AdminSettingsPage(): React.JSX.Element {
               {system.data.archive.oldest &&
                 ` · архив с ${new Date(system.data.archive.oldest).toLocaleString('ru-RU')}`}
             </p>
+            {system.data.lastBackup ? (
+              system.data.lastBackup.ok ? (
+                <p className="text-xs text-muted-foreground">
+                  Последний бэкап:{' '}
+                  {new Date(system.data.lastBackup.ts * 1000).toLocaleString('ru-RU')}
+                  {system.data.lastBackup.pg_bytes !== undefined &&
+                    ` · БД ${fmtBytes(system.data.lastBackup.pg_bytes)}`}
+                  {system.data.lastBackup.redis_bytes !== undefined &&
+                    ` · Redis ${fmtBytes(system.data.lastBackup.redis_bytes)}`}
+                  {Date.now() / 1000 - system.data.lastBackup.ts > 2 * 86_400 && (
+                    <span className="text-amber-400"> — старше двух суток, проверь cron</span>
+                  )}
+                </p>
+              ) : (
+                <p className="text-xs text-red-400">
+                  Последний бэкап завершился ошибкой — смотри /var/log/viziai-backup.log
+                </p>
+              )
+            ) : (
+              <p className="text-xs text-amber-400">
+                Бэкапы не настроены: на сервере выполни sudo ./scripts/install-backup-cron.sh
+              </p>
+            )}
           </div>
         )}
       </section>

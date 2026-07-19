@@ -49,6 +49,17 @@ RUN (curl -fsSL --retry 3 -o /opt/models/yolov8n-pose.pt \
     || echo "WARN: pose model download failed — plugin will use /models or auto-download"
 ENV POSE_MODEL=/opt/models/yolov8n-pose.pt
 
+# main detector weights baked in for offline (air-gapped) installs — with a
+# bare name in YOLO_MODEL ultralytics would try to download at startup. Online
+# deployments may still override YOLO_MODEL with a bare name (cache volume).
+RUN for M in yolov8n.pt yolov8s.pt; do \
+      (curl -fsSL --retry 3 -o /opt/models/$M \
+          https://github.com/ultralytics/assets/releases/download/v8.2.0/$M \
+       || curl -fsSL --retry 3 -o /opt/models/$M \
+          https://github.com/ultralytics/assets/releases/download/v0.0.0/$M) \
+      || echo "WARN: $M download failed — offline install will need /models/$M"; \
+    done
+
 COPY . /app/analyzer
 ENV PYTHONPATH=/app \
     ANALYZER_DEVICE=cuda

@@ -1,9 +1,10 @@
 'use client'
 
 import type * as React from 'react'
+import { useEffect } from 'react'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { IconActivityHeartbeat, IconRefresh } from '@tabler/icons-react'
-import { getHealth, getDeadLetter, replayDeadLetter } from '@/lib/api'
+import { getHealth, getDeadLetter, replayDeadLetter, getRole } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -22,6 +23,13 @@ function Stat({ label, value }: { label: string; value: React.ReactNode }): Reac
 
 export default function DiagnosticsPage(): React.JSX.Element {
   const qc = useQueryClient()
+  // service-level page: владелец предприятия попадает сюда по /admin — уводим
+  // его на свою главную (доступы)
+  useEffect(() => {
+    getRole().then((r) => {
+      if (r && r !== 'super') window.location.replace('/admin/org')
+    }).catch(() => undefined)
+  }, [])
   const health = useQuery({ queryKey: ['admin', 'health'], queryFn: getHealth, refetchInterval: 5000 })
   const dl = useQuery({ queryKey: ['admin', 'dead-letter'], queryFn: () => getDeadLetter(50) })
   const replay = useMutation({

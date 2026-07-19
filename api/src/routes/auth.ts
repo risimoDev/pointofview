@@ -6,6 +6,7 @@ import { db } from '../db/client.js'
 import { appUser } from '../../db/schema.js'
 import { LoginBody } from '../schemas.js'
 import { clientIp, rateLimit } from '../ratelimit.js'
+import { sanitizePerms } from '../permissions.js'
 
 // Brute-force protection: fixed windows per client IP (password spraying
 // across accounts) AND per email (single-account brute force with rotating
@@ -40,11 +41,17 @@ const authRoutes: FastifyPluginAsyncZod = async (app) => {
     if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
       return reply.code(401).send({ message: 'invalid credentials' })
     }
+    if (user.disabled) {
+      return reply.code(401).send({ message: 'account disabled' })
+    }
     await app.redis.del(ipKey, emailKey)
     const token = app.jwt.sign({
       tenant_id: user.tenantId,
       user_id: user.id,
       role: user.role,
+      // permission edits take effect on next login (JWT is self-contained)
+      perms: sanitizePerms(user.permissions),
+      cams: user.allowedCameraIds ?? [],
     })
     return { token }
   })

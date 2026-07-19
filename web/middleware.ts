@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
-const PUBLIC = ['/login', '/api/auth']
+const PUBLIC = ['/login', '/api/auth', '/invite']
 
 function roleFromToken(token: string): string | null {
   try {

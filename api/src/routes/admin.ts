@@ -4,9 +4,13 @@ import { sql, eq, and, desc } from 'drizzle-orm'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { db } from '../db/client.js'
-import { site, appUser, alertRule, camera, zone, tenantFeature, auditLog } from '../../db/schema.js'
+import {
+  site, appUser, alertRule, camera, zone, tenantFeature, auditLog, userInvite,
+} from '../../db/schema.js'
+import { randomBytes } from 'node:crypto'
 import { writeAudit } from '../audit.js'
 import { EventTypeEnum, SeverityEnum } from '../schemas.js'
+import { PermissionCodes, sanitizePerms } from '../permissions.js'
 import { config } from '../config.js'
 import { CLIPS_BUCKET, minio } from '../minio.js'
 import { alertsQueue } from '../queues.js'
@@ -14,6 +18,9 @@ import { SETTING_DEFS, loadSettings, saveSetting } from '../settings.js'
 import { statfs } from 'node:fs/promises'
 
 const RoleEnum = z.enum(['super', 'admin', 'manager', 'operator'])
+// roles a tenant owner may assign — never 'super' (privilege escalation)
+const TenantRoleEnum = z.enum(['admin', 'manager', 'operator'])
+const PermsField = z.array(z.enum(PermissionCodes)).nullable().optional()
 const AlertRuleBody = z.object({
   event_type: EventTypeEnum,
   channels: z.array(z.record(z.unknown())).default([]),
@@ -38,6 +45,16 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
     await app.authenticate(req)
     if (req.role !== 'super') {
       await reply.code(403).send({ message: 'super role required' })
+    }
+  }
+  // tenant-owner scope: владелец предприятия (admin), super — для помощи,
+  // либо сотрудник с галочкой «Пользователи»
+  const requireUsersPerm = app.requirePerm('users')
+  const requireAlertsPerm = app.requirePerm('alerts')
+  const requireOwner = async (req: FastifyRequest, reply: FastifyReply): Promise<void> => {
+    await app.authenticate(req)
+    if (req.role !== 'super' && req.role !== 'admin') {
+      await reply.code(403).send({ message: 'owner role required' })
     }
   }
 
@@ -100,13 +117,13 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
   })
 
   // ── Organization: sites (tenant-scoped) ─────────────────────
-  app.get('/sites', { preHandler: [requireSuper] }, async (req) => {
+  app.get('/sites', { preHandler: [requireOwner] }, async (req) => {
     const rows = await db.select().from(site).where(eq(site.tenantId, req.tenantId))
     return { items: rows }
   })
 
   app.post('/sites', {
-    preHandler: [requireSuper],
+    preHandler: [requireOwner],
     schema: {
       body: z.object({
         name: z.string().min(1),
@@ -126,22 +143,29 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
     return reply.code(201).send(row)
   })
 
-  // ── Organization: users (tenant-scoped) ─────────────────────
-  app.get('/users', { preHandler: [requireSuper] }, async (req) => {
-    const rows = await db.select({
-      id: appUser.id, email: appUser.email, role: appUser.role,
-      allowedCameraIds: appUser.allowedCameraIds,
-    }).from(appUser).where(eq(appUser.tenantId, req.tenantId))
+  // ── Organization: users (tenant-scoped; владелец или галочка «users») ──
+  const userCols = {
+    id: appUser.id, email: appUser.email, name: appUser.name, role: appUser.role,
+    allowedCameraIds: appUser.allowedCameraIds, permissions: appUser.permissions,
+    disabled: appUser.disabled,
+  }
+
+  app.get('/users', { preHandler: [requireUsersPerm] }, async (req) => {
+    const rows = await db.select(userCols).from(appUser)
+      .where(eq(appUser.tenantId, req.tenantId))
     return { items: rows }
   })
 
   app.post('/users', {
-    preHandler: [requireSuper],
+    preHandler: [requireUsersPerm],
     schema: {
       body: z.object({
         email: z.string().email(),
         password: z.string().min(8),
-        role: RoleEnum.default('operator'),
+        name: z.string().trim().max(80).default(''),
+        role: TenantRoleEnum.default('operator'),
+        permissions: PermsField,
+        allowed_camera_ids: z.array(z.string().uuid()).default([]),
       }),
     },
   }, async (req, reply) => {
@@ -150,7 +174,9 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
     try {
       const [row] = await db.insert(appUser).values({
         tenantId: req.tenantId, email: b.email, passwordHash, role: b.role,
-      }).returning({ id: appUser.id, email: appUser.email, role: appUser.role })
+        name: b.name, permissions: sanitizePerms(b.permissions),
+        allowedCameraIds: b.allowed_camera_ids,
+      }).returning(userCols)
       await writeAudit({
         tenantId: req.tenantId, userId: req.userId, action: 'user.create',
         resourceType: 'user', resourceId: row!.id, details: { email: b.email, role: b.role },
@@ -162,36 +188,67 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
   })
 
   app.patch('/users/:id', {
-    preHandler: [requireSuper],
+    preHandler: [requireUsersPerm],
     schema: {
       params: z.object({ id: z.string().uuid() }),
-      body: z.object({ role: RoleEnum.optional(), password: z.string().min(8).optional() }),
+      body: z.object({
+        role: TenantRoleEnum.optional(),
+        password: z.string().min(8).optional(),
+        name: z.string().trim().max(80).optional(),
+        permissions: PermsField,
+        allowed_camera_ids: z.array(z.string().uuid()).optional(),
+        disabled: z.boolean().optional(),
+      }),
     },
   }, async (req, reply) => {
-    const patch: { role?: z.infer<typeof RoleEnum>; passwordHash?: string } = {}
-    if (req.body.role) patch.role = req.body.role
-    if (req.body.password) patch.passwordHash = await bcrypt.hash(req.body.password, 10)
+    // a super account can never be edited through the tenant-owner endpoint
+    const [target] = await db.select({ role: appUser.role }).from(appUser)
+      .where(and(eq(appUser.id, req.params.id), eq(appUser.tenantId, req.tenantId))).limit(1)
+    if (!target) return reply.code(404).send({ message: 'user not found' })
+    if (target.role === 'super' && req.role !== 'super') {
+      return reply.code(403).send({ message: 'cannot edit a super account' })
+    }
+    const b = req.body
+    const patch: {
+      role?: z.infer<typeof TenantRoleEnum>; passwordHash?: string; name?: string
+      permissions?: string[] | null; allowedCameraIds?: string[]; disabled?: boolean
+    } = {}
+    if (b.role) patch.role = b.role
+    if (b.password) patch.passwordHash = await bcrypt.hash(b.password, 10)
+    if (b.name !== undefined) patch.name = b.name
+    if (b.permissions !== undefined) patch.permissions = sanitizePerms(b.permissions)
+    if (b.allowed_camera_ids !== undefined) patch.allowedCameraIds = b.allowed_camera_ids
+    if (b.disabled !== undefined && req.params.id !== req.userId) patch.disabled = b.disabled
     if (Object.keys(patch).length === 0) {
       return reply.code(400).send({ message: 'nothing to update' })
     }
     const [row] = await db.update(appUser).set(patch)
       .where(and(eq(appUser.id, req.params.id), eq(appUser.tenantId, req.tenantId)))
-      .returning({ id: appUser.id, email: appUser.email, role: appUser.role })
+      .returning(userCols)
     if (!row) return reply.code(404).send({ message: 'user not found' })
+    await writeAudit({
+      tenantId: req.tenantId, userId: req.userId, action: 'user.update',
+      resourceType: 'user', resourceId: req.params.id,
+      details: { role: b.role, disabled: b.disabled, permissions: b.permissions },
+    })
     return row
   })
 
   app.delete('/users/:id', {
-    preHandler: [requireSuper],
+    preHandler: [requireUsersPerm],
     schema: { params: z.object({ id: z.string().uuid() }) },
   }, async (req, reply) => {
     if (req.params.id === req.userId) {
       return reply.code(400).send({ message: 'cannot delete yourself' })
     }
-    const [row] = await db.delete(appUser)
+    const [target] = await db.select({ role: appUser.role }).from(appUser)
+      .where(and(eq(appUser.id, req.params.id), eq(appUser.tenantId, req.tenantId))).limit(1)
+    if (!target) return reply.code(404).send({ message: 'user not found' })
+    if (target.role === 'super' && req.role !== 'super') {
+      return reply.code(403).send({ message: 'cannot delete a super account' })
+    }
+    await db.delete(appUser)
       .where(and(eq(appUser.id, req.params.id), eq(appUser.tenantId, req.tenantId)))
-      .returning({ id: appUser.id })
-    if (!row) return reply.code(404).send({ message: 'user not found' })
     await writeAudit({
       tenantId: req.tenantId, userId: req.userId, action: 'user.delete',
       resourceType: 'user', resourceId: req.params.id,
@@ -199,14 +256,66 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
     return { deleted: true }
   })
 
+  // ── Invites: link with pre-set capabilities, employee sets the password ──
+  app.get('/invites', { preHandler: [requireUsersPerm] }, async (req) => {
+    const rows = await db.select({
+      id: userInvite.id, token: userInvite.token, name: userInvite.name,
+      email: userInvite.email, role: userInvite.role,
+      permissions: userInvite.permissions, allowedCameraIds: userInvite.allowedCameraIds,
+      createdAt: userInvite.createdAt, expiresAt: userInvite.expiresAt,
+      usedAt: userInvite.usedAt,
+    }).from(userInvite).where(eq(userInvite.tenantId, req.tenantId))
+      .orderBy(desc(userInvite.createdAt)).limit(50)
+    return { items: rows }
+  })
+
+  app.post('/invites', {
+    preHandler: [requireUsersPerm],
+    schema: {
+      body: z.object({
+        name: z.string().trim().max(80).default(''),
+        email: z.string().email().optional(),
+        role: TenantRoleEnum.default('operator'),
+        permissions: PermsField,
+        allowed_camera_ids: z.array(z.string().uuid()).default([]),
+        expires_days: z.number().int().min(1).max(30).default(7),
+      }),
+    },
+  }, async (req, reply) => {
+    const b = req.body
+    const token = randomBytes(24).toString('base64url')
+    const [row] = await db.insert(userInvite).values({
+      tenantId: req.tenantId, token, name: b.name, email: b.email ?? null,
+      role: b.role, permissions: sanitizePerms(b.permissions),
+      allowedCameraIds: b.allowed_camera_ids, createdBy: req.userId,
+      expiresAt: new Date(Date.now() + b.expires_days * 86_400_000),
+    }).returning({ id: userInvite.id, token: userInvite.token })
+    await writeAudit({
+      tenantId: req.tenantId, userId: req.userId, action: 'invite.create',
+      resourceType: 'invite', resourceId: row!.id, details: { name: b.name, role: b.role },
+    })
+    return reply.code(201).send(row)
+  })
+
+  app.delete('/invites/:id', {
+    preHandler: [requireUsersPerm],
+    schema: { params: z.object({ id: z.string().uuid() }) },
+  }, async (req, reply) => {
+    const [row] = await db.delete(userInvite)
+      .where(and(eq(userInvite.id, req.params.id), eq(userInvite.tenantId, req.tenantId)))
+      .returning({ id: userInvite.id })
+    if (!row) return reply.code(404).send({ message: 'invite not found' })
+    return { deleted: true }
+  })
+
   // ── Alert rules (tenant-scoped) ─────────────────────────────
-  app.get('/alert-rules', { preHandler: [requireSuper] }, async (req) => {
+  app.get('/alert-rules', { preHandler: [requireAlertsPerm] }, async (req) => {
     const rows = await db.select().from(alertRule).where(eq(alertRule.tenantId, req.tenantId))
     return { items: rows }
   })
 
   app.post('/alert-rules', {
-    preHandler: [requireSuper],
+    preHandler: [requireAlertsPerm],
     schema: { body: AlertRuleBody },
   }, async (req, reply) => {
     const b = req.body
@@ -223,7 +332,7 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
   })
 
   app.patch('/alert-rules/:id', {
-    preHandler: [requireSuper],
+    preHandler: [requireAlertsPerm],
     schema: { params: z.object({ id: z.string().uuid() }), body: AlertRuleBody.partial() },
   }, async (req, reply) => {
     const b = req.body
@@ -251,7 +360,7 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
   // «Отправить тестовое» — synthetic message to the rule's channels via the
   // same worker path as real alerts (validates token/chat_id/webhook end-to-end)
   app.post('/alert-rules/:id/test', {
-    preHandler: [requireSuper],
+    preHandler: [requireAlertsPerm],
     schema: { params: z.object({ id: z.string().uuid() }) },
   }, async (req, reply) => {
     const [rule] = await db.select({ id: alertRule.id }).from(alertRule)
@@ -265,7 +374,7 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
   })
 
   app.delete('/alert-rules/:id', {
-    preHandler: [requireSuper],
+    preHandler: [requireAlertsPerm],
     schema: { params: z.object({ id: z.string().uuid() }) },
   }, async (req, reply) => {
     const [row] = await db.delete(alertRule)
@@ -283,7 +392,7 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
   // Drives the full downstream (consumer → DB → WS → alerts) without the GPU
   // analyzer. camera_id resolves site_id; tenant from the JWT.
   app.post('/simulate/event', {
-    preHandler: [requireSuper],
+    preHandler: [requireAlertsPerm],
     schema: {
       body: z.object({
         camera_id: z.string().uuid(),
@@ -440,6 +549,13 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
       n?: unknown; bytes?: unknown; oldest?: unknown; newest?: unknown
     }
 
+    // written by scripts/backup.sh after each run
+    let lastBackup: Record<string, unknown> | null = null
+    try {
+      const raw = await app.redis.get('backup:last')
+      if (raw) lastBackup = JSON.parse(raw) as Record<string, unknown>
+    } catch { /* no backup status yet */ }
+
     return {
       archiveDisk,
       dbSizeBytes,
@@ -450,6 +566,7 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
         oldest: ar.oldest ? String(ar.oldest) : null,
         newest: ar.newest ? String(ar.newest) : null,
       },
+      lastBackup,
       uptimeSec: Math.round(process.uptime()),
       node: process.version,
     }

@@ -1,8 +1,13 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
+import bcrypt from 'bcryptjs'
+import { and, eq, gt, isNull } from 'drizzle-orm'
 import { z } from 'zod'
+import { db } from '../db/client.js'
+import { appUser, tenant, userInvite } from '../../db/schema.js'
 import { config } from '../config.js'
 import { settingSecret, settingText } from '../settings.js'
-import { clientIp } from '../ratelimit.js'
+import { clientIp, rateLimit } from '../ratelimit.js'
+import { writeAudit } from '../audit.js'
 
 // Unauthenticated endpoints for the public landing page.
 
@@ -27,6 +32,69 @@ function escapeHtml(s: string): string {
 }
 
 const publicRoutes: FastifyPluginAsyncZod = async (app) => {
+  // ── Invite acceptance (unauthenticated; the link IS the credential) ──
+  const liveInvite = (token: string) => and(
+    eq(userInvite.token, token),
+    isNull(userInvite.usedAt),
+    gt(userInvite.expiresAt, new Date()),
+  )
+
+  app.get('/invite/:token', {
+    schema: { params: z.object({ token: z.string().min(10).max(128) }) },
+  }, async (req, reply) => {
+    const [inv] = await db.select({
+      name: userInvite.name, email: userInvite.email, role: userInvite.role,
+      tenantId: userInvite.tenantId,
+    }).from(userInvite).where(liveInvite(req.params.token)).limit(1)
+    if (!inv) return reply.code(404).send({ message: 'Приглашение не найдено или истекло' })
+    const [org] = await db.select({ name: tenant.name }).from(tenant)
+      .where(eq(tenant.id, inv.tenantId)).limit(1)
+    return { name: inv.name, email: inv.email, role: inv.role, orgName: org?.name ?? '' }
+  })
+
+  app.post('/invite/:token/accept', {
+    schema: {
+      params: z.object({ token: z.string().min(10).max(128) }),
+      body: z.object({
+        email: z.string().email(),
+        password: z.string().min(8).max(128),
+        name: z.string().trim().max(80).optional(),
+      }),
+    },
+  }, async (req, reply) => {
+    // brute-forcing tokens is pointless (24 random bytes) but rate-limit anyway
+    const rl = await rateLimit(app.redis, `invite_rl:${clientIp(req)}`, 10, 3600)
+    if (!rl.allowed) {
+      return reply.code(429).header('Retry-After', String(rl.retryAfterSec))
+        .send({ message: 'Слишком много попыток, попробуйте позже' })
+    }
+    const [inv] = await db.select().from(userInvite)
+      .where(liveInvite(req.params.token)).limit(1)
+    if (!inv) return reply.code(404).send({ message: 'Приглашение не найдено или истекло' })
+
+    const passwordHash = await bcrypt.hash(req.body.password, 10)
+    try {
+      const [user] = await db.insert(appUser).values({
+        tenantId: inv.tenantId,
+        email: req.body.email,
+        passwordHash,
+        role: inv.role,
+        name: req.body.name ?? inv.name,
+        permissions: inv.permissions,
+        allowedCameraIds: inv.allowedCameraIds,
+      }).returning({ id: appUser.id })
+      await db.update(userInvite).set({ usedAt: new Date() })
+        .where(eq(userInvite.id, inv.id))
+      await writeAudit({
+        tenantId: inv.tenantId, userId: user!.id, action: 'invite.accept',
+        resourceType: 'user', resourceId: user!.id, details: { email: req.body.email },
+      })
+      return reply.code(201).send({ created: true })
+    } catch {
+      return reply.code(409).send({ message: 'Эта почта уже зарегистрирована' })
+    }
+  })
+
   app.post('/demo-request', {
     schema: { body: DemoRequestBody },
   }, async (req, reply) => {

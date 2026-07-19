@@ -1,6 +1,6 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { randomUUID } from 'node:crypto'
-import { and, desc, eq, gte, lt, type SQL } from 'drizzle-orm'
+import { and, desc, eq, gte, inArray, lt, type SQL } from 'drizzle-orm'
 import { db } from '../db/client.js'
 import { camera, event, zone } from '../../db/schema.js'
 import { EventIdParams, EventsQuery } from '../schemas.js'
@@ -10,12 +10,16 @@ import { config } from '../config.js'
 
 const eventsRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get('/events', {
-    preHandler: [app.authenticate],
+    preHandler: [app.requirePerm('events')],
     schema: { querystring: EventsQuery },
   }, async (req) => {
     const q = req.query
     const conds: SQL[] = [eq(event.tenantId, req.tenantId)]
     if (q.camera_id) conds.push(eq(event.cameraId, q.camera_id))
+    // per-user camera restriction (empty = all cameras)
+    if (req.allowedCameraIds.length > 0) {
+      conds.push(inArray(event.cameraId, req.allowedCameraIds))
+    }
     if (q.type) conds.push(eq(event.type, q.type))
     if (q.severity) conds.push(eq(event.severity, q.severity))
     if (q.resolved) conds.push(eq(event.resolved, q.resolved === 'true'))
@@ -47,7 +51,7 @@ const eventsRoutes: FastifyPluginAsyncZod = async (app) => {
 
   // Enqueue clip cut for an event
   app.post('/events/:id/clip', {
-    preHandler: [app.authenticate],
+    preHandler: [app.requirePerm('events')],
     schema: { params: EventIdParams },
   }, async (req, reply) => {
     const [ev] = await db.select({
@@ -71,7 +75,7 @@ const eventsRoutes: FastifyPluginAsyncZod = async (app) => {
 
   // Presigned URL for a ready clip (1h TTL)
   app.get('/events/:id/clip', {
-    preHandler: [app.authenticate],
+    preHandler: [app.requirePerm('events')],
     schema: { params: EventIdParams },
   }, async (req, reply) => {
     const [ev] = await db.select({ clipKey: event.clipKey }).from(event)
@@ -86,7 +90,7 @@ const eventsRoutes: FastifyPluginAsyncZod = async (app) => {
 
   // Mark an event as handled by the operator (or back to unhandled)
   app.patch('/events/:id/resolve', {
-    preHandler: [app.authenticate],
+    preHandler: [app.requirePerm('events')],
     schema: { params: EventIdParams },
   }, async (req, reply) => {
     const [row] = await db.update(event)
@@ -99,7 +103,7 @@ const eventsRoutes: FastifyPluginAsyncZod = async (app) => {
 
   // Presigned URL for the event snapshot (analyzer uploads them to MinIO)
   app.get('/events/:id/snapshot', {
-    preHandler: [app.authenticate],
+    preHandler: [app.requirePerm('events')],
     schema: { params: EventIdParams },
   }, async (req, reply) => {
     const [ev] = await db.select({ snapshotKey: event.snapshotKey }).from(event)

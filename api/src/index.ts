@@ -18,6 +18,7 @@ import analyticsRoutes from './routes/analytics.js'
 import featuresRoutes from './routes/features.js'
 import peopleRoutes from './routes/people.js'
 import adminRoutes from './routes/admin.js'
+import platformRoutes from './routes/platform.js'
 import reportsRoutes from './routes/reports.js'
 import internalRoutes from './routes/internal.js'
 import publicRoutes from './routes/public.js'
@@ -62,6 +63,7 @@ async function main(): Promise<void> {
   await app.register(featuresRoutes, { prefix: '/api/v1' })
   await app.register(peopleRoutes, { prefix: '/api/v1' })
   await app.register(adminRoutes, { prefix: '/api/v1/admin' })
+  await app.register(platformRoutes, { prefix: '/api/v1/platform' })
   await app.register(reportsRoutes, { prefix: '/api/v1' })
   await app.register(internalRoutes, { prefix: '/internal' })
   await app.register(publicRoutes, { prefix: '/api/v1/public' })

@@ -7,6 +7,39 @@ export const EventType = z.enum([
   'camera_offline', 'camera_online', 'fall_detected', 'lone_worker',
 ])
 export const Severity = z.enum(['info', 'warn', 'critical'])
+
+// Capability checkboxes the tenant owner grants to their users. `null`
+// permissions on a user = legacy role defaults (see api/src/permissions.ts).
+export const PermissionCodes = [
+  'live',      // дашборд и живое видео
+  'events',    // события: просмотр, обработка, клипы
+  'analytics', // аналитика
+  'reports',   // отчёты (в т.ч. охрана труда)
+  'zones',     // редактор зон
+  'cameras',   // добавление и настройка камер
+  'people',    // люди: сотрудники, галерея
+  'alerts',    // правила оповещений
+  'features',  // функции ИИ (вкл/выкл, пороги)
+  'users',     // пользователи предприятия
+] as const
+export type PermissionCode = (typeof PermissionCodes)[number]
+
+// Effective capabilities for users without explicit checkboxes (legacy roles).
+// Must stay in sync with api/src/permissions.ts.
+export const RoleDefaultPerms: Record<string, readonly PermissionCode[]> = {
+  super: PermissionCodes,
+  admin: PermissionCodes,
+  manager: ['live', 'events', 'analytics', 'reports', 'people', 'alerts', 'zones'],
+  operator: ['live', 'events'],
+}
+
+export function effectivePermsOf(
+  role: string | null, explicit: readonly string[] | null,
+): readonly string[] {
+  if (role === 'super' || role === 'admin') return PermissionCodes
+  if (Array.isArray(explicit)) return explicit
+  return role ? (RoleDefaultPerms[role] ?? []) : []
+}
 export const SourceType = z.enum(['rtsp_pull', 'srt_push', 'file'])
 export const CameraStatus = z.enum(['online', 'offline', 'error'])
 export const ZoneKind = z.enum([

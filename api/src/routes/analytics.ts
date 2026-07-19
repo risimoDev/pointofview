@@ -23,7 +23,7 @@ const OverviewQuery = z.object({
 
 const analyticsRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get('/analytics/summary', {
-    preHandler: [app.authenticate],
+    preHandler: [app.requirePerm('analytics')],
     schema: { querystring: SummaryQuery },
   }, async (req) => {
     const q = req.query
@@ -44,7 +44,7 @@ const analyticsRoutes: FastifyPluginAsyncZod = async (app) => {
 
   // Everything the /analytics page needs in one round-trip.
   app.get('/analytics/overview', {
-    preHandler: [app.authenticate],
+    preHandler: [app.requirePerm('analytics')],
     schema: { querystring: OverviewQuery },
   }, async (req) => {
     const q = req.query

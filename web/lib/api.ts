@@ -447,6 +447,25 @@ export async function getRole(): Promise<string | null> {
   }
 }
 
+// Full JWT claims for UX gating (real enforcement is server-side)
+export interface Claims {
+  role: string | null
+  perms: string[] | null   // null = role defaults
+  imp: boolean             // super entered an org from the platform section
+}
+export async function getClaims(): Promise<Claims> {
+  try {
+    const token = await getToken()
+    const payload = token.split('.')[1]
+    if (!payload) return { role: null, perms: null, imp: false }
+    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
+    const p = JSON.parse(json) as { role?: string; perms?: string[] | null; imp?: boolean }
+    return { role: p.role ?? null, perms: p.perms ?? null, imp: Boolean(p.imp) }
+  } catch {
+    return { role: null, perms: null, imp: false }
+  }
+}
+
 // ── Super-admin: diagnostics ──────────────────────────────────
 const HealthSchema = z.object({
   services: z.record(z.string()),
@@ -500,25 +519,34 @@ export async function createSite(input: {
 }
 
 const AdminUserSchema = z.object({
-  id: z.string(), email: z.string(), role: z.string(), allowedCameraIds: z.array(z.string()),
+  id: z.string(), email: z.string(), name: z.string(), role: z.string(),
+  allowedCameraIds: z.array(z.string()),
+  permissions: z.array(z.string()).nullable(),
+  disabled: z.boolean(),
 })
 const AdminUsersSchema = z.object({ items: z.array(AdminUserSchema) })
 export type AdminUser = z.infer<typeof AdminUserSchema>
 
+export interface UserInput {
+  email?: string
+  password?: string
+  name?: string
+  role?: string
+  permissions?: string[] | null
+  allowed_camera_ids?: string[]
+  disabled?: boolean
+}
+
 export async function getUsers(): Promise<AdminUser[]> {
   return (await apiJson('/api/v1/admin/users', AdminUsersSchema)).items
 }
-export async function createUser(input: {
-  email: string; password: string; role: string
-}): Promise<void> {
+export async function createUser(input: UserInput): Promise<void> {
   const res = await apiFetch('/api/v1/admin/users', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
   })
   if (!res.ok) throw new Error(`createUser: ${res.status}`)
 }
-export async function updateUser(
-  id: string, patch: { role?: string; password?: string },
-): Promise<void> {
+export async function updateUser(id: string, patch: UserInput): Promise<void> {
   const res = await apiFetch(`/api/v1/admin/users/${id}`, {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch),
   })
@@ -527,6 +555,71 @@ export async function updateUser(
 export async function deleteUser(id: string): Promise<void> {
   const res = await apiFetch(`/api/v1/admin/users/${id}`, { method: 'DELETE' })
   if (!res.ok) throw new Error(`deleteUser: ${res.status}`)
+}
+
+// ── Invites (owner sends the link; employee sets the password) ─
+const InviteSchema = z.object({
+  id: z.string(), token: z.string(), name: z.string(),
+  email: z.string().nullable(), role: z.string(),
+  permissions: z.array(z.string()).nullable(),
+  allowedCameraIds: z.array(z.string()),
+  createdAt: z.string(), expiresAt: z.string(), usedAt: z.string().nullable(),
+})
+export type Invite = z.infer<typeof InviteSchema>
+
+export async function getInvites(): Promise<Invite[]> {
+  return (await apiJson('/api/v1/admin/invites',
+    z.object({ items: z.array(InviteSchema) }))).items
+}
+export async function createInvite(input: {
+  name?: string; email?: string; role?: string
+  permissions?: string[] | null; allowed_camera_ids?: string[]
+}): Promise<string> {
+  const res = await apiFetch('/api/v1/admin/invites', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
+  })
+  if (!res.ok) throw new Error(`createInvite: ${res.status}`)
+  return ((await res.json()) as { token: string }).token
+}
+export async function deleteInvite(id: string): Promise<void> {
+  const res = await apiFetch(`/api/v1/admin/invites/${id}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error(`deleteInvite: ${res.status}`)
+}
+
+// ── Platform (super, cross-tenant) ────────────────────────────
+const OrgSchema = z.object({
+  id: z.string(), name: z.string(), mode: z.string(),
+  sites: z.number(), cameras: z.number(), users: z.number(),
+})
+export type Org = z.infer<typeof OrgSchema>
+
+export async function getOrgs(): Promise<Org[]> {
+  return (await apiJson('/api/v1/platform/orgs', z.object({ items: z.array(OrgSchema) }))).items
+}
+export async function createOrg(input: {
+  name: string; mode?: string; site_name?: string; owner_name?: string
+}): Promise<{ id: string; owner_invite_token: string }> {
+  const res = await apiFetch('/api/v1/platform/orgs', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
+  })
+  if (!res.ok) throw new Error(`createOrg: ${res.status}`)
+  return (await res.json()) as { id: string; owner_invite_token: string }
+}
+/** Swap the session into the target org (keeps the super token to return). */
+export async function enterOrg(id: string): Promise<void> {
+  const res = await apiFetch(`/api/v1/platform/orgs/${id}/enter`, { method: 'POST' })
+  if (!res.ok) throw new Error(`enterOrg: ${res.status}`)
+  const { token } = (await res.json()) as { token: string }
+  const swap = await fetch('/api/auth/enter', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token }),
+  })
+  if (!swap.ok) throw new Error(`enterOrg swap: ${swap.status}`)
+}
+export async function leaveOrg(): Promise<void> {
+  const res = await fetch('/api/auth/leave', { method: 'POST' })
+  if (!res.ok) throw new Error(`leaveOrg: ${res.status}`)
 }
 
 // ── Super-admin: alert rules ──────────────────────────────────
@@ -658,6 +751,13 @@ const SystemInfoSchema = z.object({
     oldest: z.string().nullable(),
     newest: z.string().nullable(),
   }),
+  lastBackup: z.object({
+    ok: z.boolean(),
+    ts: z.number(),
+    pg_bytes: z.number().optional(),
+    redis_bytes: z.number().optional(),
+    error: z.string().optional(),
+  }).nullable(),
   uptimeSec: z.number(),
   node: z.string(),
 })

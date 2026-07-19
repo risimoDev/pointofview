@@ -55,8 +55,8 @@
     "semantic_hash": "2c4dfd5f94063320067407eaf46f9afc"
   },
   "api/db/schema.ts": {
-    "mtime": 1784454758.6572297,
-    "ast_hash": "0b861115aa581be6b932f8a72f67e452",
+    "mtime": 1784467973.6627495,
+    "ast_hash": "f2ae66e2a7f83f91ec8cd38a8005dd96",
     "semantic_hash": ""
   },
   "api/drizzle.config.ts": {
@@ -80,8 +80,8 @@
     "semantic_hash": "d057a4e9ca0f51bef8627b1e42617485"
   },
   "api/src/index.ts": {
-    "mtime": 1784454744.066837,
-    "ast_hash": "711869e7a2159cfe3c3231dfd1dd22ac",
+    "mtime": 1784468000.8296154,
+    "ast_hash": "61bfec17863b58ae1af7c3f57804adb1",
     "semantic_hash": ""
   },
   "api/src/minio.ts": {
@@ -105,8 +105,8 @@
     "semantic_hash": "60a69b1e3c9a928f7dd08f18691a29d1"
   },
   "api/src/routes/analytics.ts": {
-    "mtime": 1783822973.9697475,
-    "ast_hash": "3196d34b385c3b097be91335fcfa34a2",
+    "mtime": 1784468034.9466083,
+    "ast_hash": "b2b63c98136d1be1617f3f44c7dfd839",
     "semantic_hash": ""
   },
   "api/src/routes/auth.ts": {
@@ -310,8 +310,8 @@
     "semantic_hash": "e248c85d0539a5cf875f95a9b468a8df"
   },
   "web/lib/api.ts": {
-    "mtime": 1784454830.4318411,
-    "ast_hash": "4af575f5899d85ec841f6f0986c3452a",
+    "mtime": 1784469308.5157893,
+    "ast_hash": "a3ec9db3f72b0c266e3c3c88d4fe7745",
     "semantic_hash": ""
   },
   "web/lib/utils.ts": {
@@ -620,8 +620,8 @@
     "semantic_hash": ""
   },
   "web/app/analytics/page.tsx": {
-    "mtime": 1784454765.7549374,
-    "ast_hash": "62da710b956eb7b32587594d3f4a9997",
+    "mtime": 1784469318.9249444,
+    "ast_hash": "6106518e340643bc738bb6cd58ffdf65",
     "semantic_hash": ""
   },
   "analyzer/reid/__init__.py": {
@@ -635,13 +635,13 @@
     "semantic_hash": ""
   },
   "analyzer/reid/identity.py": {
-    "mtime": 1783925216.2928882,
-    "ast_hash": "3eb8661f3bb1fe5dbe47aa565cec66d1",
+    "mtime": 1784461055.2497025,
+    "ast_hash": "9eb9b6829afe0d9a598938e5a79109a8",
     "semantic_hash": ""
   },
   "api/src/routes/people.ts": {
-    "mtime": 1783925528.258953,
-    "ast_hash": "840f3164cadd5ece0639503e1e28b73b",
+    "mtime": 1784467860.3409634,
+    "ast_hash": "cd660c3274512d58f9f80d57d5ec97c3",
     "semantic_hash": ""
   },
   "infra/postgres/migrations/0003_reid_feature.sql": {
@@ -650,8 +650,8 @@
     "semantic_hash": ""
   },
   "web/app/admin/people/page.tsx": {
-    "mtime": 1783927134.1746624,
-    "ast_hash": "42bc78f8b1f89d216b76b9c98dcebb0d",
+    "mtime": 1784467913.5404608,
+    "ast_hash": "de9ace422f0e53e0b0699939f85f9286",
     "semantic_hash": ""
   },
   "api/src/camera_watchdog.ts": {
@@ -665,8 +665,8 @@
     "semantic_hash": ""
   },
   "PLAN.md": {
-    "mtime": 1784455817.6413238,
-    "ast_hash": "f4fea8a071efba553c35ced0dcf31897",
+    "mtime": 1784469536.5811248,
+    "ast_hash": "61d46cd40cf41d2a814a8cb7351a4bd4",
     "semantic_hash": ""
   },
   "api/src/retention.ts": {
@@ -725,8 +725,8 @@
     "semantic_hash": ""
   },
   "analyzer/reid/face.py": {
-    "mtime": 1783925151.210207,
-    "ast_hash": "e23e69ff554821d10eb4a403ce55ea3a",
+    "mtime": 1784460974.331869,
+    "ast_hash": "bcd7d3dc85dce53ad9e53ab3f62eb45b",
     "semantic_hash": ""
   },
   "docs/AI-IMPROVEMENTS.md": {
@@ -935,8 +935,8 @@
     "semantic_hash": ""
   },
   "api/src/routes/reports.ts": {
-    "mtime": 1784455728.1245005,
-    "ast_hash": "326080c46b19885c39ceb5877feb46a4",
+    "mtime": 1784460549.6718924,
+    "ast_hash": "59b46a1d39a83905182c558dd84d4692",
     "semantic_hash": ""
   },
   "infra/postgres/migrations/0007_lone_worker.sql": {
@@ -947,6 +947,16 @@
   "web/app/reports/page.tsx": {
     "mtime": 1784454882.8296432,
     "ast_hash": "0f3c17e89eead0c92726a9b0408ff972",
+    "semantic_hash": ""
+  },
+  "api/src/visitor_snapshot.ts": {
+    "mtime": 1784467981.7064216,
+    "ast_hash": "f6cfaae5c20463e000f7b8d95130d153",
+    "semantic_hash": ""
+  },
+  "infra/postgres/migrations/0008_visitor_daily.sql": {
+    "mtime": 1784467945.2493427,
+    "ast_hash": "579160bef4ee8ecb016771435b5e1d67",
     "semantic_hash": ""
   }
 }

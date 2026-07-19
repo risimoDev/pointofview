@@ -16,6 +16,9 @@ import { SEVERITY_LABELS, typeLabel } from '../event_labels.js'
 // document, the Excel export and the Telegram delivery.
 
 const SAFETY_TYPES = ['ppe_violation', 'fall_detected', 'zone_violation', 'crowd', 'lone_worker']
+// inline literals: `enum = ANY($1::text[])` fails to type-resolve in PG, IN with
+// literals coerces cleanly (constants from our own list, no injection surface)
+const SAFETY_TYPES_SQL = sql.raw(`('${SAFETY_TYPES.join("','")}')`)
 const DEFAULT_TZ = 'Europe/Moscow'
 
 const ReportQuery = z.object({
@@ -58,7 +61,7 @@ async function collectSafetyData(tenantId: string, q: ReportQueryT): Promise<Saf
   const base = sql`
     FROM ${event}
     WHERE ${event.tenantId} = ${tenantId}
-      AND ${event.type} = ANY(${SAFETY_TYPES})
+      AND ${event.type} IN ${SAFETY_TYPES_SQL}
       AND ${event.tsStart} >= ${q.from} AND ${event.tsStart} < ${q.to}
       ${siteCond}
   `
@@ -93,7 +96,7 @@ async function collectSafetyData(tenantId: string, q: ReportQueryT): Promise<Saf
            count(*) FILTER (WHERE e.severity = 'critical')::int AS critical
     FROM ${event} e LEFT JOIN ${zone} z ON z.id = e.zone_id
     WHERE e.tenant_id = ${tenantId}
-      AND e.type = ANY(${SAFETY_TYPES})
+      AND e.type IN ${SAFETY_TYPES_SQL}
       AND e.ts_start >= ${q.from} AND e.ts_start < ${q.to}
       ${q.site_id ? sql`AND e.site_id = ${q.site_id}` : sql``}
     GROUP BY zone_name ORDER BY count DESC LIMIT 20
@@ -103,7 +106,7 @@ async function collectSafetyData(tenantId: string, q: ReportQueryT): Promise<Saf
     SELECT coalesce(c.name, left(e.camera_id::text, 8)) AS camera_name, count(*)::int AS count
     FROM ${event} e LEFT JOIN ${camera} c ON c.id = e.camera_id
     WHERE e.tenant_id = ${tenantId}
-      AND e.type = ANY(${SAFETY_TYPES})
+      AND e.type IN ${SAFETY_TYPES_SQL}
       AND e.ts_start >= ${q.from} AND e.ts_start < ${q.to}
       ${q.site_id ? sql`AND e.site_id = ${q.site_id}` : sql``}
     GROUP BY camera_name ORDER BY count DESC LIMIT 10
@@ -117,7 +120,7 @@ async function collectSafetyData(tenantId: string, q: ReportQueryT): Promise<Saf
       LEFT JOIN ${camera} c ON c.id = e.camera_id
       LEFT JOIN ${zone} z ON z.id = e.zone_id
     WHERE e.tenant_id = ${tenantId}
-      AND e.type = ANY(${SAFETY_TYPES})
+      AND e.type IN ${SAFETY_TYPES_SQL}
       AND e.ts_start >= ${q.from} AND e.ts_start < ${q.to}
       ${q.site_id ? sql`AND e.site_id = ${q.site_id}` : sql``}
     ORDER BY e.ts_start DESC LIMIT 30
@@ -340,7 +343,7 @@ async function buildSafetyXlsx(
       LEFT JOIN ${camera} c ON c.id = e.camera_id
       LEFT JOIN ${zone} z ON z.id = e.zone_id
     WHERE e.tenant_id = ${tenantId}
-      AND e.type = ANY(${SAFETY_TYPES})
+      AND e.type IN ${SAFETY_TYPES_SQL}
       AND e.ts_start >= ${q.from} AND e.ts_start < ${q.to}
       ${q.site_id ? sql`AND e.site_id = ${q.site_id}` : sql``}
     ORDER BY e.ts_start ASC LIMIT 5000

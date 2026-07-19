@@ -24,6 +24,7 @@ import publicRoutes from './routes/public.js'
 import { EventConsumer } from './streams/event_consumer.js'
 import { startCameraWatchdog } from './camera_watchdog.js'
 import { startRetention } from './retention.js'
+import { startVisitorSnapshot } from './visitor_snapshot.js'
 import { WsHub } from './ws/events.js'
 
 declare module 'fastify' {
@@ -92,7 +93,11 @@ async function main(): Promise<void> {
   // Hourly cleanup: old events (drop_chunks) + archive segments + disk floor
   const stopRetention = startRetention(app.log)
 
+  // Redis day-counter → visitor_daily history for analytics
+  const stopVisitorSnapshot = startVisitorSnapshot(redisCmd, app.log)
+
   const shutdown = async (): Promise<void> => {
+    stopVisitorSnapshot()
     stopRetention()
     stopWatchdog()
     stopReconciler()

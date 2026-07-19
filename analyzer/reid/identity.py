@@ -27,8 +27,13 @@ STAFF_KEY = "reid:staff:{tenant_id}"
 # staff face refs: hash gid -> json {embs: [[...]], photos, failed}
 FACE_STAFF_KEY = "face:staff:{tenant_id}"
 FACE_ENROLL_KEY = "face_enroll:{tenant_id}"  # list of {gid, jpeg_b64}
+# today's outfits, auto-learned when a FACE confirms the person: hash
+# gid -> json {embs: [[...]], ts}. Analyzer-owned (the API owns reid:staff);
+# entries expire after staff_auto_ttl_hours since clothes change daily.
+STAFF_AUTO_KEY = "reid:staff_auto:{tenant_id}"
 MAX_STAFF_EMBS = 8
 MAX_FACE_EMBS = 10
+MAX_AUTO_EMBS = 4  # outfits per staff member per day
 
 
 @dataclass(slots=True)
@@ -92,6 +97,9 @@ class IdentityManager:
         self._face_staff: dict[str, list[np.ndarray]] = {}  # gid -> face embs
         self._gallery_loaded: set[str] = set()
         self._pending_crops: list[_PendingCrop] = []
+        # queued from the sync resolve() path, flushed to Redis in sync():
+        self._pending_auto: dict[str, tuple[np.ndarray, float]] = {}  # gid → (emb, ts)
+        self._pending_absorb: list[tuple[str, str]] = []  # (site_id, visitor gid)
 
     # ── config / periodic sync ────────────────────────────────
     def _f(self, key: str, default: float) -> float:
@@ -125,7 +133,6 @@ class IdentityManager:
                     staff[gid] = embs
             except (KeyError, ValueError, TypeError, json.JSONDecodeError):
                 continue
-        self._staff = staff
 
         if self.face.ready:
             face_raw = await self.redis.hgetall(
@@ -140,6 +147,31 @@ class IdentityManager:
                 except (ValueError, TypeError, json.JSONDecodeError):
                     continue
             self._face_staff = face_staff
+
+        # merge today's auto-learned outfits (face-confirmed) into the staff
+        # clothing refs; the manual refs from the API stay untouched in Redis
+        auto_key = STAFF_AUTO_KEY.format(tenant_id=self.settings.tenant_id)
+        auto_raw = await self.redis.hgetall(auto_key)
+        if auto_raw:
+            ttl = self._f("staff_auto_ttl_hours", 24.0) * 3600.0
+            now = time.time()
+            known = set(staff) | set(self._face_staff)
+            stale: list[str] = []
+            for gid, payload in auto_raw.items():
+                try:
+                    d = json.loads(payload)
+                    if now - float(d.get("ts", 0)) > ttl or gid not in known:
+                        stale.append(gid)
+                        continue
+                    embs = [np.asarray(e, dtype=np.float32) for e in (d.get("embs") or [])]
+                    embs = [e for e in embs if e.shape[0] == self.embedder.dim]
+                    if embs:
+                        staff.setdefault(gid, []).extend(embs)
+                except (ValueError, TypeError, json.JSONDecodeError):
+                    stale.append(gid)
+            if stale:
+                await self.redis.hdel(auto_key, *stale)
+        self._staff = staff
 
     async def ensure_site(self, site_id: str) -> None:
         """Lazy-load the site gallery once (no-op afterwards)."""
@@ -197,8 +229,42 @@ class IdentityManager:
             del self._tracks[tkey]
 
         await self._flush_crops()
+        await self._flush_staff_auto()
+        await self._flush_absorbed()
         if self.face.ready:
             await self._process_face_enrollments()
+
+    async def _flush_staff_auto(self) -> None:
+        """Persist face-confirmed outfit embeddings (queued by resolve)."""
+        if not self._pending_auto:
+            return
+        pending, self._pending_auto = self._pending_auto, {}
+        key = STAFF_AUTO_KEY.format(tenant_id=self.settings.tenant_id)
+        ttl = self._f("staff_auto_ttl_hours", 24.0) * 3600.0
+        for gid, (emb, ts) in pending.items():
+            try:
+                raw = await self.redis.hget(key, gid)
+                d: dict[str, Any] = json.loads(raw) if raw else {}
+                if time.time() - float(d.get("ts", 0)) > ttl:
+                    d = {}  # yesterday's outfits are void
+                embs: list[Any] = list(d.get("embs") or [])
+                embs.append(emb.tolist())
+                await self.redis.hset(key, gid, json.dumps(
+                    {"embs": embs[-MAX_AUTO_EMBS:], "ts": ts}))
+            except Exception:  # noqa: BLE001 — best-effort, re-learned on next sighting
+                logger.exception("staff auto-learn flush failed for %s", gid)
+
+    async def _flush_absorbed(self) -> None:
+        """Drop phantom visitor identities of recognized staff (queued by resolve)."""
+        if not self._pending_absorb:
+            return
+        items, self._pending_absorb = self._pending_absorb, []
+        for site_id, gid in items:
+            try:
+                await self.redis.hdel(GALLERY_KEY.format(site_id=site_id), gid)
+                logger.info("absorbed phantom visitor %s (staff recognized)", gid)
+            except Exception:  # noqa: BLE001
+                self._pending_absorb.append((site_id, gid))
 
     async def _process_face_enrollments(self) -> None:
         """Photos queued by the API («Люди»: фото сотрудника / кроп с камеры)
@@ -303,8 +369,10 @@ class IdentityManager:
             state.emb = mixed / norm if norm > 0 else mixed
 
         # staff match is sticky for the whole track. Clothing refs first
-        # (cheap, several samples per person), then the face check on
-        # close-up crops — it survives a change of clothes.
+        # (cheap, several samples per person, incl. today's auto-learned
+        # outfits), then the face check — it survives a change of clothes.
+        visitor_gid = state.gid  # identity minted before the person proved staff
+        face_confirmed = False
         if not state.staff:
             staff_thr = self._f("staff_threshold", 0.90)
             for gid, sembs in self._staff.items():
@@ -313,8 +381,8 @@ class IdentityManager:
                     state.gid = gid
                     break
         if not state.staff and self.face.ready and self._face_staff \
-                and crop.shape[0] >= self._f("face_min_px", 140) \
-                and ts - state.last_face_try >= self._f("face_interval_seconds", 3.0):
+                and crop.shape[0] >= self._f("face_min_px", 100) \
+                and ts - state.last_face_try >= self._f("face_interval_seconds", 2.0):
             state.last_face_try = ts
             femb = self.face.embed_largest(crop)
             if femb is not None:
@@ -323,8 +391,21 @@ class IdentityManager:
                     if max(cosine(femb, e) for e in fembs) >= face_thr:
                         state.staff = True
                         state.gid = gid
+                        face_confirmed = True
                         break
         if state.staff:
+            gid = state.gid or ""
+            # a face confirmation teaches today's outfit: the rest of the day
+            # this person matches by clothing alone (back turned, far away)
+            if face_confirmed and state.emb is not None \
+                    and self._f("staff_auto_learn", 1.0) > 0:
+                self._staff.setdefault(gid, []).append(state.emb.copy())
+                self._pending_auto[gid] = (state.emb.copy(), ts)
+            # the person often minted a visitor identity before being
+            # recognized — absorb it so they aren't counted as a visitor
+            if visitor_gid and visitor_gid != gid:
+                self._gallery.get(site_id, {}).pop(visitor_gid, None)
+                self._pending_absorb.append((site_id, visitor_gid))
             return IdentityResult(global_id=state.gid, staff=True)
 
         entries = self._gallery.setdefault(site_id, {})

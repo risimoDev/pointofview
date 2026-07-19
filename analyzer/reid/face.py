@@ -54,6 +54,12 @@ class FaceEngine:
         h, w = bgr.shape[:2]
         if h < 40 or w < 40:
             return None
+        # PVZ cameras see people at a distance: a full-body crop of ~150-250px
+        # carries a face far below YuNet's comfort zone. Upscaling the crop
+        # recovers most of those detections at negligible CPU cost.
+        if h < 250:
+            bgr = cv2.resize(bgr, (w * 2, h * 2), interpolation=cv2.INTER_CUBIC)
+            h, w = bgr.shape[:2]
         try:
             assert self._det is not None and self._rec is not None
             self._det.setInputSize((w, h))

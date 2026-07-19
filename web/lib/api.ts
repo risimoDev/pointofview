@@ -188,6 +188,16 @@ const OverviewSchema = z.object({
     camera_id: z.string(), camera_name: z.string(), count: z.number(),
   })),
   totals: z.object({ total: z.number(), critical: z.number(), unresolved: z.number() }),
+  prevTotals: z.object({ total: z.number(), critical: z.number() }),
+  dwell: z.array(z.object({
+    kind: z.string(), avg_sec: z.number().nullable(), max_sec: z.number().nullable(),
+    visits: z.number(),
+  })),
+  peak: z.array(z.object({
+    dow: z.number(), hour: z.number(), count: z.number(),
+  })),
+  visitorsByDay: z.array(z.object({ day: z.string(), visitors: z.number() })),
+  tz: z.string(),
 })
 export type AnalyticsOverview = z.infer<typeof OverviewSchema>
 
@@ -374,12 +384,25 @@ const PersonSchema = z.object({
   snapshotUrl: z.string(),
   clothingSamples: z.number(),
   faceSamples: z.number(),
+  facePhotos: z.number(),
+  faceFailed: z.number(),
 })
 const PeopleSchema = z.object({ items: z.array(PersonSchema) })
 export type Person = z.infer<typeof PersonSchema>
 
 export async function getPeople(): Promise<Person[]> {
   return (await apiJson('/api/v1/people', PeopleSchema)).items
+}
+
+/** Create a staff member from scratch; face photos are uploaded afterwards. */
+export async function createStaff(name: string): Promise<string> {
+  const res = await apiFetch('/api/v1/people/staff', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  })
+  if (!res.ok) throw new Error(`createStaff: ${res.status}`)
+  return ((await res.json()) as { gid: string }).gid
 }
 
 export async function setPersonStaff(

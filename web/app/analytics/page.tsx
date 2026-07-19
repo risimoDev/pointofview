@@ -46,8 +46,9 @@ function rangeFor(p: Period): { from: string; to: string; bucket: 'hour' | 'day'
   return { from: from.toISOString(), to: now.toISOString(), bucket: 'day' }
 }
 
-function StatCard({ label, value, tone }: {
+function StatCard({ label, value, tone, delta }: {
   label: string; value: React.ReactNode; tone?: 'critical' | 'warn' | undefined
+  delta?: React.ReactNode
 }): React.JSX.Element {
   return (
     <div className="rounded-lg border border-border/70 bg-card/40 px-4 py-3">
@@ -59,8 +60,30 @@ function StatCard({ label, value, tone }: {
       }>
         {value}
       </div>
+      {delta !== undefined && <div className="mt-0.5 text-[11px] text-muted-foreground">{delta}</div>}
     </div>
   )
+}
+
+/** ±N к прошлому периоду той же длины; рост событий — тревожный (красный). */
+function Delta({ now, prev }: { now: number; prev: number }): React.JSX.Element {
+  const diff = now - prev
+  if (diff === 0) return <span>без изменений</span>
+  const cls = diff > 0 ? 'text-red-400' : 'text-emerald-400'
+  return <span className={cls}>{diff > 0 ? '+' : ''}{diff} к прошлому периоду</span>
+}
+
+function fmtDwell(sec: number): string {
+  if (sec < 60) return `${sec} сек`
+  return `${Math.floor(sec / 60)} мин ${sec % 60} сек`
+}
+
+const DOW_LABELS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
+const DWELL_KIND_LABELS: Record<string, string> = {
+  queue: 'Ожидание в очереди',
+  desk: 'Время у стойки',
+  counter: 'Время в зоне счётчика',
+  shelf: 'Время у полки',
 }
 
 /** Simple proportional bar row (calmer than another chart) */
@@ -120,10 +143,21 @@ export default function AnalyticsPage(): React.JSX.Element {
   }
 
   const totals = overview.data?.totals ?? { total: 0, critical: 0, unresolved: 0 }
+  const prev = overview.data?.prevTotals ?? { total: 0, critical: 0 }
   const byType = overview.data?.byType ?? []
   const byCamera = overview.data?.byCamera ?? []
+  const dwell = overview.data?.dwell ?? []
+  const peak = overview.data?.peak ?? []
+  const visitorsByDay = overview.data?.visitorsByDay ?? []
   const maxType = Math.max(1, ...byType.map((t) => t.count))
   const maxCam = Math.max(1, ...byCamera.map((c) => c.count))
+  const maxPeak = Math.max(1, ...peak.map((p) => p.count))
+  const maxVisitors = Math.max(1, ...visitorsByDay.map((v) => v.visitors))
+  const peakAt = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const p of peak) m.set(`${p.dow}:${p.hour}`, p.count)
+    return m
+  }, [peak])
 
   return (
     <main className="space-y-4 p-4">
@@ -140,11 +174,26 @@ export default function AnalyticsPage(): React.JSX.Element {
       </div>
 
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-        <StatCard label="Событий за период" value={totals.total} />
-        <StatCard label="Критичных" value={totals.critical} tone={totals.critical > 0 ? 'critical' : undefined} />
+        <StatCard label="Событий за период" value={totals.total}
+          delta={<Delta now={totals.total} prev={prev.total} />} />
+        <StatCard label="Критичных" value={totals.critical} tone={totals.critical > 0 ? 'critical' : undefined}
+          delta={<Delta now={totals.critical} prev={prev.critical} />} />
         <StatCard label="Необработанных" value={totals.unresolved} tone={totals.unresolved > 0 ? 'warn' : undefined} />
         <StatCard label="Посетителей сегодня" value={visitorsToday} />
       </div>
+
+      {dwell.length > 0 && (
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+          {dwell.map((d) => (
+            <StatCard
+              key={d.kind}
+              label={DWELL_KIND_LABELS[d.kind] ?? d.kind}
+              value={fmtDwell(d.avg_sec ?? 0)}
+              delta={<span>максимум {fmtDwell(d.max_sec ?? 0)} · визитов {d.visits}</span>}
+            />
+          ))}
+        </div>
+      )}
 
       <section className="rounded-lg border border-border/70 bg-card/40 p-4">
         <h2 className="mb-3 text-sm font-medium text-muted-foreground">
@@ -225,6 +274,70 @@ export default function AnalyticsPage(): React.JSX.Element {
             )}
         </section>
       </div>
+
+      <section className="rounded-lg border border-border/70 bg-card/40 p-4">
+        <h2 className="mb-3 text-sm font-medium text-muted-foreground">
+          Пиковые часы (события, день недели × час)
+        </h2>
+        {peak.length === 0
+          ? <p className="text-sm text-muted-foreground">Нет данных.</p>
+          : (
+            <div className="overflow-x-auto">
+              <div className="min-w-[640px]">
+                <div className="ml-8 flex">
+                  {Array.from({ length: 24 }, (_, h) => (
+                    <span key={h} className="w-6 text-center text-[10px] text-muted-foreground">
+                      {h % 3 === 0 ? h : ''}
+                    </span>
+                  ))}
+                </div>
+                {DOW_LABELS.map((label, i) => (
+                  <div key={label} className="flex items-center">
+                    <span className="w-8 text-[11px] text-muted-foreground">{label}</span>
+                    {Array.from({ length: 24 }, (_, h) => {
+                      const count = peakAt.get(`${i + 1}:${h}`) ?? 0
+                      return (
+                        <span
+                          key={h}
+                          title={`${label} ${h}:00 — ${count}`}
+                          className="m-px h-5 w-[22px] rounded-sm"
+                          style={{
+                            background: count === 0
+                              ? 'hsl(215 20% 50% / 0.08)'
+                              : `hsl(172 55% 42% / ${0.15 + 0.85 * (count / maxPeak)})`,
+                          }}
+                        />
+                      )
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+      </section>
+
+      <section className="rounded-lg border border-border/70 bg-card/40 p-4">
+        <h2 className="mb-3 text-sm font-medium text-muted-foreground">Посетители по дням</h2>
+        {visitorsByDay.length === 0
+          ? (
+            <p className="text-sm text-muted-foreground">
+              История накапливается с момента обновления — счётчик дня снимается
+              в базу каждые 10 минут, график наполнится за несколько дней.
+            </p>
+          )
+          : (
+            <div className="space-y-1">
+              {visitorsByDay.map((v) => (
+                <BarRow
+                  key={v.day}
+                  label={new Date(v.day).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })}
+                  count={v.visitors}
+                  max={maxVisitors}
+                />
+              ))}
+            </div>
+          )}
+      </section>
     </main>
   )
 }

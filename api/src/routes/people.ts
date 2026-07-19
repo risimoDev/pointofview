@@ -1,5 +1,6 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { and, eq } from 'drizzle-orm'
+import { randomBytes } from 'node:crypto'
 import { z } from 'zod'
 import { db } from '../db/client.js'
 import { site, tenantFeature } from '../../db/schema.js'
@@ -13,6 +14,8 @@ const galleryKey = (siteId: string): string => `reid:gallery:${siteId}`
 const staffKey = (tenantId: string): string => `reid:staff:${tenantId}`
 const faceStaffKey = (tenantId: string): string => `face:staff:${tenantId}`
 const faceEnrollKey = (tenantId: string): string => `face_enroll:${tenantId}`
+// analyzer-owned: today's auto-learned outfits — must go when the staff row goes
+const staffAutoKey = (tenantId: string): string => `reid:staff_auto:${tenantId}`
 
 const MAX_STAFF_EMBS = 8
 
@@ -100,6 +103,8 @@ const peopleRoutes: FastifyPluginAsyncZod = async (app) => {
       snapshotUrl: string
       clothingSamples: number
       faceSamples: number
+      facePhotos: number
+      faceFailed: number
     }[] = []
 
     const presign = (gid: string): Promise<string> =>
@@ -108,10 +113,19 @@ const peopleRoutes: FastifyPluginAsyncZod = async (app) => {
       )
 
     const faceRaw = await app.redis.hgetall(faceStaffKey(req.tenantId))
-    const faceCount = (gid: string): number => {
+    const faceInfo = (gid: string): { samples: number; photos: number; failed: number } => {
       const payload = faceRaw[gid]
-      if (!payload) return 0
-      try { return ((JSON.parse(payload) as FaceStaffJson).embs ?? []).length } catch { return 0 }
+      if (!payload) return { samples: 0, photos: 0, failed: 0 }
+      try {
+        const parsed = JSON.parse(payload) as FaceStaffJson
+        return {
+          samples: (parsed.embs ?? []).length,
+          photos: parsed.photos ?? 0,
+          failed: parsed.failed ?? 0,
+        }
+      } catch {
+        return { samples: 0, photos: 0, failed: 0 }
+      }
     }
 
     for (const [gid, payload] of Object.entries(staffRaw)) {
@@ -122,10 +136,12 @@ const peopleRoutes: FastifyPluginAsyncZod = async (app) => {
         name = parsed.name ?? null
         clothing = staffEmbs(parsed).length
       } catch { /* keep defaults */ }
+      const face = faceInfo(gid)
       items.push({
         gid, staff: true, name, lastSeen: null, siteId: null, siteName: null,
         snapshotUrl: await presign(gid),
-        clothingSamples: clothing, faceSamples: faceCount(gid),
+        clothingSamples: clothing, faceSamples: face.samples,
+        facePhotos: face.photos, faceFailed: face.failed,
       })
     }
 
@@ -138,7 +154,7 @@ const peopleRoutes: FastifyPluginAsyncZod = async (app) => {
         items.push({
           gid, staff: false, name: null, lastSeen, siteId: s.id, siteName: s.name,
           snapshotUrl: await presign(gid),
-          clothingSamples: 0, faceSamples: 0,
+          clothingSamples: 0, faceSamples: 0, facePhotos: 0, faceFailed: 0,
         })
       }
     }
@@ -146,6 +162,24 @@ const peopleRoutes: FastifyPluginAsyncZod = async (app) => {
     // staff first, then most recently seen
     items.sort((a, b) => Number(b.staff) - Number(a.staff) || (b.lastSeen ?? 0) - (a.lastSeen ?? 0))
     return { items }
+  })
+
+  // Create a staff member from scratch (name now, face photos next) — no need
+  // to wait for the person to show up in the visitor gallery. Clothing refs
+  // start empty: the analyzer auto-learns today's outfit from the first face
+  // confirmation (reid:staff_auto).
+  app.post('/people/staff', {
+    preHandler: [app.requireRole('super', 'admin')],
+    schema: { body: z.object({ name: z.string().trim().min(1).max(80) }) },
+  }, async (req, reply) => {
+    const gid = `s${randomBytes(6).toString('hex')}`
+    await app.redis.hset(staffKey(req.tenantId), gid,
+      JSON.stringify({ embs: [], name: req.body.name }))
+    await writeAudit({
+      tenantId: req.tenantId, userId: req.userId, action: 'person.staff_create',
+      resourceType: 'person', resourceId: gid, details: { name: req.body.name },
+    })
+    return reply.code(201).send({ gid })
   })
 
   // Toggle staff status. Marking copies the person's embedding from a site
@@ -161,6 +195,7 @@ const peopleRoutes: FastifyPluginAsyncZod = async (app) => {
     if (!staff) {
       await app.redis.hdel(staffKey(req.tenantId), gid)
       await app.redis.hdel(faceStaffKey(req.tenantId), gid)
+      await app.redis.hdel(staffAutoKey(req.tenantId), gid)
       await writeAudit({
         tenantId: req.tenantId, userId: req.userId, action: 'person.unstaff',
         resourceType: 'person', resourceId: gid,
@@ -261,6 +296,18 @@ const peopleRoutes: FastifyPluginAsyncZod = async (app) => {
     await app.redis.rpush(faceEnrollKey(req.tenantId), JSON.stringify({
       gid, jpeg_b64: buf.toString('base64'),
     }))
+    // staff created from scratch have no camera crop yet — the uploaded photo
+    // becomes the card image on «Люди»
+    try {
+      await minio.statObject(config.MINIO_BUCKET_SNAPSHOTS, `reid/${req.tenantId}/${gid}.jpg`)
+    } catch {
+      if (jpeg) {
+        await minio.putObject(
+          config.MINIO_BUCKET_SNAPSHOTS, `reid/${req.tenantId}/${gid}.jpg`, buf,
+          buf.length, { 'Content-Type': 'image/jpeg' },
+        ).catch(() => undefined)
+      }
+    }
     await writeAudit({
       tenantId: req.tenantId, userId: req.userId, action: 'person.face_photo',
       resourceType: 'person', resourceId: gid, details: { bytes: buf.length },
@@ -280,6 +327,7 @@ const peopleRoutes: FastifyPluginAsyncZod = async (app) => {
     for (const s of sites) await app.redis.hdel(galleryKey(s.id), gid)
     await app.redis.hdel(staffKey(req.tenantId), gid)
     await app.redis.hdel(faceStaffKey(req.tenantId), gid)
+    await app.redis.hdel(staffAutoKey(req.tenantId), gid)
     await removeCrop(req.tenantId, gid)
     await writeAudit({
       tenantId: req.tenantId, userId: req.userId, action: 'person.delete',

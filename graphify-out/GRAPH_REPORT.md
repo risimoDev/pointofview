@@ -1,16 +1,16 @@
 # Graph Report - aipvzanalityc  (2026-07-19)
 
 ## Corpus Check
-- 148 files · ~77,622 words
+- 150 files · ~79,993 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1325 nodes · 2639 edges · 91 communities (77 shown, 14 thin omitted)
+- 1343 nodes · 2673 edges · 90 communities (76 shown, 14 thin omitted)
 - Extraction: 86% EXTRACTED · 14% INFERRED · 0% AMBIGUOUS · INFERRED: 363 edges (avg confidence: 0.52)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `26af50db`
+- Built from commit: `392f5d7b`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -60,7 +60,6 @@
 - [[_COMMUNITY_Community 52|Community 52]]
 - [[_COMMUNITY_Community 53|Community 53]]
 - [[_COMMUNITY_Community 54|Community 54]]
-- [[_COMMUNITY_Community 55|Community 55]]
 - [[_COMMUNITY_Community 56|Community 56]]
 - [[_COMMUNITY_Community 57|Community 57]]
 - [[_COMMUNITY_Community 58|Community 58]]
@@ -101,7 +100,7 @@
 1. `Settings` - 111 edges
 2. `Event` - 72 edges
 3. `FrameContext` - 48 edges
-4. `apiFetch()` - 33 edges
+4. `apiFetch()` - 34 edges
 5. `Zone` - 26 edges
 6. `ZoneEngine` - 26 edges
 7. `AnalyzerWorker` - 25 edges
@@ -129,7 +128,7 @@
 - **Dev infrastructure services** — docker_compose_dev_postgres, docker_compose_dev_redis, docker_compose_dev_minio, docker_compose_dev_go2rtc, docker_compose_dev_wireguard [EXTRACTED 1.00]
 - **Tenant data model hierarchy** — claude_tenant_entity, claude_site_entity, claude_camera_entity, claude_zone_entity, claude_event_entity [EXTRACTED 1.00]
 
-## Communities (91 total, 14 thin omitted)
+## Communities (90 total, 14 thin omitted)
 
 ### Community 0 - "Analyzer Config & Settings"
 Cohesion: 0.19
@@ -161,7 +160,7 @@ Nodes (9): properties, x1, x2, y1, y2, type, type, type (+1 more)
 
 ### Community 7 - "Drizzle DB Schema & Enums"
 Cohesion: 0.08
-Nodes (23): Bbox, cameraStatusEnum, deploymentModeEnum, eventSeverityEnum, eventTypeEnum, featureIdEnum, NewAlertRule, NewAppUser (+15 more)
+Nodes (25): Bbox, cameraStatusEnum, deploymentModeEnum, eventSeverityEnum, eventTypeEnum, featureIdEnum, NewAlertRule, NewAppUser (+17 more)
 
 ### Community 8 - "API TypeScript Config"
 Cohesion: 0.07
@@ -180,48 +179,48 @@ Cohesion: 0.10
 Nodes (19): compilerOptions, esModuleInterop, exactOptionalPropertyTypes, forceConsistentCasingInFileNames, lib, module, moduleResolution, noImplicitAny (+11 more)
 
 ### Community 12 - "Video Grid (WebRTC)"
-Cohesion: 0.08
-Nodes (25): ndarray, ndarray, Settings, ndarray, Redis, Settings, cosine(), HistogramEmbedder (+17 more)
+Cohesion: 0.07
+Nodes (27): ndarray, ndarray, Settings, ndarray, Redis, Settings, cosine(), HistogramEmbedder (+19 more)
 
 ### Community 13 - "API Auth (JWT)"
-Cohesion: 0.13
-Nodes (14): 1. Текущее состояние (что работает), 2. Нерешённые проблемы (проверить в первую очередь), 3. Принятые решения (не пересматривать без причины), 4. План улучшений (приоритетный), 5. Полезное для новой сессии, ViziAI — план развития и контекст сессии (обновлено 2026-07-12), Блок A — быстрые победы (по дню, делать первыми), Блок B — вау + продажи (+6 more)
+Cohesion: 0.12
+Nodes (15): 1. Текущее состояние (что работает), 2. Нерешённые проблемы (проверить в первую очередь), 3. Принятые решения (не пересматривать без причины), 4. План улучшений (приоритетный), 5. Полезное для новой сессии, ViziAI — план развития и контекст сессии (обновлено 2026-07-12), Блок A — быстрые победы (по дню, делать первыми), Блок B — вау + продажи (+7 more)
 
 ### Community 14 - "Alerts Worker"
-Cohesion: 0.17
-Nodes (21): Notification, buildText(), Channel, Channels, DigestEntry, escapeHtml(), EventCtx, inQuietHours() (+13 more)
+Cohesion: 0.13
+Nodes (26): Notification, AlertJob, alertsQueue, bullConnection, ClipJob, clipsQueue, buildText(), Channel (+18 more)
 
 ### Community 15 - "Zone Editor (Canvas)"
-Cohesion: 0.13
-Nodes (22): CameraRow(), SOURCES, STATUSES, OBJECT_TYPES, createCamera(), deleteCamera(), getSites(), updateCamera() (+14 more)
+Cohesion: 0.09
+Nodes (28): ALERTING_KINDS, DWELL_KINDS, EditZone, Kind, Point, ZoneEditor(), OBJECT_TYPES, createSite() (+20 more)
 
 ### Community 16 - "Events Page (Web)"
 Cohesion: 0.14
 Nodes (13): ClipCell(), severityVariant, ClipState, ClipStatus, useClipRequest(), getClipUrl(), requestClip(), Table (+5 more)
 
 ### Community 17 - "Event Log & Store"
-Cohesion: 0.06
-Nodes (35): Period, TYPE_COLORS, CameraStream(), StreamState, EventLog(), severityVariant, CameraModal(), CameraTile() (+27 more)
+Cohesion: 0.07
+Nodes (30): DOW_LABELS, DWELL_KIND_LABELS, Period, TYPE_COLORS, CameraStream(), StreamState, EventLog(), severityVariant (+22 more)
 
 ### Community 18 - "Web Zod Schemas"
-Cohesion: 0.12
-Nodes (22): Zone, eventsRoutes(), internalRoutes(), ReidCropBody, Config, EnvSchema, ensureBucket(), minio (+14 more)
+Cohesion: 0.24
+Nodes (11): internalRoutes(), ReidCropBody, ensureBucket(), minio, SegmentBody, settingBool(), ffmpegEscape(), log() (+3 more)
 
 ### Community 19 - "API DB Client & Analytics"
 Cohesion: 0.12
 Nodes (15): 0. Перед началом — чеклист, 1. Скачать ISO (на рабочем dev-ПК), 2. Загрузочная флешка (Rufus), 3. Настройки BIOS (Gigabyte H610M), 4. Установка (по экранам), 5.1 Обновление и часовой пояс, 5.2 Постоянный IP-адрес, 5.3 SSH по ключу (с dev-ПК) (+7 more)
 
 ### Community 20 - "Dashboard & Event Stream"
-Cohesion: 0.13
-Nodes (22): db, pool, AlertRule, ArchiveSegment, AuditLog, SystemSetting, adminRoutes(), AlertRuleBody (+14 more)
+Cohesion: 0.12
+Nodes (16): CameraRow(), SOURCES, STATUSES, createCamera(), deleteCamera(), getCameras(), updateCamera(), cameraStatusLabels (+8 more)
 
 ### Community 22 - "Cameras Routes & go2rtc Sync"
-Cohesion: 0.11
-Nodes (16): getWsTicket(), ApiEvent, ApiEventSchema, BboxSchema, CameraSchema, CamerasSchema, CameraStatus, EventsPage (+8 more)
+Cohesion: 0.12
+Nodes (14): CreateZoneInput, ApiEvent, ApiEventSchema, BboxSchema, CameraSchema, CamerasSchema, CameraStatus, EventsPage (+6 more)
 
 ### Community 23 - "API Event Consumer (Redis)"
-Cohesion: 0.14
-Nodes (11): FastifyInstance, FastifyJWT, FastifyRequest, JwtPayload, startGo2rtcReconciler(), startCameraWatchdog(), FastifyInstance, main() (+3 more)
+Cohesion: 0.11
+Nodes (22): ArchiveSegment, FastifyInstance, FastifyJWT, FastifyRequest, JwtPayload, startGo2rtcReconciler(), checkCameras(), publish() (+14 more)
 
 ### Community 24 - "Deploy Script"
 Cohesion: 0.73
@@ -252,8 +251,8 @@ Cohesion: 0.06
 Nodes (27): Home(), metadata, DemoForm(), ActorCfg, ACTORS, ActorState, Follower, gridLines() (+19 more)
 
 ### Community 31 - "Home Page"
-Cohesion: 0.10
-Nodes (26): Camera, analyticsRoutes(), OverviewQuery, SummaryRow, camerasRoutes(), go2rtcSource(), reconcileGo2rtc(), registerGo2rtc() (+18 more)
+Cohesion: 0.09
+Nodes (29): Camera, Zone, analyticsRoutes(), OverviewQuery, SummaryRow, camerasRoutes(), go2rtcSource(), reconcileGo2rtc() (+21 more)
 
 ### Community 46 - "Community 46"
 Cohesion: 0.13
@@ -293,10 +292,6 @@ Nodes (6): diag-stream2.sh script, cleanup(), line(), pyjson(), show_medias(), t
 Cohesion: 0.40
 Nodes (5): Event, additionalProperties, description, required, type
 
-### Community 55 - "Community 55"
-Cohesion: 0.12
-Nodes (12): ALERTING_KINDS, DWELL_KINDS, EditZone, Kind, Point, ZoneEditor(), CreateZoneInput, deleteZone() (+4 more)
-
 ### Community 56 - "Community 56"
 Cohesion: 0.83
 Nodes (3): diag-stream-verify.sh script, line(), pyjson()
@@ -310,8 +305,8 @@ Cohesion: 0.83
 Nodes (3): diag-stream.sh script, line(), pyjson()
 
 ### Community 59 - "Community 59"
-Cohesion: 0.11
-Nodes (13): Site, TenantFeature, featuresRoutes(), faceEnrollKey(), FaceStaffJson, GalleryJson, peopleRoutes(), queueFaceEnrollFromCrop() (+5 more)
+Cohesion: 0.10
+Nodes (15): db, pool, Site, TenantFeature, featuresRoutes(), faceEnrollKey(), FaceStaffJson, GalleryJson (+7 more)
 
 ### Community 60 - "Community 60"
 Cohesion: 0.67
@@ -362,8 +357,8 @@ Cohesion: 0.67
 Nodes (3): ts_start, format, type
 
 ### Community 78 - "Community 78"
-Cohesion: 0.20
-Nodes (11): buildSafetyPdf(), buildSafetyXlsx(), findFont(), fmtDate(), ReportQuery, ReportQueryT, SAFETY_TYPES, SafetyData (+3 more)
+Cohesion: 0.18
+Nodes (12): buildSafetyPdf(), buildSafetyXlsx(), findFont(), fmtDate(), ReportQuery, ReportQueryT, SAFETY_TYPES, SAFETY_TYPES_SQL (+4 more)
 
 ### Community 79 - "Community 79"
 Cohesion: 0.13
@@ -378,8 +373,8 @@ Cohesion: 0.23
 Nodes (14): Any, Event, FrameContext, Redis, Settings, ThreadPoolExecutor, CounterPlugin, People counting / occupancy. Produces no events — writes throttled     metrics t (+6 more)
 
 ### Community 96 - "Community 96"
-Cohesion: 0.20
-Nodes (12): AppUser, authRoutes(), DemoRequestBody, OBJECT_LABELS, publicRoutes(), reportsRoutes(), clientIp(), rateLimit() (+4 more)
+Cohesion: 0.10
+Nodes (25): AlertRule, AppUser, AuditLog, SystemSetting, adminRoutes(), AlertRuleBody, RoleEnum, authRoutes() (+17 more)
 
 ### Community 227 - "Community 227"
 Cohesion: 0.11
@@ -402,7 +397,7 @@ Cohesion: 0.22
 Nodes (5): Any, BasePlugin, FeaturePlugin, Per-frame feature detector. One instance per worker; plugins own their     own s, Defaults for the FeaturePlugin contract. Existing geometry plugins     inherit t
 
 ## Knowledge Gaps
-- **399 isolated node(s):** `VideoCapture`, `deploymentModeEnum`, `sourceTypeEnum`, `cameraStatusEnum`, `zoneKindEnum` (+394 more)
+- **403 isolated node(s):** `VideoCapture`, `deploymentModeEnum`, `sourceTypeEnum`, `cameraStatusEnum`, `zoneKindEnum` (+398 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **14 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -410,10 +405,10 @@ Nodes (5): Any, BasePlugin, FeaturePlugin, Per-frame feature detector. One insta
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `Settings` connect `Community 227` to `Community 64`, `Analyzer Config & Settings`, `Community 67`, `Zone Engine`, `Community 230`, `Community 231`, `Community 229`, `API Events Routes & Queues`, `Community 73`, `Video Grid (WebRTC)`, `Community 80`, `Community 82`, `Community 92`?**
-  _High betweenness centrality (0.031) - this node is a cross-community bridge._
-- **Why does `AnalyzerWorker` connect `Community 229` to `Analyzer Config & Settings`, `Community 64`, `Community 227`, `Community 73`?**
+  _High betweenness centrality (0.033) - this node is a cross-community bridge._
+- **Why does `Button` connect `Zone Editor (Canvas)` to `Web API Client & Clips`, `Community 74`, `Community 79`, `Events Page (Web)`, `Dashboard & Event Stream`, `WebSocket Hub`, `Web Auth Middleware`?**
   _High betweenness centrality (0.007) - this node is a cross-community bridge._
-- **Why does `Event` connect `Community 227` to `Community 67`, `Zone Engine`, `Community 230`, `Community 231`, `Community 232`, `Community 73`, `Community 80`, `Community 92`?**
+- **Why does `AnalyzerWorker` connect `Community 229` to `Analyzer Config & Settings`, `Community 64`, `Community 227`, `Community 73`?**
   _High betweenness centrality (0.007) - this node is a cross-community bridge._
 - **Are the 91 inferred relationships involving `Settings` (e.g. with `ndarray` and `Settings`) actually correct?**
   _`Settings` has 91 INFERRED edges - model-reasoned connections that need verification._

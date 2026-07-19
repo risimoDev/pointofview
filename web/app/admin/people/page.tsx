@@ -7,7 +7,7 @@ import {
   IconUserCheck, IconUserMinus, IconUsers, IconTrash, IconCamera, IconUserPlus,
 } from '@tabler/icons-react'
 import {
-  deletePerson, getPeople, setPersonStaff, uploadFacePhoto, type Person,
+  createStaff, deletePerson, getPeople, setPersonStaff, uploadFacePhoto, type Person,
 } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -78,6 +78,18 @@ function PersonCard({ person, staffList, onChanged }: {
             <div className="text-[11px] text-muted-foreground">
               Образцы: одежда {person.clothingSamples} · лицо {person.faceSamples}
             </div>
+            {person.faceSamples === 0 && (
+              <p className="text-[11px] text-amber-400">
+                Лицо не обучено — добавьте 1–3 чётких фото анфас, иначе после
+                переодевания сотрудник не распознается.
+              </p>
+            )}
+            {person.faceFailed > 0 && (
+              <p className="text-[11px] text-amber-400">
+                {person.faceFailed} фото не распозналось — переснимите анфас при
+                хорошем освещении.
+              </p>
+            )}
             <input
               ref={fileRef} type="file" accept="image/jpeg,image/png" className="hidden"
               onChange={(e) => {
@@ -159,6 +171,42 @@ function PersonCard({ person, staffList, onChanged }: {
   )
 }
 
+function AddStaffForm({ onChanged }: { onChanged: () => void }): React.JSX.Element {
+  const [name, setName] = useState('')
+  const [hint, setHint] = useState<string | null>(null)
+  const add = useMutation({
+    mutationFn: () => createStaff(name.trim()),
+    onSuccess: () => {
+      setName('')
+      setHint('Сотрудник создан — добавьте 1–3 фото лица на его карточке ниже.')
+      onChanged()
+    },
+    onError: () => setHint('Не удалось создать сотрудника'),
+  })
+  return (
+    <div className="space-y-1.5">
+      <form
+        className="flex flex-wrap items-center gap-2"
+        onSubmit={(e) => { e.preventDefault(); if (name.trim()) add.mutate() }}
+      >
+        <Input
+          placeholder="Имя сотрудника"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="h-9 w-56"
+        />
+        <Button type="submit" size="sm" disabled={!name.trim() || add.isPending}>
+          <IconUserPlus className="mr-1 h-4 w-4" stroke={1.75} /> Добавить сотрудника
+        </Button>
+        <span className="text-xs text-muted-foreground">
+          — заранее, по фото с телефона; ждать появления на камерах не нужно.
+        </span>
+      </form>
+      {hint && <p className="text-xs text-brand">{hint}</p>}
+    </div>
+  )
+}
+
 export default function PeoplePage(): React.JSX.Element {
   const qc = useQueryClient()
   const people = useQuery({ queryKey: ['admin', 'people'], queryFn: getPeople, refetchInterval: 30_000 })
@@ -183,9 +231,11 @@ export default function PeoplePage(): React.JSX.Element {
 
       <section className="space-y-2">
         <h2 className="text-sm font-medium text-muted-foreground">Сотрудники ({staff.length})</h2>
+        <AddStaffForm onChanged={onChanged} />
         {staff.length === 0 && (
           <p className="text-sm text-muted-foreground">
-            Пока никого. Найди сотрудника в списке ниже и нажми «Это сотрудник».
+            Пока никого. Добавь сотрудника по имени выше — или найди его в списке
+            «замеченных» ниже и нажми «Это сотрудник».
           </p>
         )}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">

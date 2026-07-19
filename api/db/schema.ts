@@ -10,6 +10,7 @@ import {
   bigint,
   doublePrecision,
   timestamp,
+  date,
   inet,
   index,
   primaryKey,
@@ -149,6 +150,16 @@ export const auditLog = pgTable('audit_log', {
 }, (t) => [
   primaryKey({ columns: [t.id, t.createdAt] }),
   index('idx_audit_tenant_ts').on(t.tenantId, t.createdAt.desc()),
+])
+
+// ── Daily visitor counts (snapshotted from Redis visitors:{tenant}) ──
+export const visitorDaily = pgTable('visitor_daily', {
+  siteId: uuid('site_id').notNull().references(() => site.id, { onDelete: 'cascade' }),
+  day: date('day').notNull(),
+  visitors: integer('visitors').notNull().default(0),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  primaryKey({ columns: [t.siteId, t.day] }),
 ])
 
 // ── Video archive (metadata; files on disk) ───────────────────

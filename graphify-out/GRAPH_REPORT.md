@@ -1,16 +1,16 @@
-# Graph Report - aipvzanalityc  (2026-07-18)
+# Graph Report - aipvzanalityc  (2026-07-19)
 
 ## Corpus Check
-- 144 files · ~73,826 words
+- 144 files · ~73,888 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1291 nodes · 2546 edges · 85 communities (74 shown, 11 thin omitted)
+- 1291 nodes · 2546 edges · 86 communities (75 shown, 11 thin omitted)
 - Extraction: 86% EXTRACTED · 14% INFERRED · 0% AMBIGUOUS · INFERRED: 363 edges (avg confidence: 0.52)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `8e16d72e`
+- Built from commit: `1bd7f7bf`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -82,6 +82,7 @@
 - [[_COMMUNITY_Community 74|Community 74]]
 - [[_COMMUNITY_Community 75|Community 75]]
 - [[_COMMUNITY_Community 76|Community 76]]
+- [[_COMMUNITY_Community 77|Community 77]]
 - [[_COMMUNITY_Community 79|Community 79]]
 - [[_COMMUNITY_Community 92|Community 92]]
 - [[_COMMUNITY_Community 96|Community 96]]
@@ -123,7 +124,7 @@
 - **Dev infrastructure services** — docker_compose_dev_postgres, docker_compose_dev_redis, docker_compose_dev_minio, docker_compose_dev_go2rtc, docker_compose_dev_wireguard [EXTRACTED 1.00]
 - **Tenant data model hierarchy** — claude_tenant_entity, claude_site_entity, claude_camera_entity, claude_zone_entity, claude_event_entity [EXTRACTED 1.00]
 
-## Communities (85 total, 11 thin omitted)
+## Communities (86 total, 11 thin omitted)
 
 ### Community 0 - "Analyzer Config & Settings"
 Cohesion: 0.20
@@ -268,8 +269,8 @@ Nodes (10): build(), C, { FaVideo, FaChartBar, FaBell, FaShieldAlt, FaCloud, FaS
         FaLock, FaDatabase, FaBolt, FaCogs, FaMapMarkerAlt }, iconBase64(), makeShadow(), { MdAnalytics, MdSecurity, MdSpeed }, pptxgen, React (+2 more)
 
 ### Community 50 - "Community 50"
-Cohesion: 0.12
-Nodes (16): type, properties, type, confidence, meta, severity, stream, ts_end (+8 more)
+Cohesion: 0.15
+Nodes (13): type, properties, type, confidence, meta, severity, stream, ts_end (+5 more)
 
 ### Community 51 - "Community 51"
 Cohesion: 0.22
@@ -350,6 +351,10 @@ Nodes (3): EventMessage, EventConsumer, fieldValue()
 ### Community 76 - "Community 76"
 Cohesion: 0.60
 Nodes (3): diag-features.sh script, line(), psql_()
+
+### Community 77 - "Community 77"
+Cohesion: 0.67
+Nodes (3): ts_start, format, type
 
 ### Community 79 - "Community 79"
 Cohesion: 0.11

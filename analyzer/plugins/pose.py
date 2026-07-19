@@ -73,14 +73,28 @@ class PosePlugin(BasePlugin):
 
     # ── lifecycle ─────────────────────────────────────────────
     async def setup(self, cfg: dict[str, Any]) -> None:
-        path = str(cfg.get("model") or self.settings.pose_model)
-        # a path (contains a separator) must exist; a bare ultralytics name
-        # (yolov8n-pose.pt) is resolved/downloaded by the library itself
-        if (os.sep in path or "/" in path) and not os.path.isfile(path):
-            raise FileNotFoundError(f"pose model not found: {path}")
+        # Resolution order (rule 10.4: degrade, don't die):
+        #   1. explicit config.model — must exist, no silent fallback
+        #   2. Settings.pose_model (image-baked /opt/models copy)
+        #   3. /models mount (drop the file there — no rebuild needed)
+        #   4. bare ultralytics name → runtime auto-download (needs internet)
+        def is_path(p: str) -> bool:
+            return os.sep in p or "/" in p
+
+        override = cfg.get("model")
+        if override:
+            path = str(override)
+            if is_path(path) and not os.path.isfile(path):
+                raise FileNotFoundError(f"pose model not found: {path}")
+        else:
+            path = next(
+                (c for c in (self.settings.pose_model, "/models/yolov8n-pose.pt")
+                 if not is_path(c) or os.path.isfile(c)),
+                "yolov8n-pose.pt",
+            )
         from ultralytics import YOLO
 
-        model = YOLO(path)
+        model = YOLO(path)  # bare name may auto-download; failure → error status
         model.to(self.settings.analyzer_device)
         self._model = model
         self.model_version = f"pose:{os.path.basename(path)}"

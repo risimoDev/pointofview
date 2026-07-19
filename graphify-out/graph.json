@@ -1576,7 +1576,7 @@
       "label": ".teardown()",
       "file_type": "code",
       "source_file": "analyzer/plugins/pose.py",
-      "source_location": "L89",
+      "source_location": "L103",
       "_origin": "ast",
       "id": "plugins_pose_poseplugin_teardown",
       "community": 230,
@@ -1586,7 +1586,7 @@
       "label": "._predict()",
       "file_type": "code",
       "source_file": "analyzer/plugins/pose.py",
-      "source_location": "L102",
+      "source_location": "L116",
       "_origin": "ast",
       "id": "plugins_pose_poseplugin_predict",
       "community": 230,
@@ -1596,7 +1596,7 @@
       "label": "._is_down()",
       "file_type": "code",
       "source_file": "analyzer/plugins/pose.py",
-      "source_location": "L130",
+      "source_location": "L144",
       "_origin": "ast",
       "id": "plugins_pose_poseplugin_is_down",
       "community": 230,
@@ -1606,7 +1606,7 @@
       "label": ".on_frame()",
       "file_type": "code",
       "source_file": "analyzer/plugins/pose.py",
-      "source_location": "L160",
+      "source_location": "L174",
       "_origin": "ast",
       "id": "plugins_pose_poseplugin_on_frame",
       "community": 230,
@@ -1616,7 +1616,7 @@
       "label": "FrameContext",
       "file_type": "code",
       "source_file": "analyzer/plugins/pose.py",
-      "source_location": "L160",
+      "source_location": "L174",
       "_origin": "ast",
       "id": "analyzer_plugins_pose_py_framecontext",
       "community": 230,
@@ -1626,7 +1626,7 @@
       "label": "Event",
       "file_type": "code",
       "source_file": "analyzer/plugins/pose.py",
-      "source_location": "L160",
+      "source_location": "L174",
       "_origin": "ast",
       "id": "analyzer_plugins_pose_py_event",
       "community": 230,
@@ -1636,7 +1636,7 @@
       "label": "._match()",
       "file_type": "code",
       "source_file": "analyzer/plugins/pose.py",
-      "source_location": "L234",
+      "source_location": "L248",
       "_origin": "ast",
       "id": "plugins_pose_poseplugin_match",
       "community": 230,
@@ -1646,7 +1646,7 @@
       "label": "TrackInfo",
       "file_type": "code",
       "source_file": "analyzer/plugins/pose.py",
-      "source_location": "L234",
+      "source_location": "L248",
       "_origin": "ast",
       "id": "analyzer_plugins_pose_py_trackinfo",
       "community": 230,
@@ -1656,7 +1656,7 @@
       "label": "._gc_state()",
       "file_type": "code",
       "source_file": "analyzer/plugins/pose.py",
-      "source_location": "L242",
+      "source_location": "L256",
       "_origin": "ast",
       "id": "plugins_pose_poseplugin_gc_state",
       "community": 230,
@@ -7567,7 +7567,7 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "shared_events_schema_properties_ts_start",
-      "community": 50,
+      "community": 77,
       "norm_label": "ts_start"
     },
     {
@@ -7577,7 +7577,7 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "shared_events_schema_ts_start_type",
-      "community": 50,
+      "community": 77,
       "norm_label": "type"
     },
     {
@@ -7587,7 +7587,7 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "shared_events_schema_ts_start_format",
-      "community": 50,
+      "community": 77,
       "norm_label": "format"
     },
     {
@@ -19794,9 +19794,9 @@
       "source_file": "analyzer/plugins/registry.py",
       "source_location": "L35",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plugins_registry_rationale_35",
-      "target": "plugins_registry_vram_allocated_mb",
-      "confidence_score": 1.0
+      "target": "plugins_registry_vram_allocated_mb"
     },
     {
       "relation": "method",
@@ -19924,9 +19924,9 @@
       "source_file": "analyzer/plugins/registry.py",
       "source_location": "L47",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plugins_registry_rationale_47",
-      "target": "plugins_registry_pluginmanager",
-      "confidence_score": 1.0
+      "target": "plugins_registry_pluginmanager"
     },
     {
       "relation": "references",
@@ -20282,9 +20282,9 @@
       "source_file": "analyzer/plugins/registry.py",
       "source_location": "L196",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "plugins_registry_rationale_196",
-      "target": "plugins_registry_pluginmanager_extra_detector_classes",
-      "confidence_score": 1.0
+      "target": "plugins_registry_pluginmanager_extra_detector_classes"
     },
     {
       "relation": "references",
@@ -28697,9 +28697,9 @@
       "source_file": "scripts/diag-features.sh",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_diag_features",
-      "target": "c_projects_aipvzanalityc_scripts_diag_features_sh__entry",
-      "confidence_score": 1.0
+      "target": "c_projects_aipvzanalityc_scripts_diag_features_sh__entry"
     },
     {
       "relation": "defines",
@@ -28707,9 +28707,9 @@
       "source_file": "scripts/diag-features.sh",
       "source_location": "L15",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_diag_features",
-      "target": "scripts_diag_features_line",
-      "confidence_score": 1.0
+      "target": "scripts_diag_features_line"
     },
     {
       "relation": "defines",
@@ -28717,9 +28717,9 @@
       "source_file": "scripts/diag-features.sh",
       "source_location": "L16",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_diag_features",
-      "target": "scripts_diag_features_psql",
-      "confidence_score": 1.0
+      "target": "scripts_diag_features_psql"
     },
     {
       "relation": "defines",
@@ -28727,9 +28727,9 @@
       "source_file": "scripts/diag-features.sh",
       "source_location": "L17",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_diag_features",
-      "target": "scripts_diag_features_redis",
-      "confidence_score": 1.0
+      "target": "scripts_diag_features_redis"
     },
     {
       "relation": "calls",
@@ -28738,9 +28738,9 @@
       "source_location": "L20",
       "weight": 1.0,
       "context": "call",
+      "confidence_score": 1.0,
       "source": "c_projects_aipvzanalityc_scripts_diag_features_sh__entry",
-      "target": "scripts_diag_features_line",
-      "confidence_score": 1.0
+      "target": "scripts_diag_features_line"
     },
     {
       "relation": "calls",
@@ -28749,9 +28749,9 @@
       "source_location": "L23",
       "weight": 1.0,
       "context": "call",
+      "confidence_score": 1.0,
       "source": "c_projects_aipvzanalityc_scripts_diag_features_sh__entry",
-      "target": "scripts_diag_features_psql",
-      "confidence_score": 1.0
+      "target": "scripts_diag_features_psql"
     },
     {
       "relation": "contains",
@@ -39937,5 +39937,5 @@
       "source_file": "CLAUDE.md"
     }
   ],
-  "built_at_commit": "8e16d72eba82cce606be4e78f698e085779d244f"
+  "built_at_commit": "1bd7f7bf6b34de8097b29152ccc41183f5dc4147"
 }

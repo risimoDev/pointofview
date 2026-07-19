@@ -40,10 +40,13 @@ RUN mkdir -p /opt/models && \
     || echo "WARN: face models download failed — staff face-id will be disabled"
 
 # pose model (fall detection plugin, ~7MB) baked in so prod needs no internet
-# at runtime. Failure only disables the pose feature.
-RUN (curl -fsSL -o /opt/models/yolov8n-pose.pt \
-        https://github.com/ultralytics/assets/releases/download/v8.2.0/yolov8n-pose.pt) \
-    || echo "WARN: pose model download failed — fall detection will be disabled"
+# at runtime. Two release tags tried; on failure the plugin falls back to the
+# /models mount and then to a runtime auto-download.
+RUN (curl -fsSL --retry 3 -o /opt/models/yolov8n-pose.pt \
+        https://github.com/ultralytics/assets/releases/download/v8.2.0/yolov8n-pose.pt \
+     || curl -fsSL --retry 3 -o /opt/models/yolov8n-pose.pt \
+        https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8n-pose.pt) \
+    || echo "WARN: pose model download failed — plugin will use /models or auto-download"
 ENV POSE_MODEL=/opt/models/yolov8n-pose.pt
 
 COPY . /app/analyzer

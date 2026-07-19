@@ -910,8 +910,8 @@
     "semantic_hash": ""
   },
   "analyzer/plugins/pose.py": {
-    "mtime": 1784249257.1028452,
-    "ast_hash": "9a143faadbb43de9ddbe92c6d3e0ec9f",
+    "mtime": 1784451535.418651,
+    "ast_hash": "737da09216f8e88bb8f2047f9415db87",
     "semantic_hash": ""
   },
   "analyzer/plugins/ppe.py": {

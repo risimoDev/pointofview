@@ -177,7 +177,7 @@ export default function ReportsPage(): React.JSX.Element {
 
       {d && (
         <>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
             <Card title="Всего нарушений" value={String(d.totals.total)} />
             <Card title="Критичных" value={String(d.totals.critical)} accent={d.totals.critical > 0} />
             <Card title="Разобрано" value={`${d.totals.resolved} из ${d.totals.total}`} />
@@ -185,6 +185,7 @@ export default function ReportsPage(): React.JSX.Element {
               title="Среднее время реакции"
               value={d.totals.avg_resolve_min !== null ? `${d.totals.avg_resolve_min} мин` : '—'}
             />
+            <Card title="Отсеяно ложных" value={String(d.totals.false_positives)} />
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">

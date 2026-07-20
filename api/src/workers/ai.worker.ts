@@ -2,52 +2,40 @@ import { Worker, type ConnectionOptions, type Job } from 'bullmq'
 import IORedis from 'ioredis'
 import { and, eq, sql } from 'drizzle-orm'
 import { db } from '../db/client.js'
-import { event, tenantFeature } from '../../db/schema.js'
+import { event } from '../../db/schema.js'
 import { config } from '../config.js'
 import { minio } from '../minio.js'
 import { AI_QUEUE, alertsQueue, type AiJob } from '../queues.js'
 import { typeLabel } from '../event_labels.js'
+import { fpKey, ollamaVision, snapshotB64, vlmSettings } from '../vlm.js'
 
 // Pre-alert enrichment stage (consumer → ai → alerts):
 //  1. capture the camera frame from go2rtc → MinIO → event.snapshot_key
 //     (runs for every alertable event — this is what puts snapshots on events
 //     and photos into Telegram);
-//  2. when the `vlm` feature is on: a local Ollama VLM writes a short RU
-//     scene description into event.meta.ai_description (the alert text and
-//     the events UI pick it up).
-// Both steps are best-effort with timeouts: the alert must go out even when
-// go2rtc or Ollama are down. Worst-case added latency ≈ VLM_TIMEOUT.
+//  2. `vlm` feature on: a local Ollama VLM writes a short RU scene description
+//     into event.meta.ai_description;
+//  3. verification gate: for event types a frame can confirm, when the
+//     operator has marked enough false positives on this camera+type (or
+//     verify is forced in the feature config), the VLM is asked ДА/НЕТ —
+//     a НЕТ suppresses the alert (the event stays in the journal with
+//     meta.ai_verified=false). Fail-open: any VLM error → alert goes out.
 
 const SNAPSHOT_TIMEOUT_MS = 5_000
-const VLM_TIMEOUT_MS = 40_000
+
+// types where a single frame genuinely shows whether the event is real;
+// infrastructure events (camera_offline/tampered) are never suppressed
+const VERIFIABLE_TYPES = new Set([
+  'ppe_violation', 'fall_detected', 'crowd', 'lone_worker',
+  'zone_violation', 'queue_alert', 'unknown_person',
+])
+
+const SEVERITY_RANK: Record<string, number> = { info: 0, warn: 1, critical: 2 }
 
 const log = (msg: string, extra?: Record<string, unknown>): void => {
   // eslint-disable-next-line no-console
   console.log(JSON.stringify({ ts: new Date().toISOString(), msg, ...extra }))
 }
-
-interface VlmConfig {
-  enabled: boolean
-  model: string
-  minSeverity: 'info' | 'warn' | 'critical'
-}
-
-async function vlmConfig(tenantId: string): Promise<VlmConfig> {
-  const [row] = await db.select({
-    enabled: tenantFeature.enabled, config: tenantFeature.config,
-  }).from(tenantFeature)
-    .where(and(eq(tenantFeature.tenantId, tenantId), eq(tenantFeature.feature, 'vlm')))
-    .limit(1)
-  const cfg = (row?.config ?? {}) as { model?: unknown; min_severity?: unknown }
-  const sev = cfg.min_severity
-  return {
-    enabled: Boolean(row?.enabled),
-    model: typeof cfg.model === 'string' && cfg.model ? cfg.model : config.VLM_MODEL,
-    minSeverity: sev === 'info' || sev === 'warn' || sev === 'critical' ? sev : 'warn',
-  }
-}
-
-const SEVERITY_RANK: Record<string, number> = { info: 0, warn: 1, critical: 2 }
 
 /** go2rtc current frame → MinIO; returns the object key or null. */
 async function captureSnapshot(
@@ -69,47 +57,24 @@ async function captureSnapshot(
   }
 }
 
-async function describeFrame(
-  model: string, snapshotKey: string, eventType: string,
-): Promise<string | null> {
-  const stream = await minio.getObject(config.MINIO_BUCKET_SNAPSHOTS, snapshotKey)
-  const chunks: Buffer[] = []
-  for await (const c of stream) chunks.push(c as Buffer)
-  const image = Buffer.concat(chunks).toString('base64')
-
-  const prompt =
-    'Ты помощник оператора видеонаблюдения. Событие: '
-    + `«${typeLabel(eventType)}». Опиши одним-двумя короткими предложениями, `
-    + 'что видно на кадре и относится к событию: сколько людей, что делают, '
-    + 'есть ли признаки опасности. Пиши по-русски, только факты, без вступлений.'
-
-  const res = await fetch(`${config.OLLAMA_URL}/api/generate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model,
-      prompt,
-      images: [image],
-      stream: false,
-      options: { temperature: 0.2, num_predict: 120 },
-    }),
-    signal: AbortSignal.timeout(VLM_TIMEOUT_MS),
-  })
-  if (!res.ok) throw new Error(`ollama: HTTP ${res.status}`)
-  const data = (await res.json()) as { response?: string }
-  const text = (data.response ?? '').trim().replace(/\s+/g, ' ')
-  return text ? text.slice(0, 500) : null
+async function mergeMeta(
+  eventId: string, tenantId: string, patch: Record<string, unknown>,
+): Promise<void> {
+  await db.update(event)
+    .set({ meta: sql`${event.meta} || ${JSON.stringify(patch)}::jsonb` })
+    .where(and(eq(event.id, eventId), eq(event.tenantId, tenantId)))
 }
 
-async function processJob(job: Job<AiJob>): Promise<void> {
+async function processJob(job: Job<AiJob>, redis: IORedis): Promise<void> {
   const { event_id, tenant_id } = job.data
   const [ev] = await db.select({
     id: event.id, cameraId: event.cameraId, severity: event.severity,
-    type: event.type, snapshotKey: event.snapshotKey, tsStart: event.tsStart,
+    type: event.type, snapshotKey: event.snapshotKey,
   }).from(event)
     .where(and(eq(event.id, event_id), eq(event.tenantId, tenant_id)))
     .limit(1)
 
+  let suppress = false
   if (ev) {
     let snapshotKey = ev.snapshotKey
     if (!snapshotKey) {
@@ -121,36 +86,67 @@ async function processJob(job: Job<AiJob>): Promise<void> {
     }
 
     try {
-      const vlm = await vlmConfig(tenant_id)
-      if (vlm.enabled && snapshotKey
-          && (SEVERITY_RANK[ev.severity] ?? 0) >= SEVERITY_RANK[vlm.minSeverity]!) {
-        const description = await describeFrame(vlm.model, snapshotKey, ev.type)
-        if (description) {
-          await db.update(event)
-            .set({
-              meta: sql`${event.meta} || ${JSON.stringify({
-                ai_description: description, ai_model: vlm.model,
-              })}::jsonb`,
+      const vlm = await vlmSettings(tenant_id)
+      if (vlm.enabled && snapshotKey) {
+        const image = await snapshotB64(snapshotKey)
+        const label = typeLabel(ev.type)
+
+        if ((SEVERITY_RANK[ev.severity] ?? 0) >= SEVERITY_RANK[vlm.minSeverity]!) {
+          const description = await ollamaVision(vlm.model, image,
+            'Ты помощник оператора видеонаблюдения. Событие: '
+            + `«${label}». Опиши одним-двумя короткими предложениями, что видно `
+            + 'на кадре и относится к событию: сколько людей, что делают, есть '
+            + 'ли признаки опасности. Пиши по-русски, только факты, без вступлений.')
+          if (description) {
+            await mergeMeta(event_id, tenant_id, {
+              ai_description: description.slice(0, 500), ai_model: vlm.model,
             })
-            .where(and(eq(event.id, event_id), eq(event.tenantId, tenant_id)))
-          log('described', { event_id, model: vlm.model })
+          }
+        }
+
+        // verification gate: only after operator feedback (or forced), and
+        // only for frame-verifiable event types
+        if (VERIFIABLE_TYPES.has(ev.type)) {
+          const fpCount = Math.max(0, Number(
+            await redis.get(fpKey(tenant_id, ev.cameraId, ev.type)) ?? 0,
+          ))
+          if (vlm.verify || fpCount >= vlm.autoVerifyAfter) {
+            const verdict = await ollamaVision(vlm.model, image,
+              `Событие видеонаблюдения: «${label}». Посмотри на кадр и ответь, `
+              + 'действительно ли событие подтверждается изображением. Первым '
+              + 'словом напиши строго ДА или НЕТ, затем одну короткую фразу почему.')
+            const word = verdict?.trim().toLowerCase() ?? ''
+            if (word.startsWith('нет')) {
+              suppress = true
+              await mergeMeta(event_id, tenant_id, {
+                ai_verified: false, ai_verdict: verdict?.slice(0, 300) ?? '',
+              })
+              log('alert suppressed by vlm', { event_id, type: ev.type })
+            } else if (word.startsWith('да')) {
+              await mergeMeta(event_id, tenant_id, { ai_verified: true })
+            }
+            // unparseable answer → fail-open, alert goes out
+          }
         }
       }
     } catch (err) {
       // VLM is best-effort: model not pulled / Ollama down / timeout
-      log('vlm describe failed', { event_id, err: err instanceof Error ? err.message : String(err) })
+      log('vlm step failed', { event_id, err: err instanceof Error ? err.message : String(err) })
     }
   }
 
-  await alertsQueue.add('notify', { event_id, tenant_id }, {
-    removeOnComplete: 200, removeOnFail: 500, attempts: 3,
-    backoff: { type: 'exponential', delay: 3000 },
-  })
+  if (!suppress) {
+    await alertsQueue.add('notify', { event_id, tenant_id }, {
+      removeOnComplete: 200, removeOnFail: 500, attempts: 3,
+      backoff: { type: 'exponential', delay: 3000 },
+    })
+  }
 }
 
 async function main(): Promise<void> {
   const connection = new IORedis(config.REDIS_URL, { maxRetriesPerRequest: null })
-  const worker = new Worker<AiJob>(AI_QUEUE, processJob, {
+  const cmd = new IORedis(config.REDIS_URL, { maxRetriesPerRequest: null })
+  const worker = new Worker<AiJob>(AI_QUEUE, (job) => processJob(job, cmd), {
     connection: connection as ConnectionOptions,
     concurrency: 2, // snapshots parallelize fine; Ollama serializes internally
   })
@@ -167,7 +163,7 @@ async function main(): Promise<void> {
 
   const shutdown = async (): Promise<void> => {
     await worker.close()
-    await connection.quit()
+    await Promise.allSettled([connection.quit(), cmd.quit()])
     process.exit(0)
   }
   process.on('SIGINT', () => void shutdown())

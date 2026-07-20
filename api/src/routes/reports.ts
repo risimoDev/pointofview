@@ -34,7 +34,10 @@ interface SafetyData {
   tz: string
   siteName: string | null
   generatedAt: Date
-  totals: { total: number; critical: number; resolved: number; avg_resolve_min: number | null }
+  totals: {
+    total: number; critical: number; resolved: number
+    avg_resolve_min: number | null; false_positives: number
+  }
   byDay: { day: string; count: number; critical: number }[]
   byType: { type: string; count: number; critical: number }[]
   byZone: { zone_name: string; count: number; critical: number }[]
@@ -58,10 +61,13 @@ async function collectSafetyData(tenantId: string, q: ReportQueryT): Promise<Saf
     }
   }
   const siteCond = q.site_id ? sql`AND ${event.siteId} = ${q.site_id}` : sql``
+  // operator-marked false positives are excluded from every figure and shown
+  // as a separate «отсеяно ложных» line (see fpTotal below)
   const base = sql`
     FROM ${event}
     WHERE ${event.tenantId} = ${tenantId}
       AND ${event.type} IN ${SAFETY_TYPES_SQL}
+      AND NOT ${event.falsePositive}
       AND ${event.tsStart} >= ${q.from} AND ${event.tsStart} < ${q.to}
       ${siteCond}
   `
@@ -74,6 +80,17 @@ async function collectSafetyData(tenantId: string, q: ReportQueryT): Promise<Saf
                  FILTER (WHERE ${event.resolved} AND ${event.resolvedAt} IS NOT NULL))::int
              AS avg_resolve_min
     ${base}
+  `)
+
+  // filtered-out noise, reported separately as «отсеяно ложных»
+  const fpTotal = await db.execute(sql`
+    SELECT count(*)::int AS n
+    FROM ${event}
+    WHERE ${event.tenantId} = ${tenantId}
+      AND ${event.type} IN ${SAFETY_TYPES_SQL}
+      AND ${event.falsePositive}
+      AND ${event.tsStart} >= ${q.from} AND ${event.tsStart} < ${q.to}
+      ${siteCond}
   `)
 
   const byDay = await db.execute(sql`
@@ -97,6 +114,7 @@ async function collectSafetyData(tenantId: string, q: ReportQueryT): Promise<Saf
     FROM ${event} e LEFT JOIN ${zone} z ON z.id = e.zone_id
     WHERE e.tenant_id = ${tenantId}
       AND e.type IN ${SAFETY_TYPES_SQL}
+      AND NOT e.false_positive
       AND e.ts_start >= ${q.from} AND e.ts_start < ${q.to}
       ${q.site_id ? sql`AND e.site_id = ${q.site_id}` : sql``}
     GROUP BY zone_name ORDER BY count DESC LIMIT 20
@@ -107,6 +125,7 @@ async function collectSafetyData(tenantId: string, q: ReportQueryT): Promise<Saf
     FROM ${event} e LEFT JOIN ${camera} c ON c.id = e.camera_id
     WHERE e.tenant_id = ${tenantId}
       AND e.type IN ${SAFETY_TYPES_SQL}
+      AND NOT e.false_positive
       AND e.ts_start >= ${q.from} AND e.ts_start < ${q.to}
       ${q.site_id ? sql`AND e.site_id = ${q.site_id}` : sql``}
     GROUP BY camera_name ORDER BY count DESC LIMIT 10
@@ -121,6 +140,7 @@ async function collectSafetyData(tenantId: string, q: ReportQueryT): Promise<Saf
       LEFT JOIN ${zone} z ON z.id = e.zone_id
     WHERE e.tenant_id = ${tenantId}
       AND e.type IN ${SAFETY_TYPES_SQL}
+      AND NOT e.false_positive
       AND e.ts_start >= ${q.from} AND e.ts_start < ${q.to}
       ${q.site_id ? sql`AND e.site_id = ${q.site_id}` : sql``}
     ORDER BY e.ts_start DESC LIMIT 30
@@ -138,9 +158,12 @@ async function collectSafetyData(tenantId: string, q: ReportQueryT): Promise<Saf
     tz,
     siteName,
     generatedAt: new Date(),
-    totals: (totals.rows[0] ?? {
-      total: 0, critical: 0, resolved: 0, avg_resolve_min: null,
-    }) as unknown as SafetyData['totals'],
+    totals: {
+      ...((totals.rows[0] ?? {
+        total: 0, critical: 0, resolved: 0, avg_resolve_min: null,
+      }) as unknown as Omit<SafetyData['totals'], 'false_positives'>),
+      false_positives: Number((fpTotal.rows[0] as { n?: unknown } | undefined)?.n ?? 0),
+    },
     byDay: byDay.rows as unknown as SafetyData['byDay'],
     byType: byType.rows as unknown as SafetyData['byType'],
     byZone: byZone.rows as unknown as SafetyData['byZone'],
@@ -238,9 +261,10 @@ async function buildSafetyPdf(data: SafetyData): Promise<Buffer> {
   const t = data.totals
   const reacted = t.avg_resolve_min !== null ? `${t.avg_resolve_min} мин` : '—'
   table(
-    [130, 130, 130, 125],
-    ['Всего нарушений', 'Критичных', 'Разобрано', 'Среднее время реакции'],
-    [[String(t.total), String(t.critical), `${t.resolved} из ${t.total}`, reacted]],
+    [105, 105, 105, 105, 95],
+    ['Всего нарушений', 'Критичных', 'Разобрано', 'Среднее время реакции', 'Отсеяно ложных'],
+    [[String(t.total), String(t.critical), `${t.resolved} из ${t.total}`, reacted,
+      String(t.false_positives)]],
   )
 
   // by type
@@ -344,6 +368,7 @@ async function buildSafetyXlsx(
       LEFT JOIN ${zone} z ON z.id = e.zone_id
     WHERE e.tenant_id = ${tenantId}
       AND e.type IN ${SAFETY_TYPES_SQL}
+      AND NOT e.false_positive
       AND e.ts_start >= ${q.from} AND e.ts_start < ${q.to}
       ${q.site_id ? sql`AND e.site_id = ${q.site_id}` : sql``}
     ORDER BY e.ts_start ASC LIMIT 5000

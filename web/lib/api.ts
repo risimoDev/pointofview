@@ -222,6 +222,29 @@ export async function getHeatmap(cameraId: string, hours: number): Promise<Heatm
   )
 }
 
+/** Operator feedback: false alarm (true) or undo (false). */
+export async function markFalsePositive(eventId: string, fp = true): Promise<void> {
+  const res = await apiFetch(`/api/v1/events/${encodeURIComponent(eventId)}/false-positive`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ false_positive: fp }),
+  })
+  if (!res.ok) throw new Error(`markFalsePositive: ${res.status}`)
+}
+
+/** Single-turn question to the local VLM about the event's frame. */
+export async function askEvent(eventId: string, question: string): Promise<string> {
+  const res = await apiFetch(`/api/v1/events/${encodeURIComponent(eventId)}/ask`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question }),
+  })
+  const body = (await res.json().catch(() => null)) as
+    { answer?: string; message?: string } | null
+  if (!res.ok) throw new Error(body?.message ?? `askEvent: ${res.status}`)
+  return body?.answer ?? ''
+}
+
 export async function requestClip(eventId: string): Promise<void> {
   const res = await apiFetch(`/api/v1/events/${eventId}/clip`, { method: 'POST' })
   if (res.status !== 202 && !res.ok) throw new Error(`clip request: ${res.status}`)
@@ -251,6 +274,7 @@ const SafetyReportSchema = z.object({
     critical: z.number(),
     resolved: z.number(),
     avg_resolve_min: z.number().nullable(),
+    false_positives: z.number(),
   }),
   byDay: z.array(z.object({ day: z.string(), count: z.number(), critical: z.number() })),
   byType: z.array(z.object({ type: z.string(), count: z.number(), critical: z.number() })),

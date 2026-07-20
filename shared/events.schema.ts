@@ -87,6 +87,7 @@ export const ApiEventSchema = z.object({
   snapshotKey: z.string().nullable(),
   clipKey: z.string().nullable(),
   resolved: z.boolean(),
+  falsePositive: z.boolean(),
   // joined display names (null if the camera/zone was deleted)
   cameraName: z.string().nullable(),
   zoneName: z.string().nullable(),

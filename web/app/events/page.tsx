@@ -1,10 +1,12 @@
 'use client'
 
 import type * as React from 'react'
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { Fragment, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
-import { IconActivity, IconCheck, IconPhoto } from '@tabler/icons-react'
+import {
+  IconActivity, IconCheck, IconFlag2, IconMessageChatbot, IconPhoto,
+} from '@tabler/icons-react'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
@@ -14,7 +16,9 @@ import { Input } from '@/components/ui/input'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { getEvents, getEventSnapshotUrl, resolveEvent } from '@/lib/api'
+import {
+  askEvent, getEvents, getEventSnapshotUrl, markFalsePositive, resolveEvent,
+} from '@/lib/api'
 import { useClipRequest } from '@/hooks/use-clip-request'
 import { eventTypeLabels, severityLabels } from '@/lib/labels'
 import { EventType, Severity, type ApiEvent } from '@shared/events.schema'
@@ -55,20 +59,87 @@ function SnapshotCell({ ev }: { ev: ApiEvent }): React.JSX.Element {
 
 function ResolveCell({ ev, onDone }: { ev: ApiEvent; onDone: () => void }): React.JSX.Element {
   const [busy, setBusy] = useState(false)
-  if (ev.resolved) return <span className="text-xs text-emerald-400">обработано</span>
-  const resolve = async (): Promise<void> => {
+  const run = async (fn: () => Promise<void>): Promise<void> => {
     setBusy(true)
     try {
-      await resolveEvent(ev.id)
+      await fn()
       onDone()
     } finally {
       setBusy(false)
     }
   }
+  if (ev.falsePositive) {
+    return (
+      <button
+        type="button"
+        className="text-xs text-amber-400 hover:underline"
+        title="Снять пометку ложного срабатывания"
+        disabled={busy}
+        onClick={() => void run(() => markFalsePositive(ev.id, false))}
+      >
+        ложное срабатывание
+      </button>
+    )
+  }
+  if (ev.resolved) return <span className="text-xs text-emerald-400">обработано</span>
   return (
-    <Button size="sm" variant="outline" disabled={busy} onClick={() => void resolve()}>
-      <IconCheck className="mr-1 h-3.5 w-3.5" stroke={2} /> Обработать
-    </Button>
+    <span className="flex items-center gap-1">
+      <Button size="sm" variant="outline" disabled={busy}
+        onClick={() => void run(() => resolveEvent(ev.id))}>
+        <IconCheck className="mr-1 h-3.5 w-3.5" stroke={2} /> Обработать
+      </Button>
+      <Button
+        size="sm" variant="ghost" disabled={busy}
+        className="text-muted-foreground hover:text-amber-400"
+        title="Ложное срабатывание: событие уйдёт из отчётов, а после нескольких пометок ИИ начнёт проверять такие события по кадру перед оповещением"
+        onClick={() => void run(() => markFalsePositive(ev.id, true))}
+      >
+        <IconFlag2 className="h-4 w-4" stroke={1.75} />
+      </Button>
+    </span>
+  )
+}
+
+/** Single-turn Q&A with the local VLM about this event's frame. */
+function AskAiRow({ eventId }: { eventId: string }): React.JSX.Element {
+  const [question, setQuestion] = useState('')
+  const [answer, setAnswer] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const ask = async (): Promise<void> => {
+    if (!question.trim()) return
+    setBusy(true)
+    setError(null)
+    setAnswer(null)
+    try {
+      setAnswer(await askEvent(eventId, question.trim()))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'ИИ не ответил')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <div className="space-y-2 px-2 py-1">
+      <form
+        className="flex items-center gap-2"
+        onSubmit={(e) => { e.preventDefault(); void ask() }}
+      >
+        <IconMessageChatbot className="h-4 w-4 shrink-0 text-brand" stroke={1.75} />
+        <Input
+          autoFocus
+          placeholder="Вопрос по кадру: сколько людей? что в руках? есть ли каска?"
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          className="h-8 max-w-xl"
+        />
+        <Button type="submit" size="sm" disabled={busy || !question.trim()}>
+          {busy ? 'Думает…' : 'Спросить'}
+        </Button>
+      </form>
+      {answer && <p className="max-w-3xl pl-6 text-sm">{answer}</p>}
+      {error && <p className="pl-6 text-sm text-red-400">{error}</p>}
+    </div>
   )
 }
 
@@ -102,6 +173,7 @@ function EventsTable(): React.JSX.Element {
   const refetch = (): void => void qc.invalidateQueries({ queryKey: ['events'] })
 
   const rows: ApiEvent[] = query.data?.pages.flatMap((p) => p.items) ?? []
+  const [askFor, setAskFor] = useState<string | null>(null)
 
   // infinite scroll sentinel
   const sentinel = useRef<HTMLDivElement>(null)
@@ -173,23 +245,51 @@ function EventsTable(): React.JSX.Element {
           </TableHeader>
           <TableBody>
             {rows.map((e) => (
-              <TableRow key={e.id} className={e.resolved ? 'opacity-60' : undefined}>
-                <TableCell><Badge variant={severityVariant[e.severity]}>{severityLabels[e.severity]}</Badge></TableCell>
-                <TableCell>
-                  <span className="whitespace-nowrap">{eventTypeLabels[e.type]}</span>
-                  {typeof e.meta.ai_description === 'string' && (
-                    <p className="mt-0.5 max-w-md text-xs text-muted-foreground">
-                      {e.meta.ai_description}
-                    </p>
-                  )}
-                </TableCell>
-                <TableCell className="whitespace-nowrap">{e.cameraName ?? e.cameraId.slice(0, 8)}</TableCell>
-                <TableCell className="whitespace-nowrap">{e.zoneName ?? (e.zoneId ? e.zoneId.slice(0, 8) : '—')}</TableCell>
-                <TableCell className="whitespace-nowrap">{new Date(e.tsStart).toLocaleString('ru-RU')}</TableCell>
-                <TableCell><SnapshotCell ev={e} /></TableCell>
-                <TableCell><ResolveCell ev={e} onDone={refetch} /></TableCell>
-                <TableCell><ClipCell eventId={e.id} /></TableCell>
-              </TableRow>
+              <Fragment key={e.id}>
+                <TableRow className={e.resolved ? 'opacity-60' : undefined}>
+                  <TableCell><Badge variant={severityVariant[e.severity]}>{severityLabels[e.severity]}</Badge></TableCell>
+                  <TableCell>
+                    <span className="whitespace-nowrap">{eventTypeLabels[e.type]}</span>
+                    {typeof e.meta.ai_description === 'string' && (
+                      <p className="mt-0.5 max-w-md text-xs text-muted-foreground">
+                        {e.meta.ai_description}
+                      </p>
+                    )}
+                    {e.meta.ai_verified === false && (
+                      <p className="mt-0.5 text-xs text-amber-400">
+                        ИИ не подтвердил по кадру — оповещение не отправлялось
+                      </p>
+                    )}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">{e.cameraName ?? e.cameraId.slice(0, 8)}</TableCell>
+                  <TableCell className="whitespace-nowrap">{e.zoneName ?? (e.zoneId ? e.zoneId.slice(0, 8) : '—')}</TableCell>
+                  <TableCell className="whitespace-nowrap">{new Date(e.tsStart).toLocaleString('ru-RU')}</TableCell>
+                  <TableCell>
+                    <span className="flex items-center">
+                      <SnapshotCell ev={e} />
+                      {e.snapshotKey && (
+                        <Button
+                          size="sm"
+                          variant={askFor === e.id ? 'default' : 'ghost'}
+                          title="Спросить ИИ о кадре"
+                          onClick={() => setAskFor(askFor === e.id ? null : e.id)}
+                        >
+                          <IconMessageChatbot className="h-4 w-4" stroke={1.75} />
+                        </Button>
+                      )}
+                    </span>
+                  </TableCell>
+                  <TableCell><ResolveCell ev={e} onDone={refetch} /></TableCell>
+                  <TableCell><ClipCell eventId={e.id} /></TableCell>
+                </TableRow>
+                {askFor === e.id && (
+                  <TableRow>
+                    <TableCell colSpan={8} className="bg-card/40">
+                      <AskAiRow eventId={e.id} />
+                    </TableCell>
+                  </TableRow>
+                )}
+              </Fragment>
             ))}
           </TableBody>
         </Table>

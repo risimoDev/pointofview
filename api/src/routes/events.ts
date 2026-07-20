@@ -1,12 +1,17 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { randomUUID } from 'node:crypto'
 import { and, desc, eq, gte, inArray, lt, type SQL } from 'drizzle-orm'
+import { z } from 'zod'
 import { db } from '../db/client.js'
 import { camera, event, zone } from '../../db/schema.js'
 import { EventIdParams, EventsQuery } from '../schemas.js'
 import { clipsQueue } from '../queues.js'
-import { CLIPS_BUCKET, minioPublic } from '../minio.js'
+import { CLIPS_BUCKET, minio, minioPublic } from '../minio.js'
 import { config } from '../config.js'
+import { writeAudit } from '../audit.js'
+import { rateLimit } from '../ratelimit.js'
+import { typeLabel } from '../event_labels.js'
+import { fpKey, ollamaVision, snapshotB64, vlmSettings } from '../vlm.js'
 
 const eventsRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get('/events', {
@@ -35,7 +40,7 @@ const eventsRoutes: FastifyPluginAsyncZod = async (app) => {
       tsStart: event.tsStart, tsEnd: event.tsEnd, confidence: event.confidence,
       bbox: event.bbox, meta: event.meta,
       snapshotKey: event.snapshotKey, clipKey: event.clipKey,
-      resolved: event.resolved,
+      resolved: event.resolved, falsePositive: event.falsePositive,
       cameraName: camera.name, zoneName: zone.name,
     }).from(event)
       .leftJoin(camera, eq(event.cameraId, camera.id))
@@ -99,6 +104,100 @@ const eventsRoutes: FastifyPluginAsyncZod = async (app) => {
       .returning({ id: event.id, resolved: event.resolved })
     if (!row) return reply.code(404).send({ message: 'event not found' })
     return row
+  })
+
+  // Operator feedback: this alert was false. Marks the event (excluded from
+  // safety reports), bumps the camera+type counter that arms the VLM
+  // verification gate, and copies the frame into the fine-tuning dataset.
+  app.post('/events/:id/false-positive', {
+    preHandler: [app.requirePerm('events')],
+    schema: {
+      params: EventIdParams,
+      body: z.object({ false_positive: z.boolean().default(true) }),
+    },
+  }, async (req, reply) => {
+    const fp = req.body.false_positive
+    const [row] = await db.update(event)
+      .set(fp
+        ? { falsePositive: true, resolved: true, resolvedBy: req.userId, resolvedAt: new Date() }
+        : { falsePositive: false })
+      .where(and(eq(event.id, req.params.id), eq(event.tenantId, req.tenantId)))
+      .returning({
+        id: event.id, cameraId: event.cameraId, type: event.type,
+        snapshotKey: event.snapshotKey, falsePositive: event.falsePositive,
+      })
+    if (!row) return reply.code(404).send({ message: 'event not found' })
+
+    const key = fpKey(req.tenantId, row.cameraId, row.type)
+    if (fp) {
+      await app.redis.incr(key)
+      await app.redis.expire(key, 30 * 86_400)
+      // frame → dataset for the future model fine-tune (real learning happens
+      // there; the VLM gate handles the meantime)
+      if (row.snapshotKey) {
+        await minio.copyObject(
+          config.MINIO_BUCKET_SNAPSHOTS,
+          `fp/${req.tenantId}/${row.type}/${row.id}.jpg`,
+          `/${config.MINIO_BUCKET_SNAPSHOTS}/${row.snapshotKey}`,
+        ).catch(() => undefined)
+      }
+    } else {
+      await app.redis.decr(key) // read side clamps negatives to 0
+    }
+    await writeAudit({
+      tenantId: req.tenantId, userId: req.userId,
+      action: fp ? 'event.false_positive' : 'event.false_positive_undo',
+      resourceType: 'event', resourceId: row.id, details: { type: row.type },
+    })
+    return { id: row.id, falsePositive: row.falsePositive }
+  })
+
+  // Ask the local VLM about this event's frame (single-turn, RU)
+  app.post('/events/:id/ask', {
+    preHandler: [app.requirePerm('events')],
+    schema: {
+      params: EventIdParams,
+      body: z.object({ question: z.string().trim().min(2).max(300) }),
+    },
+  }, async (req, reply) => {
+    const rl = await rateLimit(app.redis, `ask_rl:${req.userId}`, 10, 60)
+    if (!rl.allowed) {
+      return reply.code(429).header('Retry-After', String(rl.retryAfterSec))
+        .send({ message: 'Слишком много вопросов подряд, подождите минуту' })
+    }
+    const [ev] = await db.select({
+      snapshotKey: event.snapshotKey, type: event.type, meta: event.meta,
+    }).from(event)
+      .where(and(eq(event.id, req.params.id), eq(event.tenantId, req.tenantId)))
+      .limit(1)
+    if (!ev) return reply.code(404).send({ message: 'event not found' })
+    if (!ev.snapshotKey) {
+      return reply.code(409).send({ message: 'У события нет кадра — спросить не о чем' })
+    }
+
+    const vlm = await vlmSettings(req.tenantId)
+    if (!vlm.enabled) {
+      return reply.code(409).send({
+        message: 'Функция «ИИ-описания событий» выключена — включите её в настройках функций',
+      })
+    }
+    try {
+      const image = await snapshotB64(ev.snapshotKey)
+      const desc = typeof (ev.meta as Record<string, unknown>).ai_description === 'string'
+        ? ` Ранее ты описал кадр так: «${(ev.meta as Record<string, unknown>).ai_description as string}».`
+        : ''
+      const answer = await ollamaVision(vlm.model, image,
+        'Ты помощник оператора видеонаблюдения. Кадр относится к событию '
+        + `«${typeLabel(ev.type)}».${desc} Вопрос оператора: «${req.body.question}». `
+        + 'Ответь по-русски, кратко и только по содержимому кадра; если на кадре '
+        + 'этого не видно — так и скажи.')
+      if (!answer) return reply.code(502).send({ message: 'ИИ вернул пустой ответ' })
+      return { answer }
+    } catch {
+      return reply.code(502).send({
+        message: 'ИИ не ответил. Проверьте, что контейнер ollama запущен и модель загружена',
+      })
+    }
   })
 
   // Presigned URL for the event snapshot (analyzer uploads them to MinIO)

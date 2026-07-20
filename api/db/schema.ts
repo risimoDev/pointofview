@@ -104,6 +104,9 @@ export const event = pgTable('event', {
   snapshotKey: text('snapshot_key'),
   clipKey: text('clip_key'),
   resolved: boolean('resolved').notNull().default(false),
+  // operator feedback: false alarm (excluded from safety reports, feeds the
+  // VLM verification gate and the fine-tuning dataset)
+  falsePositive: boolean('false_positive').notNull().default(false),
   resolvedBy: uuid('resolved_by'),
   resolvedAt: timestamp('resolved_at', { withTimezone: true }),
 }, (t) => [

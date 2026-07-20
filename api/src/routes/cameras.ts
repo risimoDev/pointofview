@@ -1,5 +1,6 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import type Redis from 'ioredis'
+import { z } from 'zod'
 import { and, eq } from 'drizzle-orm'
 import { randomUUID } from 'node:crypto'
 import { createWriteStream } from 'node:fs'
@@ -420,6 +421,49 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
     if (!row) return reply.code(404).send({ message: 'zone not found' })
     await syncZones(app, id)
     return { deleted: true }
+  })
+
+  // Movement heatmap: sum of the analyzer's hourly grids (heatmap:{camera}:{hour})
+  app.get('/cameras/:id/heatmap', {
+    preHandler: [app.requirePerm('analytics')],
+    schema: {
+      params: CameraIdParams,
+      querystring: z.object({
+        hours: z.coerce.number().int().min(1).max(168).default(24),
+      }),
+    },
+  }, async (req, reply) => {
+    const { id } = req.params
+    if (!(await ownsCamera(req.tenantId, id))) {
+      return reply.code(404).send({ message: 'camera not found' })
+    }
+    if (req.allowedCameraIds.length > 0 && !req.allowedCameraIds.includes(id)) {
+      return reply.code(404).send({ message: 'camera not found' })
+    }
+    const pipe = app.redis.pipeline()
+    const now = Date.now()
+    for (let i = 0; i < req.query.hours; i++) {
+      const d = new Date(now - i * 3_600_000)
+      const hour = d.toISOString().slice(0, 13).replace(/[-T]/g, '') // YYYYMMDDHH (UTC)
+      pipe.hgetall(`heatmap:${id}:${hour}`)
+    }
+    const results = await pipe.exec() ?? []
+    const cells = new Map<string, number>()
+    for (const [, raw] of results) {
+      for (const [cell, count] of Object.entries((raw ?? {}) as Record<string, string>)) {
+        cells.set(cell, (cells.get(cell) ?? 0) + Number(count))
+      }
+    }
+    let max = 0
+    const items: { x: number; y: number; c: number }[] = []
+    for (const [cell, c] of cells) {
+      const [x, y] = cell.split(',').map(Number)
+      if (Number.isFinite(x) && Number.isFinite(y)) {
+        items.push({ x: x!, y: y!, c })
+        if (c > max) max = c
+      }
+    }
+    return { w: 48, h: 27, max, cells: items }
   })
 
   // Current frame proxied from go2rtc (binary JPEG passthrough)

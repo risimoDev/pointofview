@@ -8,6 +8,7 @@
     "start": "tsx src/index.ts",
     "worker:clips": "tsx src/workers/clips.worker.ts",
     "worker:alerts": "tsx src/workers/alerts.worker.ts",
+    "worker:ai": "tsx src/workers/ai.worker.ts",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "db:generate": "drizzle-kit generate",

@@ -94,6 +94,10 @@ services:
       ARCHIVE_ROOT: /archive
       # uploaded test videos land here; analyzer mounts the same dir at /data
       TESTVIDEO_DIR: /data
+      # local VLM for event descriptions (ai worker); model per-tenant in
+      # the `vlm` feature config, this is the default
+      OLLAMA_URL: http://ollama:11434
+      VLM_MODEL: ${VLM_MODEL:-qwen3-vl:4b}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
@@ -132,6 +136,34 @@ services:
     depends_on:
       redis: { condition: service_healthy }
       minio: { condition: service_healthy }
+
+  # snapshot capture + VLM scene descriptions before each alert
+  worker-ai:
+    build: ../api
+    restart: unless-stopped
+    command: ["npm", "run", "worker:ai"]
+    environment: *api_env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      redis: { condition: service_healthy }
+      minio: { condition: service_healthy }
+
+  # local VLM runtime; the model is loaded on demand and unloaded after idle,
+  # so VRAM is only held while descriptions are being generated.
+  # First run: docker compose ... exec ollama ollama pull qwen3-vl:4b
+  ollama:
+    image: ollama/ollama:0.13.3
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 
   web:
     build:
@@ -223,3 +255,4 @@ volumes:
   pg_data:
   redis_data:
   yolo_cache:
+  ollama_data:

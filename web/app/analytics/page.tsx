@@ -1,14 +1,19 @@
 'use client'
 
 import type * as React from 'react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { IconChartHistogram } from '@tabler/icons-react'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from 'recharts'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { getAnalyticsOverview, getOccupancy } from '@/lib/api'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
+import {
+  getAnalyticsOverview, getCameras, getHeatmap, getOccupancy, getSnapshotObjectUrl,
+} from '@/lib/api'
 import { eventTypeLabels } from '@/lib/labels'
 
 type Period = 'day' | 'week' | 'month'
@@ -28,6 +33,7 @@ const TYPE_COLORS: Record<string, string> = {
   camera_online: 'hsl(150 45% 42%)',
   fall_detected: 'hsl(355 75% 45%)',
   lone_worker: 'hsl(265 55% 55%)',
+  camera_tampered: 'hsl(0 80% 38%)',
 }
 const FALLBACK_COLOR = 'hsl(215 15% 50%)'
 
@@ -102,6 +108,89 @@ function BarRow({ label, count, max, color }: {
       </div>
       <span className="w-10 text-right text-sm tabular-nums text-muted-foreground">{count}</span>
     </div>
+  )
+}
+
+/** Movement heatmap over a camera snapshot (heatmap feature must be on). */
+function HeatmapSection({ hours }: { hours: number }): React.JSX.Element {
+  const cams = useQuery({ queryKey: ['cameras'], queryFn: getCameras })
+  const [camId, setCamId] = useState('')
+  const active = camId || cams.data?.[0]?.id || ''
+  const heat = useQuery({
+    queryKey: ['heatmap', active, hours],
+    queryFn: () => getHeatmap(active, hours),
+    enabled: Boolean(active),
+  })
+  const [imgUrl, setImgUrl] = useState<string | null>(null)
+  useEffect(() => {
+    if (!active) return undefined
+    let alive = true
+    let url: string | null = null
+    getSnapshotObjectUrl(active)
+      .then((u) => {
+        if (!alive) { URL.revokeObjectURL(u); return }
+        url = u; setImgUrl(u)
+      })
+      .catch(() => setImgUrl(null))
+    return () => { alive = false; if (url) URL.revokeObjectURL(url) }
+  }, [active])
+
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  useEffect(() => {
+    const c = canvasRef.current
+    const d = heat.data
+    if (!c || !d) return
+    const cell = 16
+    c.width = d.w * cell
+    c.height = d.h * cell
+    const ctx = c.getContext('2d')
+    if (!ctx) return
+    ctx.clearRect(0, 0, c.width, c.height)
+    for (const p of d.cells) {
+      // sqrt scale keeps rare cells visible next to the hot path
+      const t = Math.sqrt(p.c / Math.max(1, d.max))
+      const hue = 170 - 170 * t // teal → red
+      ctx.fillStyle = `hsla(${hue}, 80%, 50%, ${0.15 + 0.55 * t})`
+      ctx.fillRect(p.x * cell, p.y * cell, cell, cell)
+    }
+  }, [heat.data])
+
+  return (
+    <section className="rounded-lg border border-border/70 bg-card/40 p-4">
+      <div className="mb-3 flex flex-wrap items-center gap-3">
+        <h2 className="text-sm font-medium text-muted-foreground">
+          Тепловая карта передвижений
+        </h2>
+        <Select value={active} onValueChange={setCamId}>
+          <SelectTrigger className="w-56"><SelectValue placeholder="Камера" /></SelectTrigger>
+          <SelectContent>
+            {cams.data?.map((c) => (
+              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <span className="text-xs text-muted-foreground">за {hours} ч</span>
+      </div>
+      {heat.data && heat.data.cells.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          Данных пока нет — включите функцию «Тепловая карта» и подождите,
+          пока накопятся передвижения.
+        </p>
+      ) : (
+        <div className="relative w-full max-w-3xl overflow-hidden rounded-md bg-black/40">
+          {imgUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={imgUrl} alt="Кадр камеры" className="block w-full" />
+          ) : (
+            <div className="aspect-video w-full" />
+          )}
+          <canvas
+            ref={canvasRef}
+            className="pointer-events-none absolute inset-0 h-full w-full"
+          />
+        </div>
+      )}
+    </section>
   )
 }
 
@@ -315,6 +404,8 @@ export default function AnalyticsPage(): React.JSX.Element {
             </div>
           )}
       </section>
+
+      <HeatmapSection hours={period === 'day' ? 24 : 168} />
 
       <section className="rounded-lg border border-border/70 bg-card/40 p-4">
         <h2 className="mb-3 text-sm font-medium text-muted-foreground">Посетители по дням</h2>

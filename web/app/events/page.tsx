@@ -175,7 +175,14 @@ function EventsTable(): React.JSX.Element {
             {rows.map((e) => (
               <TableRow key={e.id} className={e.resolved ? 'opacity-60' : undefined}>
                 <TableCell><Badge variant={severityVariant[e.severity]}>{severityLabels[e.severity]}</Badge></TableCell>
-                <TableCell className="whitespace-nowrap">{eventTypeLabels[e.type]}</TableCell>
+                <TableCell>
+                  <span className="whitespace-nowrap">{eventTypeLabels[e.type]}</span>
+                  {typeof e.meta.ai_description === 'string' && (
+                    <p className="mt-0.5 max-w-md text-xs text-muted-foreground">
+                      {e.meta.ai_description}
+                    </p>
+                  )}
+                </TableCell>
                 <TableCell className="whitespace-nowrap">{e.cameraName ?? e.cameraId.slice(0, 8)}</TableCell>
                 <TableCell className="whitespace-nowrap">{e.zoneName ?? (e.zoneId ? e.zoneId.slice(0, 8) : '—')}</TableCell>
                 <TableCell className="whitespace-nowrap">{new Date(e.tsStart).toLocaleString('ru-RU')}</TableCell>

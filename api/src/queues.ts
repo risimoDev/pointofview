@@ -28,3 +28,14 @@ export interface AlertJob {
 
 export const ALERTS_QUEUE = 'alerts'
 export const alertsQueue = new Queue<AlertJob>(ALERTS_QUEUE, { connection: bullConnection as ConnectionOptions })
+
+// Pre-alert enrichment: snapshot capture + optional VLM scene description.
+// The ai worker forwards every job to the alerts queue when done, so alert
+// delivery order is preserved (consumer → ai → alerts).
+export interface AiJob {
+  event_id: string
+  tenant_id: string
+}
+
+export const AI_QUEUE = 'ai'
+export const aiQueue = new Queue<AiJob>(AI_QUEUE, { connection: bullConnection as ConnectionOptions })

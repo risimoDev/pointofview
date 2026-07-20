@@ -208,6 +208,20 @@ export async function getAnalyticsOverview(params: {
   return apiJson(`/api/v1/analytics/overview?${qs.toString()}`, OverviewSchema)
 }
 
+// ── Movement heatmap (analyzer hourly grids over a snapshot) ──
+const HeatmapSchema = z.object({
+  w: z.number(), h: z.number(), max: z.number(),
+  cells: z.array(z.object({ x: z.number(), y: z.number(), c: z.number() })),
+})
+export type Heatmap = z.infer<typeof HeatmapSchema>
+
+export async function getHeatmap(cameraId: string, hours: number): Promise<Heatmap> {
+  return apiJson(
+    `/api/v1/cameras/${encodeURIComponent(cameraId)}/heatmap?hours=${hours}`,
+    HeatmapSchema,
+  )
+}
+
 export async function requestClip(eventId: string): Promise<void> {
   const res = await apiFetch(`/api/v1/events/${eventId}/clip`, { method: 'POST' })
   if (res.status !== 202 && !res.ok) throw new Error(`clip request: ${res.status}`)

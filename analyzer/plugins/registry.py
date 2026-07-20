@@ -12,10 +12,12 @@ from analyzer.config import Settings
 from analyzer.plugins.base import FeaturePlugin, FrameContext
 from analyzer.plugins.counter import CounterPlugin
 from analyzer.plugins.crowd import CrowdPlugin
+from analyzer.plugins.heatmap import HeatmapPlugin
 from analyzer.plugins.ppe import PpePlugin
 from analyzer.plugins.pose import PosePlugin
 from analyzer.plugins.repack import RepackPlugin
 from analyzer.plugins.shelf import ShelfPlugin
+from analyzer.plugins.tamper import TamperPlugin
 from analyzer.zones.engine import Event
 
 logger = logging.getLogger(__name__)
@@ -73,6 +75,8 @@ class PluginManager:
             ShelfPlugin(settings),
             PpePlugin(settings, gpu_pool),
             PosePlugin(settings, gpu_pool),
+            TamperPlugin(settings),
+            HeatmapPlugin(settings, redis),
         ]
         self._active: list[FeaturePlugin] = []
         # feature_id → {state, vram_mb, error, ...} for plugin_status:{tenant}

@@ -4,7 +4,7 @@ import { db } from '../db/client.js'
 import { event } from '../../db/schema.js'
 import { config } from '../config.js'
 import { EventMessageSchema, type EventMessage } from '../schemas.js'
-import { alertsQueue } from '../queues.js'
+import { aiQueue } from '../queues.js'
 
 const BLOCK_MS = 5000
 const BATCH = 20
@@ -78,8 +78,10 @@ export class EventConsumer {
       const eventId = await this.insert(msg)
       await this.pub.publish(`events:${msg.tenant_id}`, raw ?? '')
       if (!NO_ALERT_TYPES.has(msg.type)) {
-        await alertsQueue.add('notify', { event_id: eventId, tenant_id: msg.tenant_id }, {
-          removeOnComplete: 200, removeOnFail: 500, attempts: 3,
+        // ai worker enriches (snapshot + VLM description) and then forwards
+        // the job to the alerts queue itself
+        await aiQueue.add('enrich', { event_id: eventId, tenant_id: msg.tenant_id }, {
+          removeOnComplete: 200, removeOnFail: 500, attempts: 2,
           backoff: { type: 'exponential', delay: 3000 },
         })
       }

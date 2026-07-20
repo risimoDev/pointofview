@@ -8,6 +8,10 @@ const EnvSchema = z.object({
   REDIS_URL: z.string().default('redis://localhost:6379'),
   JWT_SECRET: z.string().min(8),
   GO2RTC_URL: z.string().default('http://localhost:1984'),
+  // local VLM (Ollama) for event scene descriptions; model is overridable
+  // per-tenant in the `vlm` feature config
+  OLLAMA_URL: z.string().default('http://ollama:11434'),
+  VLM_MODEL: z.string().default('qwen3-vl:4b'),
 
   EVENTS_STREAM: z.string().default('events'),
   FAILED_STREAM: z.string().default('events:failed'),

@@ -75,11 +75,14 @@ function buildText(ctx: EventCtx): string {
   const tsLocal = new Intl.DateTimeFormat('ru-RU', {
     timeZone: ctx.tz, dateStyle: 'short', timeStyle: 'medium',
   }).format(ctx.tsStart)
+  // VLM scene description written by the ai worker before the alert fires
+  const aiDesc = typeof ctx.meta?.ai_description === 'string' ? ctx.meta.ai_description : null
   const lines = [
     `${emoji} <b>${escapeHtml(TYPE_LABELS[ctx.type] ?? ctx.type)}</b>`,
     `📹 ${escapeHtml(ctx.cameraName)}`,
     ctx.zoneName ? `📍 ${escapeHtml(ctx.zoneName)}` : null,
     `🕐 ${tsLocal}`,
+    aiDesc ? `\n${escapeHtml(aiDesc)}` : null,
   ].filter((l): l is string => l !== null)
   return lines.join('\n')
 }

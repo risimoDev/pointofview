@@ -256,6 +256,10 @@ const peopleRoutes: FastifyPluginAsyncZod = async (app) => {
       }
       if (drop.length > 0) {
         await app.redis.hdel(galleryKey(s.id), ...drop)
+        // feed the visitor counter's retro-cleanup: today's count subtracts
+        // these phantoms on its next flush (analyzer, counter.py)
+        await app.redis.sadd(`absorbed:${s.id}`, ...drop, gid)
+        await app.redis.expire(`absorbed:${s.id}`, 48 * 3600)
         // keep the target's crop — it's the staff photo on «Люди»
         for (const g of drop) if (g !== targetGid) await removeCrop(req.tenantId, g)
         absorbed += drop.filter((g) => g !== targetGid).length

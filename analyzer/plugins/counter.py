@@ -82,6 +82,19 @@ class CounterPlugin(BasePlugin):
         last_site = self._last_site_flush.get(ctx.site_id)
         if last_site is None or ctx.ts - last_site >= interval:
             self._last_site_flush[ctx.site_id] = ctx.ts
+            # Retro-cleanup: a staff member who failed to match early minted
+            # phantom visitor identities that already landed in `seen`. Once
+            # they're absorbed into staff (absorbed:{site}, written by the
+            # analyzer and the «Люди» page) — or the person is marked staff
+            # directly — subtract them so the day counter self-heals instead
+            # of keeping «2 курьера = 44 посетителя» forever.
+            try:
+                absorbed = await self.redis.smembers(f"absorbed:{ctx.site_id}")
+                staff_gids = await self.redis.hkeys(
+                    f"reid:staff:{ctx.tenant_id}")
+                seen -= set(absorbed) | set(staff_gids)
+            except Exception:  # noqa: BLE001 — cleanup is best-effort
+                pass
             await self.redis.hset(
                 f"visitors:{ctx.tenant_id}",
                 ctx.site_id,

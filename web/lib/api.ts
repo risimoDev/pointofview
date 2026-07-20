@@ -418,6 +418,32 @@ export async function getFeatureStatus(): Promise<FeatureStatus> {
   return apiJson('/api/v1/features/status', FeatureStatusSchema)
 }
 
+// Health of the local VLM chain: worker-ai → Ollama → pulled model
+const VlmStatusSchema = z.object({
+  enabled: z.boolean(),
+  verify: z.boolean(),
+  autoVerifyAfter: z.number(),
+  model: z.string(),
+  workerAlive: z.boolean(),
+  ollamaOk: z.boolean(),
+  ollamaError: z.string().nullable(),
+  models: z.array(z.string()),
+  modelPresent: z.boolean(),
+  stats: z.object({
+    jobs: z.number(),
+    described: z.number(),
+    verified: z.number(),
+    suppressed: z.number(),
+    failed: z.number(),
+    lastError: z.string().nullable(),
+  }),
+})
+export type VlmStatus = z.infer<typeof VlmStatusSchema>
+
+export async function getVlmStatus(): Promise<VlmStatus> {
+  return apiJson('/api/v1/features/vlm/status', VlmStatusSchema)
+}
+
 export async function setFeature(
   feature: string,
   enabled: boolean,

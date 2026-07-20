@@ -262,6 +262,11 @@ class IdentityManager:
         for site_id, gid in items:
             try:
                 await self.redis.hdel(GALLERY_KEY.format(site_id=site_id), gid)
+                # absorbed:{site} feeds the visitor counter's retro-cleanup:
+                # phantoms already counted today get subtracted on its next flush
+                key = f"absorbed:{site_id}"
+                await self.redis.sadd(key, gid)
+                await self.redis.expire(key, 48 * 3600)
                 logger.info("absorbed phantom visitor %s (staff recognized)", gid)
             except Exception:  # noqa: BLE001
                 self._pending_absorb.append((site_id, gid))

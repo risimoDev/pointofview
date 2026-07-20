@@ -5,6 +5,7 @@ import { db } from '../db/client.js'
 import { camera, site, tenantFeature } from '../../db/schema.js'
 import { writeAudit } from '../audit.js'
 import { FeatureParams, UpsertFeatureBody } from '../schemas.js'
+import { VLM_WORKER_ALIVE_KEY, ollamaHealth, vlmSettings, vlmStatsKey } from '../vlm.js'
 
 /** Rebuild Redis features:{tenant} object consumed by the analyzer plugins:
  *  { feature_id: { enabled, config } } — see PluginManager.load_features. */
@@ -44,6 +45,44 @@ const featuresRoutes: FastifyPluginAsyncZod = async (app) => {
     return {
       items: rawStatus ? JSON.parse(rawStatus) as unknown[] : [],
       metrics: rawMetrics ? JSON.parse(rawMetrics) as Record<string, unknown> : null,
+    }
+  })
+
+  // Health of the local-VLM chain (worker-ai → Ollama → model) plus the
+  // counters the worker writes. Answers «почему ИИ молчит» from the panel
+  // instead of the server console.
+  app.get('/features/vlm/status', {
+    preHandler: [app.requirePerm('features')],
+  }, async (req) => {
+    const settings = await vlmSettings(req.tenantId)
+    const [health, alive, stats] = await Promise.all([
+      ollamaHealth(),
+      app.redis.get(VLM_WORKER_ALIVE_KEY),
+      app.redis.hgetall(vlmStatsKey(req.tenantId)),
+    ])
+    // ollama reports tags as "name:tag"; a bare "qwen3-vl:4b" must match
+    const modelPresent = health.models.some(
+      (m) => m === settings.model || m.split(':')[0] === settings.model.split(':')[0],
+    )
+    const num = (k: string): number => Number(stats[k] ?? 0)
+    return {
+      enabled: settings.enabled,
+      verify: settings.verify,
+      autoVerifyAfter: settings.autoVerifyAfter,
+      model: settings.model,
+      workerAlive: alive !== null,
+      ollamaOk: health.ok,
+      ollamaError: health.error,
+      models: health.models,
+      modelPresent,
+      stats: {
+        jobs: num('jobs'),
+        described: num('described'),
+        verified: num('verified'),
+        suppressed: num('suppressed'),
+        failed: num('failed'),
+        lastError: stats.last_error ?? null,
+      },
     }
   })
 

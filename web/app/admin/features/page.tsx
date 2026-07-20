@@ -5,8 +5,8 @@ import { useState } from 'react'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { IconAdjustmentsHorizontal } from '@tabler/icons-react'
 import {
-  getFeatures, getFeatureStatus, setFeature, errorMessage,
-  type Feature, type PluginStatus,
+  getFeatures, getFeatureStatus, getVlmStatus, setFeature, errorMessage,
+  type Feature, type PluginStatus, type VlmStatus,
 } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -118,8 +118,8 @@ const FEATURE_META: Record<string, FeatureMeta> = {
       + 'неподтверждённые оповещения (событие остаётся в журнале). Модель '
       + 'по умолчанию qwen3-vl:4b; первая генерация после простоя дольше.',
     fields: [
-      { key: 'auto_verify_after', label: 'Проверять после N ложных', type: 'number', def: 3 },
-      { key: 'verify', label: 'Проверять всегда', type: 'bool', def: false },
+      { key: 'verify', label: 'Проверять перед оповещением', type: 'bool', def: true },
+      { key: 'auto_verify_after', label: '…или после N ложных', type: 'number', def: 3 },
     ],
   },
   face_id: { label: 'Распознавание лиц', note: 'В разработке: требует серверной модели + согласие по 152-ФЗ.', fields: [] },
@@ -147,10 +147,61 @@ function StatusChip({ status }: { status: PluginStatus | undefined }): React.JSX
   )
 }
 
+/** Where the local-VLM chain stands: container → Ollama → pulled model. */
+function VlmHealth({ s }: { s: VlmStatus | undefined }): React.JSX.Element | null {
+  if (!s) return null
+  const problems: string[] = []
+  if (!s.workerAlive) problems.push('контейнер worker-ai не запущен')
+  if (!s.ollamaOk) problems.push(`Ollama недоступна${s.ollamaError ? ` (${s.ollamaError})` : ''}`)
+  else if (!s.modelPresent) {
+    problems.push(`модель ${s.model} не загружена`
+      + (s.models.length > 0 ? `; есть: ${s.models.join(', ')}` : '; список моделей пуст'))
+  }
+  const ok = problems.length === 0
+  return (
+    <div className="mt-2 space-y-1 rounded-md border border-border/60 bg-background/40 p-2 text-xs">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className={cn('rounded-full border px-2 py-0.5',
+          ok ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-300'
+             : 'border-red-500/30 bg-red-500/15 text-red-300')}>
+          {ok ? 'ИИ на связи' : 'ИИ не работает'}
+        </span>
+        <span className="text-muted-foreground">модель {s.model}</span>
+        {!s.enabled && <span className="text-amber-400">функция выключена</span>}
+      </div>
+      {!ok && (
+        <p className="text-red-400">
+          {problems.join(' · ')}
+          {!s.ollamaOk || s.modelPresent ? '' : ' — выполните на сервере: '}
+          {!s.ollamaOk || s.modelPresent ? '' : (
+            <span className="font-mono">
+              docker compose -f infra/docker-compose.prod.yml exec ollama ollama pull {s.model}
+            </span>
+          )}
+        </p>
+      )}
+      <p className="text-muted-foreground">
+        Обработано событий: {s.stats.jobs} · описано: {s.stats.described} ·
+        подтверждено: {s.stats.verified} · отсеяно: {s.stats.suppressed} ·
+        сбоев: {s.stats.failed}
+      </p>
+      {s.stats.lastError && (
+        <p className="text-amber-400">Последняя ошибка: {s.stats.lastError}</p>
+      )}
+      <p className="text-muted-foreground">
+        {s.verify
+          ? 'Проверка включена для всех проверяемых по кадру событий.'
+          : `Проверка включается по камере+типу после ${s.autoVerifyAfter} пометок «ложное».`}
+        {' '}При недоступности ИИ оповещения уходят без проверки (чтобы не потерять реальные).
+      </p>
+    </div>
+  )
+}
+
 function FeatureCard(
-  { feature, meta, current, status, onSaved }:
+  { feature, meta, current, status, extra, onSaved }:
   { feature: string; meta: FeatureMeta; current: Feature | undefined
-    status: PluginStatus | undefined; onSaved: () => void },
+    status: PluginStatus | undefined; extra?: React.ReactNode; onSaved: () => void },
 ): React.JSX.Element {
   const [enabled, setEnabled] = useState(current?.enabled ?? false)
   const [vals, setVals] = useState<Record<string, string | boolean>>(() => {
@@ -195,6 +246,7 @@ function FeatureCard(
         </Button>
       </div>
       {meta.note && <p className="mt-1 text-xs text-muted-foreground">{meta.note}</p>}
+      {extra}
 
       {meta.fields.length > 0 && (
         <div className="mt-3 flex flex-wrap items-end gap-3">
@@ -242,6 +294,11 @@ export default function AdminFeaturesPage(): React.JSX.Element {
     queryFn: getFeatureStatus,
     refetchInterval: 15_000,
   })
+  const vlm = useQuery({
+    queryKey: ['admin', 'vlm-status'],
+    queryFn: getVlmStatus,
+    refetchInterval: 20_000,
+  })
   const onSaved = (): void => void qc.invalidateQueries({ queryKey: ['admin', 'features'] })
   const m = status.data?.metrics
 
@@ -282,6 +339,7 @@ export default function AdminFeaturesPage(): React.JSX.Element {
             meta={meta}
             current={features.data.find((f) => f.feature === feature)}
             status={status.data?.items.find((s) => s.feature_id === feature)}
+            extra={feature === 'vlm' ? <VlmHealth s={vlm.data} /> : undefined}
             onSaved={onSaved}
           />
         ))}

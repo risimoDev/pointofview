@@ -7,7 +7,9 @@ import { config } from '../config.js'
 import { minio } from '../minio.js'
 import { AI_QUEUE, alertsQueue, type AiJob } from '../queues.js'
 import { typeLabel } from '../event_labels.js'
-import { fpKey, ollamaVision, snapshotB64, vlmSettings } from '../vlm.js'
+import {
+  VLM_WORKER_ALIVE_KEY, bumpVlmStat, fpKey, ollamaVision, snapshotB64, vlmSettings,
+} from '../vlm.js'
 
 // Pre-alert enrichment stage (consumer → ai → alerts):
 //  1. capture the camera frame from go2rtc → MinIO → event.snapshot_key
@@ -75,6 +77,7 @@ async function processJob(job: Job<AiJob>, redis: IORedis): Promise<void> {
     .limit(1)
 
   let suppress = false
+  await bumpVlmStat(redis, tenant_id, 'jobs')
   if (ev) {
     let snapshotKey = ev.snapshotKey
     if (!snapshotKey) {
@@ -101,6 +104,7 @@ async function processJob(job: Job<AiJob>, redis: IORedis): Promise<void> {
             await mergeMeta(event_id, tenant_id, {
               ai_description: description.slice(0, 500), ai_model: vlm.model,
             })
+            await bumpVlmStat(redis, tenant_id, 'described')
           }
         }
 
@@ -121,17 +125,23 @@ async function processJob(job: Job<AiJob>, redis: IORedis): Promise<void> {
               await mergeMeta(event_id, tenant_id, {
                 ai_verified: false, ai_verdict: verdict?.slice(0, 300) ?? '',
               })
+              await bumpVlmStat(redis, tenant_id, 'suppressed')
               log('alert suppressed by vlm', { event_id, type: ev.type })
             } else if (word.startsWith('да')) {
               await mergeMeta(event_id, tenant_id, { ai_verified: true })
+              await bumpVlmStat(redis, tenant_id, 'verified')
             }
             // unparseable answer → fail-open, alert goes out
           }
         }
       }
     } catch (err) {
-      // VLM is best-effort: model not pulled / Ollama down / timeout
-      log('vlm step failed', { event_id, err: err instanceof Error ? err.message : String(err) })
+      // VLM is best-effort: model not pulled / Ollama down / timeout.
+      // The reason is stored so /admin/features can show it — silent
+      // fail-open is exactly why «VLM не работает» went unnoticed.
+      const reason = err instanceof Error ? err.message : String(err)
+      await bumpVlmStat(redis, tenant_id, 'failed', reason)
+      log('vlm step failed', { event_id, err: reason })
     }
   }
 
@@ -161,7 +171,18 @@ async function main(): Promise<void> {
     }
   })
 
+  // heartbeat: absence of this key on /admin/features means the container
+  // itself is down (as opposed to Ollama or the model being missing)
+  const beat = async (): Promise<void> => {
+    try {
+      await cmd.set(VLM_WORKER_ALIVE_KEY, String(Date.now()), 'EX', 90)
+    } catch { /* redis flap — next tick */ }
+  }
+  await beat()
+  const heartbeat = setInterval(() => void beat(), 30_000)
+
   const shutdown = async (): Promise<void> => {
+    clearInterval(heartbeat)
     await worker.close()
     await Promise.allSettled([connection.quit(), cmd.quit()])
     process.exit(0)

@@ -26,7 +26,9 @@ const NAV: { href: string; label: string; icon: NavIcon; perm: PermissionCode }[
   { href: '/events', label: 'События', icon: IconActivity, perm: 'events' },
   { href: '/analytics', label: 'Аналитика', icon: IconChartHistogram, perm: 'analytics' },
   { href: '/reports', label: 'Отчёты', icon: IconFileAnalytics, perm: 'reports' },
-  { href: '/settings/cameras', label: 'Камеры', icon: IconVideo, perm: 'zones' },
+  // perm 'zones' → просмотр камер + переход в редактор зон; управление самими
+  // камерами (добавление/удаление) — отдельное право 'cameras', /admin/cameras
+  { href: '/settings/cameras', label: 'Зоны', icon: IconVideo, perm: 'zones' },
   { href: '/settings/features', label: 'Функции', icon: IconAdjustmentsHorizontal, perm: 'features' },
 ]
 
@@ -49,7 +51,11 @@ export function AppNav(): React.JSX.Element | null {
   // UX gating only — the API enforces permissions server-side
   const perms = new Set(effectivePermsOf(claims?.role ?? null, claims?.perms ?? null))
   const items = claims ? NAV.filter((i) => perms.has(i.perm)) : NAV
-  const showAdmin = claims?.role === 'super' || claims?.role === 'admin' || perms.has('users')
+  const isSuper = claims?.role === 'super'
+  const showAdmin = isSuper || claims?.role === 'admin' || perms.has('users')
+  // super lands on platform diagnostics; everyone else lands on their
+  // enterprise's admin home (/admin itself is super-only, see middleware.ts)
+  const adminHref = isSuper ? '/admin' : '/admin/org'
 
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center gap-0.5 border-b border-border/70 bg-background/80 px-2 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:gap-1 sm:px-4">
@@ -95,7 +101,7 @@ export function AppNav(): React.JSX.Element | null {
         )}
         {showAdmin && (
           <Link
-            href="/admin"
+            href={adminHref}
             title="Админ"
             className={cn(
               'flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:px-3',

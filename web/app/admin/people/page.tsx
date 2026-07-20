@@ -7,7 +7,8 @@ import {
   IconUserCheck, IconUserMinus, IconUsers, IconTrash, IconCamera, IconUserPlus,
 } from '@tabler/icons-react'
 import {
-  createStaff, deletePerson, getPeople, setPersonStaff, uploadFacePhoto, type Person,
+  createStaff, deletePerson, getPeople, setPersonStaff, uploadFacePhoto, errorMessage,
+  type Person,
 } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -46,7 +47,7 @@ function PersonCard({ person, staffList, onChanged }: {
       setMsg('Фото в обработке (≈10 с)')
       setTimeout(onChanged, 12_000)
     },
-    onError: () => setMsg('Не удалось загрузить фото'),
+    onError: (err) => setMsg(errorMessage(err, 'Не удалось загрузить фото')),
   })
 
   return (
@@ -181,7 +182,7 @@ function AddStaffForm({ onChanged }: { onChanged: () => void }): React.JSX.Eleme
       setHint('Сотрудник создан — добавьте 1–3 фото лица на его карточке ниже.')
       onChanged()
     },
-    onError: () => setHint('Не удалось создать сотрудника'),
+    onError: (err) => setHint(errorMessage(err, 'Не удалось создать сотрудника')),
   })
   return (
     <div className="space-y-1.5">

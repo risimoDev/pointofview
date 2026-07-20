@@ -6,7 +6,7 @@ import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { IconBell, IconTrash, IconBrandTelegram, IconSend, IconWebhook, IconMoon } from '@tabler/icons-react'
 import { EventType } from '@shared/events.schema'
 import {
-  getAlertRules, createAlertRule, updateAlertRule, deleteAlertRule, testAlertRule,
+  getAlertRules, createAlertRule, updateAlertRule, deleteAlertRule, testAlertRule, errorMessage,
   type AlertRule, type AlertRuleInput,
 } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -158,7 +158,7 @@ function RuleRow(
   const test = useMutation({
     mutationFn: () => testAlertRule(rule.id),
     onSuccess: () => setTestMsg('Тест отправлен — проверь Telegram/webhook'),
-    onError: () => setTestMsg('Не удалось отправить тест'),
+    onError: (err) => setTestMsg(errorMessage(err, 'Не удалось отправить тест')),
   })
 
   const quietFrom = strField(rule.schedule, 'quiet_from')
@@ -267,7 +267,7 @@ export default function AdminAlertsPage(): React.JSX.Element {
           <RuleForm form={form} setForm={setForm} />
           <Button disabled={add.isPending} onClick={() => add.mutate()}>Добавить</Button>
         </div>
-        {add.isError && <p className="text-sm text-red-400">Не удалось создать правило</p>}
+        {add.isError && <p className="text-sm text-red-400">{errorMessage(add.error)}</p>}
       </section>
     </main>
   )

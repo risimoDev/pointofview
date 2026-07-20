@@ -1,15 +1,35 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { effectivePermsOf } from '@shared/events.schema'
 
 const PUBLIC = ['/login', '/api/auth', '/invite']
 
-function roleFromToken(token: string): string | null {
+// Service-level (super-only) admin subpages — platform diagnostics, the
+// cross-tenant org list, and server-wide settings. Everything else under
+// /admin/* (org/people/cameras/features/alerts) is the TENANT-OWNER admin
+// area: real access is enforced by the API (requirePerm/requireOwner) and by
+// admin-nav.tsx hiding links the caller's checkboxes don't cover — this gate
+// only keeps users with zero admin-area permission from loading a shell full
+// of 403s.
+const SUPER_ONLY_ADMIN_PATHS = ['/admin/orgs', '/admin/video', '/admin/settings', '/admin/maintenance']
+// scopes admin-nav.tsx uses for non-super items (see that file's `ITEMS`)
+const ADMIN_AREA_PERMS = ['users', 'people', 'cameras', 'features', 'alerts']
+
+interface Claims { role: string | null; perms: string[] | null }
+
+function claimsFromToken(token: string): Claims {
   try {
     const payload = token.split('.')[1]
-    if (!payload) return null
+    if (!payload) return { role: null, perms: null }
     const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
-    return (JSON.parse(json) as { role?: string }).role ?? null
+    const parsed = JSON.parse(json) as { role?: string; perms?: unknown }
+    return {
+      role: parsed.role ?? null,
+      perms: Array.isArray(parsed.perms)
+        ? parsed.perms.filter((p): p is string => typeof p === 'string')
+        : null,
+    }
   } catch {
-    return null
+    return { role: null, perms: null }
   }
 }
 
@@ -40,9 +60,21 @@ export function middleware(req: NextRequest): NextResponse {
   if (token && (pathname === '/login' || pathname === '/')) {
     return redirect(req, '/dashboard')
   }
-  // Super-admin area: UX gate (the API enforces role=super for real).
-  if (token && pathname.startsWith('/admin') && roleFromToken(token) !== 'super') {
-    return redirect(req, '/dashboard')
+  if (token && (pathname === '/admin' || pathname.startsWith('/admin/'))) {
+    const { role, perms } = claimsFromToken(token)
+    const isSuperOnly = pathname === '/admin'
+      || SUPER_ONLY_ADMIN_PATHS.some((p) => pathname.startsWith(p))
+    if (isSuperOnly) {
+      if (role !== 'super') return redirect(req, '/dashboard')
+    } else {
+      // tenant-owner area: admin/super get every PermissionCode from
+      // effectivePermsOf, so this alone covers owners too — a manager/
+      // operator needs at least one of the checkboxes admin-nav.tsx uses
+      const effective = effectivePermsOf(role, perms)
+      if (!ADMIN_AREA_PERMS.some((p) => effective.includes(p))) {
+        return redirect(req, '/dashboard')
+      }
+    }
   }
   return NextResponse.next()
 }

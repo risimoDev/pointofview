@@ -5,7 +5,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { IconVideo, IconVectorTriangle, IconTrash } from '@tabler/icons-react'
-import { getCameras, getSites, createCamera, updateCamera, deleteCamera } from '@/lib/api'
+import { getCameras, getSites, createCamera, updateCamera, deleteCamera, errorMessage } from '@/lib/api'
 import type { Camera } from '@shared/events.schema'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -93,6 +93,7 @@ function CameraRow(
             Пароль в URL скрыт как ***. Оставьте *** без изменений — пароль сохранится;
             чтобы сменить, введите URL с новым паролем.
           </p>
+          {save.isError && <p className="w-full text-sm text-red-400">{errorMessage(save.error)}</p>}
         </div>
       )}
     </div>
@@ -167,7 +168,7 @@ export default function AdminCamerasPage(): React.JSX.Element {
           </div>
           <Button type="submit" disabled={!siteId || !name || add.isPending}>Добавить</Button>
         </form>
-        {add.isError && <p className="text-sm text-red-400">Не удалось создать камеру</p>}
+        {add.isError && <p className="text-sm text-red-400">{errorMessage(add.error)}</p>}
       </section>
     </main>
   )

@@ -7,7 +7,7 @@ import {
   IconFileAnalytics, IconFileTypePdf, IconTable, IconBrandTelegram,
 } from '@tabler/icons-react'
 import {
-  getSafetyReport, getSites, downloadSafetyReport, sendSafetyReportTelegram,
+  getSafetyReport, getSites, downloadSafetyReport, sendSafetyReportTelegram, errorMessage,
 } from '@/lib/api'
 import { eventTypeLabels, labelOf } from '@/lib/labels'
 import { Button } from '@/components/ui/button'
@@ -167,12 +167,10 @@ export default function ReportsPage(): React.JSX.Element {
       </div>
       {telegram.isSuccess && <p className="text-sm text-emerald-400">Отчёт отправлен в Telegram.</p>}
       {telegram.isError && (
-        <p className="text-sm text-red-400">{(telegram.error as Error).message}</p>
+        <p className="text-sm text-red-400">{errorMessage(telegram.error)}</p>
       )}
       {report.isError && (
-        <p className="text-sm text-red-400">
-          Не удалось загрузить отчёт. Раздел доступен ролям администратора и менеджера.
-        </p>
+        <p className="text-sm text-red-400">{errorMessage(report.error)}</p>
       )}
 
       {d && (

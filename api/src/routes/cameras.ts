@@ -341,7 +341,7 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
   })
 
   app.get('/cameras/:id/zones', {
-    preHandler: [app.authenticate],
+    preHandler: [app.requirePerm('zones')],
     schema: { params: CameraIdParams },
   }, async (req, reply) => {
     const { id } = req.params
@@ -353,7 +353,7 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
   })
 
   app.post('/cameras/:id/zones', {
-    preHandler: [app.authenticate],
+    preHandler: [app.requirePerm('zones')],
     schema: { params: CameraIdParams, body: CreateZoneBody },
   }, async (req, reply) => {
     const { id } = req.params
@@ -377,7 +377,7 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
   })
 
   app.patch('/cameras/:id/zones/:zoneId', {
-    preHandler: [app.authenticate],
+    preHandler: [app.requirePerm('zones')],
     schema: { params: ZoneParams, body: UpdateZoneBody },
   }, async (req, reply) => {
     const { id, zoneId } = req.params
@@ -408,7 +408,7 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
   })
 
   app.delete('/cameras/:id/zones/:zoneId', {
-    preHandler: [app.authenticate],
+    preHandler: [app.requirePerm('zones')],
     schema: { params: ZoneParams },
   }, async (req, reply) => {
     const { id, zoneId } = req.params

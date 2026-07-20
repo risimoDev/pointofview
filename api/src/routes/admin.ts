@@ -170,6 +170,12 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
     },
   }, async (req, reply) => {
     const b = req.body
+    // only an owner (role admin/super) may grant full owner access — a
+    // non-owner holding just the «users» checkbox must not be able to mint
+    // a new admin (privilege escalation)
+    if (b.role === 'admin' && req.role !== 'admin' && req.role !== 'super') {
+      return reply.code(403).send({ message: 'only an owner can grant the admin role' })
+    }
     const passwordHash = await bcrypt.hash(b.password, 10)
     try {
       const [row] = await db.insert(appUser).values({
@@ -208,7 +214,18 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
     if (target.role === 'super' && req.role !== 'super') {
       return reply.code(403).send({ message: 'cannot edit a super account' })
     }
+    // a non-owner («users»-perm employee) must not disable/demote/lock out an
+    // actual owner — only another owner (or super) may touch an admin account
+    if (target.role === 'admin' && req.role !== 'admin' && req.role !== 'super') {
+      return reply.code(403).send({ message: 'only an owner can edit an owner account' })
+    }
     const b = req.body
+    // same escalation guard as create: granting/keeping role=admin requires
+    // the caller to already be an owner — blocks both "promote someone else"
+    // and "promote myself" (a non-owner editing their own id lands here too)
+    if (b.role === 'admin' && req.role !== 'admin' && req.role !== 'super') {
+      return reply.code(403).send({ message: 'only an owner can grant the admin role' })
+    }
     const patch: {
       role?: z.infer<typeof TenantRoleEnum>; passwordHash?: string; name?: string
       permissions?: string[] | null; allowedCameraIds?: string[]; disabled?: boolean
@@ -247,6 +264,9 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
     if (target.role === 'super' && req.role !== 'super') {
       return reply.code(403).send({ message: 'cannot delete a super account' })
     }
+    if (target.role === 'admin' && req.role !== 'admin' && req.role !== 'super') {
+      return reply.code(403).send({ message: 'only an owner can delete an owner account' })
+    }
     await db.delete(appUser)
       .where(and(eq(appUser.id, req.params.id), eq(appUser.tenantId, req.tenantId)))
     await writeAudit({
@@ -283,6 +303,11 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
     },
   }, async (req, reply) => {
     const b = req.body
+    // same escalation guard as /users: a non-owner must not be able to mint
+    // an admin invite (whoever redeems it becomes a full owner)
+    if (b.role === 'admin' && req.role !== 'admin' && req.role !== 'super') {
+      return reply.code(403).send({ message: 'only an owner can invite with the admin role' })
+    }
     const token = randomBytes(24).toString('base64url')
     const [row] = await db.insert(userInvite).values({
       tenantId: req.tenantId, token, name: b.name, email: b.email ?? null,

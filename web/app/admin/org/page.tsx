@@ -8,7 +8,7 @@ import {
 } from '@tabler/icons-react'
 import {
   getSites, createSite, getUsers, createUser, updateUser, deleteUser,
-  getInvites, createInvite, deleteInvite, getCameras,
+  getInvites, createInvite, deleteInvite, getCameras, getClaims, errorMessage,
   type AdminUser, type Invite,
 } from '@/lib/api'
 import { PermissionCodes, RoleDefaultPerms } from '@shared/events.schema'
@@ -81,9 +81,10 @@ function permsSummary(u: AdminUser): string {
   return perms.map((p) => permissionLabels[p] ?? p).join(', ') || 'нет доступа'
 }
 
-function UserRow({ user, onChanged }: {
-  user: AdminUser; onChanged: () => void
+function UserRow({ user, isOwner, onChanged }: {
+  user: AdminUser; isOwner: boolean; onChanged: () => void
 }): React.JSX.Element {
+  const roles = isOwner ? TENANT_ROLES : TENANT_ROLES.filter((r) => r !== 'admin')
   const [edit, setEdit] = useState(false)
   const [role, setRole] = useState(user.role)
   const [perms, setPerms] = useState<string[]>(
@@ -121,7 +122,11 @@ function UserRow({ user, onChanged }: {
           </span>
         )}
         <div className="ml-auto flex items-center gap-1">
-          {user.role !== 'super' && (
+          {/* super is never editable here; another owner account only by an owner
+              (blocks a non-owner «users»-perm holder from disabling/deleting
+              the actual owner — the API enforces this too, this just matches
+              the UI to it) */}
+          {user.role !== 'super' && (user.role !== 'admin' || isOwner) && (
             <>
               <Button size="sm" variant="ghost" onClick={() => setEdit((v) => !v)}>
                 {edit ? 'Отмена' : 'Доступы'}
@@ -152,7 +157,7 @@ function UserRow({ user, onChanged }: {
               <Select value={role} onValueChange={setRole}>
                 <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {TENANT_ROLES.map((r) => (
+                  {roles.map((r) => (
                     <SelectItem key={r} value={r}>{roleLabels[r]}</SelectItem>
                   ))}
                 </SelectContent>
@@ -171,6 +176,7 @@ function UserRow({ user, onChanged }: {
           <Button size="sm" disabled={save.isPending} onClick={() => save.mutate()}>
             Сохранить доступы
           </Button>
+          {save.isError && <p className="text-sm text-red-400">{errorMessage(save.error)}</p>}
           <p className="text-[11px] text-muted-foreground">
             Изменения прав применяются при следующем входе пользователя.
           </p>
@@ -180,7 +186,8 @@ function UserRow({ user, onChanged }: {
   )
 }
 
-function AddUser({ onChanged }: { onChanged: () => void }): React.JSX.Element {
+function AddUser({ isOwner, onChanged }: { isOwner: boolean; onChanged: () => void }): React.JSX.Element {
+  const roles = isOwner ? TENANT_ROLES : TENANT_ROLES.filter((r) => r !== 'admin')
   const [mode, setMode] = useState<'invite' | 'password'>('invite')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -272,7 +279,7 @@ function AddUser({ onChanged }: { onChanged: () => void }): React.JSX.Element {
           }}>
             <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {TENANT_ROLES.map((r) => (
+              {roles.map((r) => (
                 <SelectItem key={r} value={r}>{roleLabels[r]}</SelectItem>
               ))}
             </SelectContent>
@@ -292,7 +299,7 @@ function AddUser({ onChanged }: { onChanged: () => void }): React.JSX.Element {
         {mode === 'invite' ? 'Создать приглашение' : 'Создать аккаунт'}
       </Button>
       {(invite.isError || direct.isError) && (
-        <p className="text-sm text-red-400">Не удалось создать (email занят?)</p>
+        <p className="text-sm text-red-400">{errorMessage(invite.error ?? direct.error)}</p>
       )}
 
       {inviteUrl && (
@@ -353,6 +360,10 @@ function InviteRow({ inv, onChanged }: { inv: Invite; onChanged: () => void }): 
 
 export default function OrgPage(): React.JSX.Element {
   const qc = useQueryClient()
+  const claims = useQuery({ queryKey: ['claims'], queryFn: getClaims })
+  // «users»-checkbox employees (not owners) must not be able to grant/touch
+  // the admin role — see api/src/routes/admin.ts for the matching API guard
+  const isOwner = claims.data?.role === 'admin' || claims.data?.role === 'super'
   const sites = useQuery({ queryKey: ['admin', 'sites'], queryFn: getSites })
   const users = useQuery({ queryKey: ['admin', 'users'], queryFn: getUsers })
   const invites = useQuery({ queryKey: ['admin', 'invites'], queryFn: getInvites })
@@ -388,12 +399,14 @@ export default function OrgPage(): React.JSX.Element {
           Пользователи ({users.data?.length ?? 0})
         </h2>
         <div className="overflow-hidden rounded-lg border border-border/70">
-          {users.data?.map((u) => <UserRow key={u.id} user={u} onChanged={onChanged} />)}
+          {users.data?.map((u) => (
+            <UserRow key={u.id} user={u} isOwner={isOwner} onChanged={onChanged} />
+          ))}
           {users.data?.length === 0 && (
             <div className="p-3 text-sm text-muted-foreground">Пользователей нет.</div>
           )}
         </div>
-        <AddUser onChanged={onChanged} />
+        <AddUser isOwner={isOwner} onChanged={onChanged} />
       </section>
 
       {/* Invites */}

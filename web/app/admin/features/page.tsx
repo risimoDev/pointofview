@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { IconAdjustmentsHorizontal } from '@tabler/icons-react'
 import {
-  getFeatures, getFeatureStatus, setFeature,
+  getFeatures, getFeatureStatus, setFeature, errorMessage,
   type Feature, type PluginStatus,
 } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -228,7 +228,7 @@ function FeatureCard(
       <div className="mt-3 flex items-center gap-2">
         <Button size="sm" disabled={save.isPending} onClick={() => save.mutate()}>Сохранить</Button>
         {save.isSuccess && <span className="text-xs text-emerald-400">Сохранено</span>}
-        {save.isError && <span className="text-xs text-red-400">Ошибка</span>}
+        {save.isError && <span className="text-xs text-red-400">{errorMessage(save.error)}</span>}
       </div>
     </div>
   )

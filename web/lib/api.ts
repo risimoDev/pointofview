@@ -40,9 +40,52 @@ async function apiFetch(path: string, init: RequestInit = {}): Promise<Response>
   return res
 }
 
+/** Error carrying the server's own message (RU, from `{message}` bodies) and
+ *  status, so callers/UI can tell "нет прав" apart from "сервис недоступен"
+ *  instead of a bare path/status string. */
+export class ApiError extends Error {
+  constructor(public status: number, message: string) {
+    super(message)
+    this.name = 'ApiError'
+  }
+}
+
+const STATUS_FALLBACK: Record<number, string> = {
+  400: 'Некорректный запрос',
+  401: 'Не авторизовано — войдите заново',
+  403: 'Недостаточно прав для этого действия',
+  404: 'Не найдено',
+  409: 'Конфликт: такая запись уже существует',
+  429: 'Слишком много запросов, попробуйте позже',
+  500: 'Ошибка сервера',
+  502: 'Сервис временно недоступен',
+  503: 'Сервис временно недоступен',
+}
+
+/** Read `{message}` from an error response body, falling back to a RU status
+ *  message and finally to a bare `label: status`. Never throws itself. */
+async function apiErrorMessage(res: Response, label: string): Promise<string> {
+  try {
+    const body = (await res.json()) as { message?: string }
+    if (body?.message) return body.message
+  } catch { /* body isn't JSON */ }
+  return STATUS_FALLBACK[res.status] ?? `${label}: ${res.status}`
+}
+
+async function throwApiError(res: Response, label: string): Promise<never> {
+  throw new ApiError(res.status, await apiErrorMessage(res, label))
+}
+
+/** For `mutation.isError && <p>{errorMessage(mutation.error)}</p>` spots —
+ *  surfaces the server's real reason (e.g. "недостаточно прав") instead of a
+ *  generic guess. */
+export function errorMessage(err: unknown, fallback = 'Не удалось выполнить действие'): string {
+  return err instanceof Error && err.message ? err.message : fallback
+}
+
 async function apiJson<T>(path: string, schema: z.ZodType<T>, init?: RequestInit): Promise<T> {
   const res = await apiFetch(path, init)
-  if (!res.ok) throw new Error(`${path}: ${res.status}`)
+  if (!res.ok) await throwApiError(res, path)
   return schema.parse(await res.json())
 }
 
@@ -77,7 +120,7 @@ export async function createCamera(input: {
   const res = await apiFetch('/api/v1/cameras', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
   })
-  if (!res.ok) throw new Error(`createCamera: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'createCamera')
 }
 
 export async function updateCamera(id: string, patch: {
@@ -87,12 +130,12 @@ export async function updateCamera(id: string, patch: {
   const res = await apiFetch(`/api/v1/cameras/${id}`, {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch),
   })
-  if (!res.ok) throw new Error(`updateCamera: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'updateCamera')
 }
 
 export async function deleteCamera(id: string): Promise<void> {
   const res = await apiFetch(`/api/v1/cameras/${id}`, { method: 'DELETE' })
-  if (!res.ok) throw new Error(`deleteCamera: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'deleteCamera')
 }
 
 // Upload a test video → server creates a `file` camera the analyzer runs.
@@ -126,7 +169,7 @@ export async function uploadVideoCamera(
 
 export async function getSnapshotObjectUrl(cameraId: string): Promise<string> {
   const res = await apiFetch(`/api/v1/cameras/${cameraId}/snapshot`)
-  if (!res.ok) throw new Error(`snapshot: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'snapshot')
   return URL.createObjectURL(await res.blob())
 }
 
@@ -159,24 +202,24 @@ export async function updateZone(
   const res = await apiFetch(`/api/v1/cameras/${cameraId}/zones/${zoneId}`, {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch),
   })
-  if (!res.ok) throw new Error(`updateZone: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'updateZone')
 }
 
 export async function deleteZone(cameraId: string, zoneId: string): Promise<void> {
   const res = await apiFetch(`/api/v1/cameras/${cameraId}/zones/${zoneId}`, { method: 'DELETE' })
-  if (!res.ok) throw new Error(`deleteZone: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'deleteZone')
 }
 
 export async function resolveEvent(eventId: string): Promise<void> {
   const res = await apiFetch(`/api/v1/events/${eventId}/resolve`, { method: 'PATCH' })
-  if (!res.ok) throw new Error(`resolveEvent: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'resolveEvent')
 }
 
 const SnapshotUrlSchema = z.object({ url: z.string() })
 export async function getEventSnapshotUrl(eventId: string): Promise<string | null> {
   const res = await apiFetch(`/api/v1/events/${eventId}/snapshot`)
   if (res.status === 409) return null // событие без снапшота
-  if (!res.ok) throw new Error(`snapshot: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'snapshot')
   return SnapshotUrlSchema.parse(await res.json()).url
 }
 
@@ -229,7 +272,7 @@ export async function markFalsePositive(eventId: string, fp = true): Promise<voi
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ false_positive: fp }),
   })
-  if (!res.ok) throw new Error(`markFalsePositive: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'markFalsePositive')
 }
 
 /** Single-turn question to the local VLM about the event's frame. */
@@ -241,13 +284,15 @@ export async function askEvent(eventId: string, question: string): Promise<strin
   })
   const body = (await res.json().catch(() => null)) as
     { answer?: string; message?: string } | null
-  if (!res.ok) throw new Error(body?.message ?? `askEvent: ${res.status}`)
+  if (!res.ok) {
+    throw new ApiError(res.status, body?.message ?? STATUS_FALLBACK[res.status] ?? `askEvent: ${res.status}`)
+  }
   return body?.answer ?? ''
 }
 
 export async function requestClip(eventId: string): Promise<void> {
   const res = await apiFetch(`/api/v1/events/${eventId}/clip`, { method: 'POST' })
-  if (res.status !== 202 && !res.ok) throw new Error(`clip request: ${res.status}`)
+  if (res.status !== 202 && !res.ok) await throwApiError(res, 'clip request')
 }
 
 const TicketSchema = z.object({ ticket: z.string() })
@@ -259,7 +304,7 @@ const ClipUrlSchema = z.object({ url: z.string() })
 export async function getClipUrl(eventId: string): Promise<string | null> {
   const res = await apiFetch(`/api/v1/events/${eventId}/clip`)
   if (res.status === 409) return null // not ready yet
-  if (!res.ok) throw new Error(`clip: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'clip')
   return ClipUrlSchema.parse(await res.json()).url
 }
 
@@ -311,7 +356,7 @@ export async function downloadSafetyReport(
   kind: 'pdf' | 'xlsx', from: string, to: string, siteId?: string,
 ): Promise<void> {
   const res = await apiFetch(`/api/v1/reports/safety.${kind}?${reportParams(from, to, siteId)}`)
-  if (!res.ok) throw new Error(`report ${kind}: ${res.status}`)
+  if (!res.ok) await throwApiError(res, `report ${kind}`)
   const blob = await res.blob()
   const name = res.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1]
     ?? `safety.${kind}`
@@ -330,10 +375,7 @@ export async function sendSafetyReportTelegram(
     `/api/v1/reports/safety/telegram?${reportParams(from, to, siteId)}`,
     { method: 'POST' },
   )
-  if (!res.ok) {
-    const body = (await res.json().catch(() => null)) as { message?: string } | null
-    throw new Error(body?.message ?? `telegram: ${res.status}`)
-  }
+  if (!res.ok) await throwApiError(res, 'telegram')
 }
 
 // ── Feature flags ─────────────────────────────────────────────
@@ -386,7 +428,7 @@ export async function setFeature(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ enabled, config }),
   })
-  if (!res.ok) throw new Error(`setFeature: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'setFeature')
 }
 
 // ── Live occupancy (counter plugin) ───────────────────────────
@@ -439,7 +481,7 @@ export async function createStaff(name: string): Promise<string> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name }),
   })
-  if (!res.ok) throw new Error(`createStaff: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'createStaff')
   return ((await res.json()) as { gid: string }).gid
 }
 
@@ -454,7 +496,7 @@ export async function setPersonStaff(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })
-  if (!res.ok) throw new Error(`setPersonStaff: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'setPersonStaff')
 }
 
 export async function uploadFacePhoto(gid: string, file: File): Promise<void> {
@@ -464,12 +506,12 @@ export async function uploadFacePhoto(gid: string, file: File): Promise<void> {
     method: 'POST',
     body: form,
   })
-  if (!res.ok) throw new Error(`uploadFacePhoto: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'uploadFacePhoto')
 }
 
 export async function deletePerson(gid: string): Promise<void> {
   const res = await apiFetch(`/api/v1/people/${encodeURIComponent(gid)}`, { method: 'DELETE' })
-  if (!res.ok) throw new Error(`deletePerson: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'deletePerson')
 }
 
 // ── Role (decoded from the JWT payload; UX gating only) ───────
@@ -533,7 +575,7 @@ export async function replayDeadLetter(id: string): Promise<void> {
   const res = await apiFetch(`/api/v1/admin/dead-letter/${encodeURIComponent(id)}/replay`, {
     method: 'POST',
   })
-  if (!res.ok) throw new Error(`replay: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'replay')
 }
 
 // ── Super-admin: organization (sites + users) ─────────────────
@@ -553,7 +595,7 @@ export async function createSite(input: {
   const res = await apiFetch('/api/v1/admin/sites', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
   })
-  if (!res.ok) throw new Error(`createSite: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'createSite')
 }
 
 const AdminUserSchema = z.object({
@@ -582,17 +624,17 @@ export async function createUser(input: UserInput): Promise<void> {
   const res = await apiFetch('/api/v1/admin/users', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
   })
-  if (!res.ok) throw new Error(`createUser: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'createUser')
 }
 export async function updateUser(id: string, patch: UserInput): Promise<void> {
   const res = await apiFetch(`/api/v1/admin/users/${id}`, {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch),
   })
-  if (!res.ok) throw new Error(`updateUser: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'updateUser')
 }
 export async function deleteUser(id: string): Promise<void> {
   const res = await apiFetch(`/api/v1/admin/users/${id}`, { method: 'DELETE' })
-  if (!res.ok) throw new Error(`deleteUser: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'deleteUser')
 }
 
 // ── Invites (owner sends the link; employee sets the password) ─
@@ -616,12 +658,12 @@ export async function createInvite(input: {
   const res = await apiFetch('/api/v1/admin/invites', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
   })
-  if (!res.ok) throw new Error(`createInvite: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'createInvite')
   return ((await res.json()) as { token: string }).token
 }
 export async function deleteInvite(id: string): Promise<void> {
   const res = await apiFetch(`/api/v1/admin/invites/${id}`, { method: 'DELETE' })
-  if (!res.ok) throw new Error(`deleteInvite: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'deleteInvite')
 }
 
 // ── Platform (super, cross-tenant) ────────────────────────────
@@ -640,24 +682,24 @@ export async function createOrg(input: {
   const res = await apiFetch('/api/v1/platform/orgs', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
   })
-  if (!res.ok) throw new Error(`createOrg: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'createOrg')
   return (await res.json()) as { id: string; owner_invite_token: string }
 }
 /** Swap the session into the target org (keeps the super token to return). */
 export async function enterOrg(id: string): Promise<void> {
   const res = await apiFetch(`/api/v1/platform/orgs/${id}/enter`, { method: 'POST' })
-  if (!res.ok) throw new Error(`enterOrg: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'enterOrg')
   const { token } = (await res.json()) as { token: string }
   const swap = await fetch('/api/auth/enter', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token }),
   })
-  if (!swap.ok) throw new Error(`enterOrg swap: ${swap.status}`)
+  if (!swap.ok) await throwApiError(swap, 'enterOrg swap')
 }
 export async function leaveOrg(): Promise<void> {
   const res = await fetch('/api/auth/leave', { method: 'POST' })
-  if (!res.ok) throw new Error(`leaveOrg: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'leaveOrg')
 }
 
 // ── Super-admin: alert rules ──────────────────────────────────
@@ -684,7 +726,7 @@ export interface AlertRuleInput {
 
 export async function testAlertRule(id: string): Promise<void> {
   const res = await apiFetch(`/api/v1/admin/alert-rules/${id}/test`, { method: 'POST' })
-  if (res.status !== 202 && !res.ok) throw new Error(`testAlertRule: ${res.status}`)
+  if (res.status !== 202 && !res.ok) await throwApiError(res, 'testAlertRule')
 }
 
 export async function getAlertRules(): Promise<AlertRule[]> {
@@ -694,17 +736,17 @@ export async function createAlertRule(input: AlertRuleInput): Promise<void> {
   const res = await apiFetch('/api/v1/admin/alert-rules', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
   })
-  if (!res.ok) throw new Error(`createAlertRule: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'createAlertRule')
 }
 export async function updateAlertRule(id: string, patch: Partial<AlertRuleInput>): Promise<void> {
   const res = await apiFetch(`/api/v1/admin/alert-rules/${id}`, {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch),
   })
-  if (!res.ok) throw new Error(`updateAlertRule: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'updateAlertRule')
 }
 export async function deleteAlertRule(id: string): Promise<void> {
   const res = await apiFetch(`/api/v1/admin/alert-rules/${id}`, { method: 'DELETE' })
-  if (!res.ok) throw new Error(`deleteAlertRule: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'deleteAlertRule')
 }
 
 // ── Super-admin: video-test event simulation ──────────────────
@@ -715,7 +757,7 @@ export async function simulateEvent(input: {
   const res = await apiFetch('/api/v1/admin/simulate/event', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
   })
-  if (!res.ok) throw new Error(`simulateEvent: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'simulateEvent')
 }
 
 // ── Super-admin: maintenance ──────────────────────────────────
@@ -734,13 +776,13 @@ export async function getAudit(count = 50): Promise<AuditEntry[]> {
 const ResyncSchema = z.object({ cameras: z.number(), features: z.number(), zones: z.number() })
 export async function resync(): Promise<z.infer<typeof ResyncSchema>> {
   const res = await apiFetch('/api/v1/admin/resync', { method: 'POST' })
-  if (!res.ok) throw new Error(`resync: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'resync')
   return ResyncSchema.parse(await res.json())
 }
 
 export async function clearDeadLetter(): Promise<number> {
   const res = await apiFetch('/api/v1/admin/dead-letter/clear', { method: 'POST' })
-  if (!res.ok) throw new Error(`clearDeadLetter: ${res.status}`)
+  if (!res.ok) await throwApiError(res, 'clearDeadLetter')
   return z.object({ cleared: z.number() }).parse(await res.json()).cleared
 }
 
@@ -773,10 +815,7 @@ export async function saveServerSettings(patch: Record<string, unknown>): Promis
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(patch),
   })
-  if (!res.ok) {
-    const body = (await res.json().catch(() => null)) as { message?: string } | null
-    throw new Error(body?.message ?? `saveServerSettings: ${res.status}`)
-  }
+  if (!res.ok) await throwApiError(res, 'saveServerSettings')
 }
 
 const SystemInfoSchema = z.object({

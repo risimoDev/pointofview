@@ -1,8 +1,9 @@
 """Export a pretrained OSNet re-id model to ONNX for the analyzer.
 
 Run on the dev PC (internet required), then copy the file to the server:
-    pip install torch torchvision gdown
-    pip install git+https://github.com/KaiyangZhou/deep-person-reid.git
+    pip install "numpy<2" cython torch torchvision gdown
+    # torchreid's setup.py imports numpy → build isolation must be off
+    pip install --no-build-isolation git+https://github.com/KaiyangZhou/deep-person-reid.git
     python scripts/export_osnet.py
 
 Output: osnet_x0_25.onnx — see docs/REID-OSNET.md for deployment.
@@ -20,6 +21,11 @@ def main() -> int:
                     help="torchreid model name (osnet_x0_25 is the light default)")
     ap.add_argument("--out", default="osnet_x0_25.onnx")
     ap.add_argument("--opset", type=int, default=12)
+    ap.add_argument("--weights", default="",
+                    help="optional re-id checkpoint (.pth) from the torchreid "
+                         "model zoo; without it the ImageNet-pretrained "
+                         "backbone is exported — still far better than the "
+                         "colour histograms, but a market1501 checkpoint is better")
     args = ap.parse_args()
 
     try:
@@ -32,8 +38,10 @@ def main() -> int:
               file=sys.stderr)
         return 1
 
-    extractor = FeatureExtractor(model_name=args.model, device="cpu")
+    extractor = FeatureExtractor(
+        model_name=args.model, model_path=args.weights, device="cpu")
     model = extractor.model.eval()
+    print(f"weights: {args.weights or 'pretrained backbone (no checkpoint given)'}")
     # N,C,H,W — must match the crop size in analyzer/reid/embedding.py
     dummy = torch.randn(1, 3, 256, 128)
     torch.onnx.export(

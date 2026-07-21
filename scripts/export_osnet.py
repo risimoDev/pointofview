@@ -103,12 +103,35 @@ def main() -> int:
         print(f"unexpected output shape {tuple(feat.shape)}", file=sys.stderr)
         return 1
 
-    torch.onnx.export(
-        model, dummy, out,
+    # dynamo=False forces the legacy exporter, which keeps a small model in a
+    # SINGLE file. The new (dynamo) exporter externalizes weights into a
+    # sibling `<out>.data`, and if that file isn't copied alongside the model
+    # onnxruntime dies with "cannot get file size: <out>.data".
+    export_kwargs: dict[str, object] = dict(
         input_names=["input"], output_names=["feat"],
         opset_version=args.opset,
         dynamic_axes={"input": {0: "n"}, "feat": {0: "n"}},
     )
+    try:
+        torch.onnx.export(model, dummy, out, dynamo=False, **export_kwargs)  # type: ignore[call-arg]
+    except TypeError:
+        torch.onnx.export(model, dummy, out, **export_kwargs)  # torch<2.6
+
+    # Belt and suspenders: if weights still landed in a sidecar, fold them back
+    # so the deployable artifact is exactly one file.
+    data_file = Path(out + ".data")
+    if data_file.exists():
+        try:
+            import onnx
+            model_onnx = onnx.load(out)  # pulls in external data
+            onnx.save_model(model_onnx, out, save_as_external_data=False)
+            data_file.unlink()
+            print("consolidated external weights into a single file")
+        except Exception as err:  # noqa: BLE001
+            print(f"WARNING: weights are in {data_file.name} — copy it next to "
+                  f"{out} on the server (consolidation failed: {err})",
+                  file=sys.stderr)
+
     print(f"OK: {out} (embedding dim {int(feat.shape[1])})")
     print("Next: copy to ${DATA_ROOT}/models on the server, set "
           f"REID_ONNX=/models/{out}, rebuild analyzer, then reset identities "

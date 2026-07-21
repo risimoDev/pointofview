@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 # COCO-17 keypoint indices used by the fall heuristic
 _L_SHOULDER, _R_SHOULDER, _L_HIP, _R_HIP = 5, 6, 11, 12
+_L_KNEE, _R_KNEE, _L_ANKLE, _R_ANKLE = 13, 14, 15, 16
 _KP_MIN_CONF = 0.3
 
 
@@ -41,17 +42,21 @@ class _DownState:
 class PosePlugin(BasePlugin):
     """Fall detection via pose estimation (yolov8-pose, ready-made model).
 
-    A person is "down" when the torso (mid-shoulders → mid-hips vector) leans
-    more than fall_angle_deg from vertical; if the torso keypoints are not
-    confident the bbox aspect ratio is the fallback signal. The state must
-    persist for min_checks_down consecutive checks before a `fall_detected`
-    event fires (tracking flicker and bending over must not alert).
+    "Down" is judged on the WHOLE body axis (mid-shoulders → mid-ankles, knees
+    or hips as fallback), not on the torso alone: bending over a parcel and
+    squatting both tilt the torso while the body axis stays upright, and the
+    torso-only rule made exactly those two the most common false alarm. The
+    bbox must also be non-tall (a lying person is wide) and the state must hold
+    for min_checks_down checks AND min_down_seconds — a real fall stays down,
+    a bend does not.
 
     config:
       model                  str    weights (default Settings.pose_model)
       zone_ids               list   restrict to zones (default: whole frame)
-      fall_angle_deg         float  65 — torso angle from vertical
+      fall_angle_deg         float  65 — body axis angle from vertical
       aspect_ratio           float  1.4 — bbox w/h fallback threshold
+      min_aspect_down        float  0.85 — bbox w/h required to confirm a fall
+      min_down_seconds       float  5 — how long the person must stay down
       min_checks_down        int    3
       min_person_px          int    80 — bbox height
       min_confidence         float  0.4
@@ -142,10 +147,13 @@ class PosePlugin(BasePlugin):
 
     # ── fall heuristic ────────────────────────────────────────
     def _is_down(self, det: dict[str, Any]) -> tuple[bool, dict[str, Any]]:
+        x1, y1, x2, y2 = det["bbox"]
+        h = max(1.0, y2 - y1)
+        ratio = (x2 - x1) / h
         kp_xy, kp_conf = det["kp_xy"], det["kp_conf"]
         if kp_xy is not None and kp_conf is not None:
-            def _mid(i: int, j: int) -> tuple[float, float] | None:
-                pts = [kp_xy[k] for k in (i, j) if float(kp_conf[k]) >= _KP_MIN_CONF]
+            def _mid(*idx: int) -> tuple[float, float] | None:
+                pts = [kp_xy[k] for k in idx if float(kp_conf[k]) >= _KP_MIN_CONF]
                 if not pts:
                     return None
                 return (
@@ -153,20 +161,29 @@ class PosePlugin(BasePlugin):
                     sum(float(p[1]) for p in pts) / len(pts),
                 )
 
-            shoulders = _mid(_L_SHOULDER, _R_SHOULDER)
-            hips = _mid(_L_HIP, _R_HIP)
-            if shoulders and hips:
-                dx = hips[0] - shoulders[0]
-                dy = hips[1] - shoulders[1]  # +y is down; dy<=0 → upside down
-                if dy <= 0:
-                    return True, {"method": "torso", "angle_deg": 180.0}
-                angle = math.degrees(math.atan2(abs(dx), dy))
+            top = _mid(_L_SHOULDER, _R_SHOULDER)
+            # legs first: bending over keeps the feet under the body, so the
+            # shoulders→ankles axis stays vertical while the torso is horizontal
+            bottom = _mid(_L_ANKLE, _R_ANKLE) or _mid(_L_KNEE, _R_KNEE)
+            method = "body"
+            if bottom is None:
+                bottom = _mid(_L_HIP, _R_HIP)
+                method = "torso"
+            if top and bottom:
+                dx = bottom[0] - top[0]
+                dy = bottom[1] - top[1]  # +y is down; dy<=0 → head below feet
+                angle = 180.0 if dy <= 0 else math.degrees(math.atan2(abs(dx), dy))
                 threshold = float(self._cfg.get("fall_angle_deg", 65.0))
-                return angle >= threshold, {"method": "torso", "angle_deg": round(angle, 1)}
+                details = {"method": method, "angle_deg": round(angle, 1),
+                           "aspect": round(ratio, 2)}
+                if angle < threshold:
+                    return False, details
+                # corroboration: a person on the floor is wide in the frame.
+                # Without it a torso-only judgement (legs hidden behind a rack
+                # or a counter) still fires on someone leaning over.
+                min_aspect = float(self._cfg.get("min_aspect_down", 0.85))
+                return ratio >= min_aspect, details
 
-        x1, y1, x2, y2 = det["bbox"]
-        h = max(1.0, y2 - y1)
-        ratio = (x2 - x1) / h
         threshold = float(self._cfg.get("aspect_ratio", 1.4))
         return ratio >= threshold, {"method": "aspect", "aspect": round(ratio, 2)}
 
@@ -197,6 +214,7 @@ class PosePlugin(BasePlugin):
             return []
 
         min_checks = int(self._cfg.get("min_checks_down", 3))
+        min_down_sec = float(self._cfg.get("min_down_seconds", 5.0))
         cooldown = float(self._cfg.get("cooldown_seconds", 300.0))
 
         events: list[Event] = []
@@ -216,7 +234,9 @@ class PosePlugin(BasePlugin):
             if st.streak == 0:
                 st.since = now
             st.streak += 1
-            if st.streak < min_checks:
+            # both gates: N checks (anti-flicker) and wall-clock seconds — a
+            # bend or a squat is over in a second or two, a fall is not
+            if st.streak < min_checks or now - st.since < min_down_sec:
                 continue
             last_alert = self._cooldown.get(ident)
             if last_alert is not None and now - last_alert < cooldown:

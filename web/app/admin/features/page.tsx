@@ -68,20 +68,24 @@ const FEATURE_META: Record<string, FeatureMeta> = {
       + '(/models/ppe.pt); без него функция включится, но покажет ошибку ниже. '
       + 'Требуемый набор (helmet/vest) задаётся в настройках зоны, поле required.',
     fields: [
-      { key: 'grace_seconds', label: 'Отсрочка после входа, сек', type: 'number', def: 10 },
-      { key: 'min_checks_without', label: 'Проверок без СИЗ до события', type: 'number', def: 5 },
+      { key: 'grace_seconds', label: 'Отсрочка после входа, сек', type: 'number', def: 5 },
+      { key: 'min_checks_without', label: 'Проверок без СИЗ до события', type: 'number', def: 3 },
       { key: 'min_confidence', label: 'Мин. уверенность (0..1)', type: 'number', def: 0.6 },
-      { key: 'min_person_px', label: 'Мин. рост человека, пикс', type: 'number', def: 120 },
+      { key: 'min_person_px', label: 'Мин. рост человека, пикс', type: 'number', def: 80 },
       { key: 'cooldown_seconds', label: 'Пауза по человеку, сек', type: 'number', def: 300 },
       { key: 'check_interval_seconds', label: 'Интервал проверки, сек', type: 'number', def: 1 },
     ],
   },
   pose: {
     label: 'Падение человека',
-    note: 'Оценка позы (yolov8-pose): лежащий человек дольше нескольких проверок '
-      + '— критическое событие «Падение человека». Модель входит в поставку.',
+    note: 'Оценка позы (yolov8-pose): критическое событие «Падение человека». '
+      + 'Наклон и присед не считаются падением — проверяется ось всего тела '
+      + '(плечи→стопы), ширина силуэта и время нахождения на полу. Если всё '
+      + 'равно ловит наклоны — поднимите «Мин. время на полу» и «Мин. ширину».',
     fields: [
-      { key: 'fall_angle_deg', label: 'Угол корпуса от вертикали, °', type: 'number', def: 65 },
+      { key: 'fall_angle_deg', label: 'Угол тела от вертикали, °', type: 'number', def: 65 },
+      { key: 'min_down_seconds', label: 'Мин. время на полу, сек', type: 'number', def: 5 },
+      { key: 'min_aspect_down', label: 'Мин. ширина/высота силуэта', type: 'number', def: 0.85 },
       { key: 'min_checks_down', label: 'Проверок лёжа до события', type: 'number', def: 3 },
       { key: 'min_person_px', label: 'Мин. рост человека, пикс', type: 'number', def: 80 },
       { key: 'min_confidence', label: 'Мин. уверенность (0..1)', type: 'number', def: 0.4 },

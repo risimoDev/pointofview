@@ -59,14 +59,25 @@ export async function ollamaVision(
       prompt,
       images: [imageB64],
       stream: false,
+      think: false, // qwen3-vl reasons by default; we want the answer only
       options: { temperature: 0.2, num_predict: 160 },
     }),
     signal: AbortSignal.timeout(timeoutMs),
   })
   if (!res.ok) throw new Error(`ollama: HTTP ${res.status}`)
   const data = (await res.json()) as { response?: string }
-  const text = (data.response ?? '').trim().replace(/\s+/g, ' ')
+  const text = (data.response ?? '')
+    .replace(/<think>[\s\S]*?<\/think>/gi, '') // …and strip it if it leaks anyway
+    .trim().replace(/\s+/g, ' ')
   return text ? text.slice(0, 800) : null
+}
+
+/** ДА / НЕТ verdict anywhere in the answer; null when the model didn't say. */
+export function parseVerdict(answer: string | null): boolean | null {
+  if (!answer) return null
+  const m = /(^|[^а-яё])(да|нет)([^а-яё]|$)/i.exec(answer.toLowerCase())
+  if (!m) return null
+  return m[2] === 'да'
 }
 
 /** Redis key of the operator's false-positive counter for a camera+type pair. */

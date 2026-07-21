@@ -45,10 +45,11 @@ class PpePlugin(BasePlugin):
     config:
       model                 str    weights path (default Settings.ppe_model)
       required              list   default required items (zone.config.required wins)
-      grace_seconds         float  10 — time to put the helmet on after entering
-      min_checks_without    int    5  — consecutive checks without PPE before the event
+      grace_seconds         float  5 — time to put the helmet on after entering
+      min_checks_without    int    3  — consecutive checks without PPE before the event
       min_confidence        float  0.6
-      min_person_px         int    120 — bbox height
+      min_person_px         int    80 — bbox height (people are small on a PVZ
+                                   camera; 120 px silently skipped everyone)
       cooldown_seconds      float  300 — per identity (re-id), not per camera
       check_interval_seconds float 1.0 — PPE inference at most once per N sec
     """
@@ -167,7 +168,7 @@ class PpePlugin(BasePlugin):
         if not ppe_zones:
             return []
 
-        min_px = int(self._cfg.get("min_person_px", 120))
+        min_px = int(self._cfg.get("min_person_px", 80))
         candidates: list[tuple[TrackInfo, list[Any]]] = []
         for t in ctx.tracks:
             if (t.bbox[3] - t.bbox[1]) < min_px:
@@ -189,8 +190,8 @@ class PpePlugin(BasePlugin):
         loop = asyncio.get_running_loop()
         detections = await loop.run_in_executor(self._gpu_pool, self._predict, ctx.frame)
 
-        grace = float(self._cfg.get("grace_seconds", 10.0))
-        min_checks = int(self._cfg.get("min_checks_without", 5))
+        grace = float(self._cfg.get("grace_seconds", 5.0))
+        min_checks = int(self._cfg.get("min_checks_without", 3))
         cooldown = float(self._cfg.get("cooldown_seconds", 300.0))
         default_required = list(self._cfg.get("required") or ["helmet"])
 

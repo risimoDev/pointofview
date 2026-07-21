@@ -7,7 +7,8 @@ import {
   IconUserCheck, IconUserMinus, IconUsers, IconTrash, IconCamera, IconUserPlus,
 } from '@tabler/icons-react'
 import {
-  createStaff, deletePerson, getPeople, setPersonStaff, uploadFacePhoto, errorMessage,
+  createStaff, deletePerson, getPeople, mergeStaff, resetPeople, setPersonStaff,
+  uploadFacePhoto, errorMessage,
   type Person,
 } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -23,8 +24,9 @@ function fmtSeen(ts: number | null): string {
   })
 }
 
-function PersonCard({ person, staffList, onChanged }: {
+function PersonCard({ person, staffList, selected, onSelect, onChanged }: {
   person: Person; staffList: Person[]; onChanged: () => void
+  selected?: boolean; onSelect?: ((gid: string, on: boolean) => void) | undefined
 }): React.JSX.Element {
   const [name, setName] = useState(person.name ?? '')
   const [mergeInto, setMergeInto] = useState('')
@@ -70,6 +72,17 @@ function PersonCard({ person, staffList, onChanged }: {
           <span className="absolute left-2 top-2 rounded-full bg-brand/90 px-2 py-0.5 text-[10px] font-medium text-white">
             Сотрудник
           </span>
+        )}
+        {onSelect && (
+          <label className="absolute right-2 top-2 flex cursor-pointer items-center gap-1 rounded-md bg-black/60 px-1.5 py-1">
+            <input
+              type="checkbox"
+              checked={Boolean(selected)}
+              onChange={(e) => onSelect(person.gid, e.target.checked)}
+              className="h-3.5 w-3.5 accent-[var(--brand,#14b8a6)]"
+            />
+            <span className="text-[10px] text-white">выбрать</span>
+          </label>
         )}
       </div>
       <div className="space-y-2 p-2.5">
@@ -216,6 +229,28 @@ export default function PeoplePage(): React.JSX.Element {
   const staff = (people.data ?? []).filter((p) => p.staff)
   const visitors = (people.data ?? []).filter((p) => !p.staff)
 
+  // duplicate cleanup: pick the duplicates, pick the card to keep, merge
+  const [picked, setPicked] = useState<string[]>([])
+  const [target, setTarget] = useState('')
+  const [note, setNote] = useState<string | null>(null)
+  const togglePick = (gid: string, on: boolean): void =>
+    setPicked((s) => (on ? [...s, gid] : s.filter((g) => g !== gid)))
+  const merge = useMutation({
+    mutationFn: () => mergeStaff(target, picked),
+    onSuccess: (merged) => {
+      setNote(`Объединено карточек: ${merged}`)
+      setPicked([]); setTarget('')
+      onChanged()
+    },
+    onError: (err) => setNote(errorMessage(err, 'Не удалось объединить')),
+  })
+  const reset = useMutation({
+    mutationFn: (scope: 'visitors' | 'all') => resetPeople(scope),
+    onSuccess: () => { setNote('Обучение сброшено'); setPicked([]); onChanged() },
+    onError: (err) => setNote(errorMessage(err, 'Не удалось сбросить')),
+  })
+  const mergeSources = picked.filter((g) => g !== target)
+
   return (
     <main className="space-y-6">
       <div className="flex items-center gap-2">
@@ -239,9 +274,60 @@ export default function PeoplePage(): React.JSX.Element {
             «замеченных» ниже и нажми «Это сотрудник».
           </p>
         )}
+        {staff.length > 1 && (
+          <div className="space-y-2 rounded-lg border border-border/70 bg-card/40 p-3">
+            <p className="text-xs text-muted-foreground">
+              Один человек попал в список несколько раз? Отметьте галочками все его
+              карточки, выберите ту, которую оставить (с именем), и объедините —
+              образцы одежды и лица сложатся в одну карточку, лишние исчезнут.
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-muted-foreground">
+                Выбрано: {picked.length}
+              </span>
+              <Select value={target} onValueChange={setTarget}>
+                <SelectTrigger className="h-8 w-56 text-xs">
+                  <SelectValue placeholder="Оставить карточку…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {staff.map((s) => (
+                    <SelectItem key={s.gid} value={s.gid}>
+                      {s.name || `Без имени ${s.gid.slice(0, 6)}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                size="sm"
+                disabled={!target || mergeSources.length === 0 || merge.isPending}
+                onClick={() => merge.mutate()}
+              >
+                <IconUsers className="mr-1 h-4 w-4" stroke={1.75} />
+                Объединить ({mergeSources.length})
+              </Button>
+              {picked.length > 0 && (
+                <Button size="sm" variant="outline" onClick={() => setPicked([])}>
+                  Снять выбор
+                </Button>
+              )}
+              <Button
+                size="sm" variant="outline"
+                onClick={() => setPicked(staff.filter((s) => !s.name).map((s) => s.gid))}
+                title="Отметить все карточки без имени — обычно это и есть дубли"
+              >
+                Отметить безымянные
+              </Button>
+            </div>
+            {note && <p className="text-xs text-brand">{note}</p>}
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
           {staff.map((p) => (
-            <PersonCard key={p.gid} person={p} staffList={staff} onChanged={onChanged} />
+            <PersonCard
+              key={p.gid} person={p} staffList={staff} onChanged={onChanged}
+              selected={picked.includes(p.gid)}
+              onSelect={staff.length > 1 ? togglePick : undefined}
+            />
           ))}
         </div>
       </section>
@@ -260,6 +346,38 @@ export default function PeoplePage(): React.JSX.Element {
           {visitors.map((p) => (
             <PersonCard key={p.gid} person={p} staffList={staff} onChanged={onChanged} />
           ))}
+        </div>
+      </section>
+
+      <section className="space-y-2 rounded-lg border border-red-500/25 bg-red-500/[0.04] p-3">
+        <h2 className="text-sm font-medium text-muted-foreground">Сброс обучения</h2>
+        <p className="text-xs text-muted-foreground">
+          Нужен, когда накопился мусор или сменился способ сравнения людей
+          (переход на модель OSNet — старые образцы с ней несовместимы).
+          «Замеченных» система наберёт заново за несколько часов, сотрудников
+          придётся отметить повторно.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm" variant="outline" disabled={reset.isPending}
+            onClick={() => {
+              if (confirm('Удалить всех «замеченных»? Сотрудники останутся.')) {
+                reset.mutate('visitors')
+              }
+            }}
+          >
+            <IconTrash className="mr-1 h-4 w-4" stroke={1.75} /> Очистить замеченных
+          </Button>
+          <Button
+            size="sm" variant="outline" disabled={reset.isPending}
+            onClick={() => {
+              if (confirm('Удалить ВСЁ, включая сотрудников и их фото лиц? Отменить нельзя.')) {
+                reset.mutate('all')
+              }
+            }}
+          >
+            <IconTrash className="mr-1 h-4 w-4" stroke={1.75} /> Сбросить всё, включая сотрудников
+          </Button>
         </div>
       </section>
     </main>

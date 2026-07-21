@@ -8,7 +8,8 @@ import { minio } from '../minio.js'
 import { AI_QUEUE, alertsQueue, type AiJob } from '../queues.js'
 import { typeLabel } from '../event_labels.js'
 import {
-  VLM_WORKER_ALIVE_KEY, bumpVlmStat, fpKey, ollamaVision, snapshotB64, vlmSettings,
+  VLM_WORKER_ALIVE_KEY, bumpVlmStat, fpKey, ollamaVision, parseVerdict, snapshotB64,
+  vlmSettings,
 } from '../vlm.js'
 
 // Pre-alert enrichment stage (consumer → ai → alerts):
@@ -119,15 +120,17 @@ async function processJob(job: Job<AiJob>, redis: IORedis): Promise<void> {
               `Событие видеонаблюдения: «${label}». Посмотри на кадр и ответь, `
               + 'действительно ли событие подтверждается изображением. Первым '
               + 'словом напиши строго ДА или НЕТ, затем одну короткую фразу почему.')
-            const word = verdict?.trim().toLowerCase() ?? ''
-            if (word.startsWith('нет')) {
+            // the verdict word may come after a lead-in ("На кадре… Нет,…"),
+            // so it's searched for, not required at position 0
+            const confirmed = parseVerdict(verdict)
+            if (confirmed === false) {
               suppress = true
               await mergeMeta(event_id, tenant_id, {
                 ai_verified: false, ai_verdict: verdict?.slice(0, 300) ?? '',
               })
               await bumpVlmStat(redis, tenant_id, 'suppressed')
               log('alert suppressed by vlm', { event_id, type: ev.type })
-            } else if (word.startsWith('да')) {
+            } else if (confirmed === true) {
               await mergeMeta(event_id, tenant_id, { ai_verified: true })
               await bumpVlmStat(redis, tenant_id, 'verified')
             }

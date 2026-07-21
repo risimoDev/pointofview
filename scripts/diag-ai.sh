@@ -59,8 +59,23 @@ line "6. VLM: контейнеры ollama и worker-ai"
 $COMPOSE ps ollama worker-ai 2>&1
 echo "--- модели в ollama (нужна qwen3-vl:4b; пусто = ollama pull не делали):"
 $COMPOSE exec -T ollama ollama list 2>&1
-echo "--- тест генерации (короткий, без картинки):"
-$COMPOSE exec -T ollama sh -c 'ollama run qwen3-vl:4b "Ответь одним словом: работаешь?" 2>&1 | head -3'
+echo "--- тест генерации с замером времени (90с максимум, без картинки):"
+echo "    если дольше ~40с — верификация не успевает и алерты уходят без проверки"
+$COMPOSE exec -T ollama sh -c '
+  start=$(date +%s)
+  out=$(curl -s -m 90 http://127.0.0.1:11434/api/generate -d "{\"model\":\"qwen3-vl:4b\",\"prompt\":\"Ответь одним словом: работаешь?\",\"stream\":false,\"think\":false}")
+  echo "время: $(( $(date +%s) - start )) с"
+  echo "$out" | head -c 400
+' 2>&1
+
+echo "--- сколько VRAM занято (ollama делит GPU с YOLO/ppe/pose):"
+$COMPOSE exec -T ollama sh -c 'nvidia-smi --query-gpu=memory.used,memory.total --format=csv 2>/dev/null' 2>&1
+$COMPOSE exec -T ollama sh -c 'ollama ps 2>/dev/null' 2>&1
+echo "(в колонке PROCESSOR у модели должно быть GPU; 100% CPU = не влезла в VRAM,"
+echo " генерация будет по 1-3 минуты и верификация не сработает)"
+
+echo "--- счётчики воркера (после обновления API): vlm:stats"
+redis_ HGETALL "vlm:stats:$TENANT_ID"
 
 line "7. Логи worker-ai (описания/верификация/ошибки)"
 $COMPOSE logs --tail 100 worker-ai 2>&1 | tail -30

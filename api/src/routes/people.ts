@@ -18,6 +18,7 @@ const faceEnrollKey = (tenantId: string): string => `face_enroll:${tenantId}`
 const staffAutoKey = (tenantId: string): string => `reid:staff_auto:${tenantId}`
 
 const MAX_STAFF_EMBS = 8
+const MAX_FACE_EMBS = 10
 
 interface GalleryJson {
   emb?: number[]
@@ -275,6 +276,116 @@ const peopleRoutes: FastifyPluginAsyncZod = async (app) => {
       details: { name: finalName, absorbed, merged_from: targetGid !== gid ? gid : null },
     })
     return { gid: targetGid, staff: true, absorbed }
+  })
+
+  // Fold several staff cards into one. Marking the same person again and
+  // again (a weak clothing match mints a new identity every time) leaves a
+  // roster of nameless duplicates — this merges their clothing/face samples
+  // into the named card and drops the rest.
+  app.post('/people/staff/merge', {
+    preHandler: [app.requirePerm('people')],
+    schema: {
+      body: z.object({
+        target: z.string().min(1).max(64),
+        sources: z.array(z.string().min(1).max(64)).min(1).max(200),
+      }),
+    },
+  }, async (req, reply) => {
+    const { target } = req.body
+    const sources = req.body.sources.filter((g) => g !== target)
+    const sKey = staffKey(req.tenantId)
+    const fKey = faceStaffKey(req.tenantId)
+
+    const targetRaw = await app.redis.hget(sKey, target)
+    if (!targetRaw) return reply.code(404).send({ message: 'target staff person not found' })
+
+    let embs: number[][] = []
+    let name: string | null = null
+    try {
+      const parsed = JSON.parse(targetRaw) as StaffJson
+      embs = staffEmbs(parsed)
+      name = parsed.name ?? null
+    } catch { /* start fresh */ }
+
+    let faceEmbs: number[][] = []
+    let photos = 0
+    let failed = 0
+    const readFace = (payload: string | null): void => {
+      if (!payload) return
+      try {
+        const parsed = JSON.parse(payload) as FaceStaffJson
+        faceEmbs = [...faceEmbs, ...(parsed.embs ?? [])]
+        photos += parsed.photos ?? 0
+        failed += parsed.failed ?? 0
+      } catch { /* skip */ }
+    }
+    readFace(await app.redis.hget(fKey, target))
+
+    let merged = 0
+    for (const g of sources) {
+      const raw = await app.redis.hget(sKey, g)
+      if (!raw) continue
+      try {
+        const parsed = JSON.parse(raw) as StaffJson
+        embs = [...embs, ...staffEmbs(parsed)]
+        if (!name && parsed.name) name = parsed.name
+      } catch { /* skip */ }
+      readFace(await app.redis.hget(fKey, g))
+      await app.redis.hdel(sKey, g)
+      await app.redis.hdel(fKey, g)
+      await app.redis.hdel(staffAutoKey(req.tenantId), g)
+      await removeCrop(req.tenantId, g)
+      merged++
+    }
+
+    // newest samples win: an outfit from a month ago is noise, not a reference
+    await app.redis.hset(sKey, target,
+      JSON.stringify({ embs: embs.slice(-MAX_STAFF_EMBS), name }))
+    if (faceEmbs.length > 0 || photos > 0) {
+      await app.redis.hset(fKey, target, JSON.stringify({
+        embs: faceEmbs.slice(-MAX_FACE_EMBS), photos, failed,
+      }))
+    }
+    await writeAudit({
+      tenantId: req.tenantId, userId: req.userId, action: 'person.staff_merge',
+      resourceType: 'person', resourceId: target, details: { merged, name },
+    })
+    return { gid: target, merged, clothingSamples: Math.min(embs.length, MAX_STAFF_EMBS) }
+  })
+
+  // Wipe the learned identities. Needed when the embedder changes (histograms
+  // → OSNet produce incompatible vectors) and as the «start over» button after
+  // a bad enrollment session. `scope=visitors` keeps the staff roster.
+  app.post('/people/reset', {
+    preHandler: [app.requirePerm('people')],
+    schema: { body: z.object({ scope: z.enum(['visitors', 'all']) }) },
+  }, async (req) => {
+    const sites = await db.select({ id: site.id }).from(site)
+      .where(eq(site.tenantId, req.tenantId))
+    let visitors = 0
+    for (const s of sites) {
+      const gids = await app.redis.hkeys(galleryKey(s.id))
+      for (const g of gids) await removeCrop(req.tenantId, g)
+      visitors += gids.length
+      await app.redis.del(galleryKey(s.id))
+      await app.redis.del(`absorbed:${s.id}`)
+    }
+    let staffCount = 0
+    if (req.body.scope === 'all') {
+      const gids = await app.redis.hkeys(staffKey(req.tenantId))
+      for (const g of gids) await removeCrop(req.tenantId, g)
+      staffCount = gids.length
+      await app.redis.del(staffKey(req.tenantId))
+      await app.redis.del(faceStaffKey(req.tenantId))
+      await app.redis.del(staffAutoKey(req.tenantId))
+      await app.redis.del(faceEnrollKey(req.tenantId))
+    }
+    await writeAudit({
+      tenantId: req.tenantId, userId: req.userId, action: 'person.reset',
+      resourceType: 'person', resourceId: req.body.scope,
+      details: { visitors, staff: staffCount },
+    })
+    return { visitors, staff: staffCount }
   })
 
   // Upload a clean face photo for a staff member (biometrics of employees

@@ -535,6 +535,27 @@ export async function uploadFacePhoto(gid: string, file: File): Promise<void> {
   if (!res.ok) await throwApiError(res, 'uploadFacePhoto')
 }
 
+/** Fold duplicate staff cards into one (samples are combined). */
+export async function mergeStaff(target: string, sources: string[]): Promise<number> {
+  const res = await apiFetch('/api/v1/people/staff/merge', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ target, sources }),
+  })
+  if (!res.ok) await throwApiError(res, 'mergeStaff')
+  return ((await res.json()) as { merged: number }).merged
+}
+
+/** Wipe learned identities: visitors only, or the staff roster too. */
+export async function resetPeople(scope: 'visitors' | 'all'): Promise<void> {
+  const res = await apiFetch('/api/v1/people/reset', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ scope }),
+  })
+  if (!res.ok) await throwApiError(res, 'resetPeople')
+}
+
 export async function deletePerson(gid: string): Promise<void> {
   const res = await apiFetch(`/api/v1/people/${encodeURIComponent(gid)}`, { method: 'DELETE' })
   if (!res.ok) await throwApiError(res, 'deletePerson')

@@ -156,7 +156,7 @@ function HeatmapSection({ hours }: { hours: number }): React.JSX.Element {
   }, [heat.data])
 
   return (
-    <section className="rounded-lg border border-border/70 bg-card/40 p-4">
+    <section id="heatmap" className="rounded-lg border border-border/70 bg-card/40 p-4">
       <div className="mb-3 flex flex-wrap items-center gap-3">
         <h2 className="text-sm font-medium text-muted-foreground">
           Тепловая карта передвижений
@@ -173,8 +173,11 @@ function HeatmapSection({ hours }: { hours: number }): React.JSX.Element {
       </div>
       {heat.data && heat.data.cells.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Данных пока нет — включите функцию «Тепловая карта» и подождите,
-          пока накопятся передвижения.
+          Данных по этой камере пока нет. Включите функцию в разделе
+          «Админ → Функции → Тепловая карта»; анализатор сбрасывает накопленное
+          раз в минуту, заметная картинка появляется через 20–30 минут работы
+          камеры. Данные хранятся 8 дней, период берётся из переключателя вверху
+          страницы.
         </p>
       ) : (
         <div className="relative w-full max-w-3xl overflow-hidden rounded-md bg-black/40">

@@ -32,11 +32,16 @@ const MAX_VERIFY_AGE_SEC = 45
 // enrichment degrades to snapshots only until the backlog drains.
 const BACKLOG_SKIP_VLM = 30
 
-// types where a single frame genuinely shows whether the event is real;
-// infrastructure events (camera_offline/tampered) are never suppressed
+// Types a SINGLE FRAME genuinely shows. A frame can prove a missing helmet, a
+// person on the floor, a crowd. It CANNOT prove the geometric/temporal events:
+// the model doesn't see the (invisible) zone polygon, can't know someone waited
+// too long, and can't know who counts as staff — so for zone_violation /
+// queue_alert / unknown_person / lone_worker it kept answering НЕТ and threw
+// real alerts away (623 suppressed vs 2 confirmed). Those are trusted as-is;
+// only visually self-evident events go through the VLM gate.
+// Infrastructure events (camera_offline/tampered) are never suppressed.
 const VERIFIABLE_TYPES = new Set([
-  'ppe_violation', 'fall_detected', 'crowd', 'lone_worker',
-  'zone_violation', 'queue_alert', 'unknown_person',
+  'ppe_violation', 'fall_detected', 'crowd',
 ])
 
 const SEVERITY_RANK: Record<string, number> = { info: 0, warn: 1, critical: 2 }

@@ -88,6 +88,17 @@ class IdentityManager:
         self.settings = settings
         self.redis = redis
         self.embedder = make_embedder()
+        # OSNet's cosine scale differs from histograms almost twofold; if the
+        # operator hasn't overridden the thresholds, pick sane defaults for the
+        # embedder in use instead of the histogram numbers (running OSNet at
+        # 0.88 splits every person into a new visitor — the 288/day bug).
+        color = getattr(self.embedder, "color_based", True)
+        self._def_match = 0.88 if color else 0.70
+        self._def_staff = 0.90 if color else 0.75
+        # surfaced in analyzer_metrics so the panel shows the right thresholds
+        self.embedder_kind = "histogram" if color else "onnx"
+        self.def_match_threshold = self._def_match
+        self.def_staff_threshold = self._def_staff
         self.face = FaceEngine(settings)
         self.enabled = False
         self._cfg: dict[str, Any] = {}
@@ -379,7 +390,7 @@ class IdentityManager:
         visitor_gid = state.gid  # identity minted before the person proved staff
         face_confirmed = False
         if not state.staff:
-            staff_thr = self._f("staff_threshold", 0.90)
+            staff_thr = self._f("staff_threshold", self._def_staff)
             for gid, sembs in self._staff.items():
                 if max(cosine(state.emb, e) for e in sembs) >= staff_thr:
                     state.staff = True
@@ -414,7 +425,7 @@ class IdentityManager:
             return IdentityResult(global_id=state.gid, staff=True)
 
         entries = self._gallery.setdefault(site_id, {})
-        thr = self._f("match_threshold", 0.88)
+        thr = self._f("match_threshold", self._def_match)
         best_gid, best_sim = None, thr
         for gid, entry in entries.items():
             sim = cosine(state.emb, entry.emb)

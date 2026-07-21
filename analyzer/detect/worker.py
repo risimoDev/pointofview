@@ -265,6 +265,9 @@ class AnalyzerWorker:
             "infer_ms": round(self._infer_ms_ema, 1),
             "detector": self.detector.model_version,
             "cameras": len(self._tasks),
+            "reid_embedder": self.identity.embedder_kind,
+            "reid_def_match": self.identity.def_match_threshold,
+            "reid_def_staff": self.identity.def_staff_threshold,
             "ts": time.time(),
         }
         try:

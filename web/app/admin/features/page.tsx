@@ -57,7 +57,9 @@ const FEATURE_META: Record<string, FeatureMeta> = {
     label: 'Сквозная идентификация',
     note: 'Один человек на всех камерах точки. Сотрудники отмечаются на странице «Люди». '
       + 'Новая личность создаётся только после нескольких качественных замеров — '
-      + 'это защита от двойного счёта при мерцании трекинга и ночной ИК-съёмке.',
+      + 'это защита от двойного счёта при мерцании трекинга и ночной ИК-съёмке. '
+      + 'Пороги зависят от режима (см. плашку ниже): гистограммы ≈0.88/0.90, '
+      + 'нейросеть OSNet ≈0.70/0.75.',
     fields: [
       { key: 'match_threshold', label: 'Порог совпадения (0..1)', type: 'number', def: 0.88 },
       { key: 'staff_threshold', label: 'Порог сотрудника (0..1)', type: 'number', def: 0.90 },
@@ -247,6 +249,31 @@ function VlmHealth({ s }: { s: VlmStatus | undefined }): React.JSX.Element | nul
   )
 }
 
+/** Which re-id embedder the analyzer actually loaded + the thresholds it wants. */
+function ReidHealth(
+  { embedder, defMatch, defStaff }:
+  { embedder: string | undefined; defMatch: number | undefined; defStaff: number | undefined },
+): React.JSX.Element | null {
+  if (!embedder) return null
+  const onnx = embedder === 'onnx'
+  return (
+    <div className="mt-2 rounded-md border border-border/60 bg-background/40 p-2 text-xs">
+      <span className={cn('rounded-full border px-2 py-0.5',
+        onnx ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-300'
+             : 'border-zinc-500/30 bg-zinc-500/15 text-zinc-300')}>
+        {onnx ? 'Модель OSNet (нейросеть)' : 'Цветовые гистограммы'}
+      </span>
+      <span className="ml-2 text-muted-foreground">
+        Рекомендуемые пороги для этого режима: совпадение {defMatch ?? '—'},
+        сотрудник {defStaff ?? '—'}.
+        {onnx
+          ? ' Если стоят 0.88/0.90 — понизьте, иначе один человек дробится на многих.'
+          : ' Для перехода на OSNet — docs/REID-OSNET.md.'}
+      </span>
+    </div>
+  )
+}
+
 function FeatureCard(
   { feature, meta, current, status, extra, onSaved }:
   { feature: string; meta: FeatureMeta; current: Feature | undefined
@@ -406,7 +433,16 @@ export default function AdminFeaturesPage(): React.JSX.Element {
             meta={meta}
             current={features.data.find((f) => f.feature === feature)}
             status={status.data?.items.find((s) => s.feature_id === feature)}
-            extra={feature === 'vlm' ? <VlmHealth s={vlm.data} /> : undefined}
+            extra={
+              feature === 'vlm' ? <VlmHealth s={vlm.data} />
+                : feature === 'reid' ? (
+                  <ReidHealth
+                    embedder={m?.reid_embedder}
+                    defMatch={m?.reid_def_match}
+                    defStaff={m?.reid_def_staff}
+                  />
+                ) : undefined
+            }
             onSaved={onSaved}
           />
         ))}

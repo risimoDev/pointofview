@@ -15,29 +15,26 @@ OSNet — нейросеть, обученная именно для re-identifi
 
 ## Шаг 1. Получить ONNX-файл (на dev-ПК, нужен интернет)
 
-```bash
-pip install "numpy<2" cython torch torchvision gdown
-pip install --no-build-isolation git+https://github.com/KaiyangZhou/deep-person-reid.git
-python scripts/export_osnet.py
-```
+Пакет torchreid НЕ ставится: его `setup.py` импортирует всю библиотеку целиком
+(numpy, scipy, PIL, h5py, tb-nightly…) просто чтобы прочитать номер версии, и
+установка превращается в охоту за зависимостями. Нужен ровно один файл модели —
+`torchreid/models/osnet.py`, который тянет только torch. Скрипт грузит его
+напрямую из клона репозитория.
 
-`--no-build-isolation` обязателен: `setup.py` у torchreid импортирует numpy,
-а в изолированном окружении его нет («ModuleNotFoundError: No module named
-'numpy'»).
-
-Ставить torch на прод-сервер не нужно. Если под рукой только сервер — экспорт
-делается в одноразовом контейнере, ничего не оседает в системе:
+Всё делается в одноразовом контейнере, в системе ничего не остаётся:
 
 ```bash
 cd ~/pointofview
 docker run --rm -v "$PWD:/w" -w /w python:3.12 bash -c "
-  pip install -q 'numpy<2' cython torch torchvision gdown &&
-  pip install -q --no-build-isolation git+https://github.com/KaiyangZhou/deep-person-reid.git &&
-  python scripts/export_osnet.py"
+  pip install -q torch --index-url https://download.pytorch.org/whl/cpu &&
+  pip install -q gdown &&
+  git clone --depth 1 https://github.com/KaiyangZhou/deep-person-reid.git /tmp/reid &&
+  python scripts/export_osnet.py --repo /tmp/reid"
 ```
 
-Файл `osnet_x0_25.onnx` появится в корне репозитория (≈2.5 ГБ качается один раз,
-занимает время; сам файл модели — около 9 МБ).
+CPU-сборка torch — около 200 МБ (не 2.5 ГБ, как полная с CUDA); для экспорта
+GPU не нужен. Файл `osnet_x0_25.onnx` (~9 МБ) появится в корне репозитория,
+в конце печатается размерность эмбеддинга.
 
 ### Веса
 
@@ -47,7 +44,7 @@ docker run --rm -v "$PWD:/w" -w /w python:3.12 bash -c "
 (обученный на market1501) и передаётся явно:
 
 ```bash
-python scripts/export_osnet.py --weights osnet_x0_25_market1501.pth
+python scripts/export_osnet.py --repo /tmp/reid --weights osnet_x0_25_market1501.pth
 ```
 
 Скрипт печатает, какие веса использованы, и размерность эмбеддинга — она должна

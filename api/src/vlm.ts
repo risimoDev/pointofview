@@ -72,6 +72,25 @@ export async function ollamaVision(
   return text ? text.slice(0, 800) : null
 }
 
+/** Text-only generation — the panel's «проверить ИИ» probe. */
+export async function ollamaText(
+  model: string, prompt: string, timeoutMs = VLM_TIMEOUT_MS,
+): Promise<string | null> {
+  const res = await fetch(`${config.OLLAMA_URL}/api/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model, prompt, stream: false, think: false,
+      options: { temperature: 0.2, num_predict: 32 },
+    }),
+    signal: AbortSignal.timeout(timeoutMs),
+  })
+  if (!res.ok) throw new Error(`ollama: HTTP ${res.status}`)
+  const data = (await res.json()) as { response?: string }
+  const text = (data.response ?? '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim()
+  return text ? text.slice(0, 200) : null
+}
+
 /** ДА / НЕТ verdict anywhere in the answer; null when the model didn't say. */
 export function parseVerdict(answer: string | null): boolean | null {
   if (!answer) return null

@@ -5,7 +5,9 @@ import { db } from '../db/client.js'
 import { camera, site, tenantFeature } from '../../db/schema.js'
 import { writeAudit } from '../audit.js'
 import { FeatureParams, UpsertFeatureBody } from '../schemas.js'
-import { VLM_WORKER_ALIVE_KEY, ollamaHealth, vlmSettings, vlmStatsKey } from '../vlm.js'
+import {
+  VLM_TIMEOUT_MS, VLM_WORKER_ALIVE_KEY, ollamaHealth, ollamaText, vlmSettings, vlmStatsKey,
+} from '../vlm.js'
 
 /** Rebuild Redis features:{tenant} object consumed by the analyzer plugins:
  *  { feature_id: { enabled, config } } — see PluginManager.load_features. */
@@ -83,6 +85,32 @@ const featuresRoutes: FastifyPluginAsyncZod = async (app) => {
         failed: num('failed'),
         lastError: stats.last_error ?? null,
       },
+    }
+  })
+
+  // One real generation against the configured model: proves the chain works
+  // and — more importantly — how long it takes. Slower than VLM_TIMEOUT_MS
+  // means every verification silently fails open.
+  app.post('/features/vlm/test', {
+    preHandler: [app.requirePerm('features')],
+  }, async (req) => {
+    const settings = await vlmSettings(req.tenantId)
+    const started = Date.now()
+    try {
+      const answer = await ollamaText(
+        settings.model,
+        'Ответь одним словом: работаешь?',
+        VLM_TIMEOUT_MS,
+      )
+      return {
+        ok: true, ms: Date.now() - started, model: settings.model,
+        answer: answer ?? '', error: null,
+      }
+    } catch (err) {
+      return {
+        ok: false, ms: Date.now() - started, model: settings.model, answer: '',
+        error: err instanceof Error ? err.message : String(err),
+      }
     }
   })
 

@@ -5,15 +5,23 @@ import { useState } from 'react'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { IconAdjustmentsHorizontal } from '@tabler/icons-react'
 import {
-  getFeatures, getFeatureStatus, getVlmStatus, setFeature, errorMessage,
-  type Feature, type PluginStatus, type VlmStatus,
+  getFeatures, getFeatureStatus, getVlmStatus, setFeature, testVlm, errorMessage,
+  type Feature, type PluginStatus, type VlmStatus, type VlmTest,
 } from '@/lib/api'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 
-type FieldDef = { key: string; label: string; type: 'number' | 'bool'; def: number | boolean }
+type FieldDef = {
+  key: string; label: string
+  type: 'number' | 'bool' | 'select'
+  def: number | boolean | string
+  options?: { value: string; label: string }[]
+}
 type FeatureMeta = { label: string; note?: string; fields: FieldDef[] }
 
 // Per-plugin editable config, mirroring analyzer/plugins/*.py defaults.
@@ -124,6 +132,14 @@ const FEATURE_META: Record<string, FeatureMeta> = {
     fields: [
       { key: 'verify', label: 'Проверять перед оповещением', type: 'bool', def: true },
       { key: 'auto_verify_after', label: '…или после N ложных', type: 'number', def: 3 },
+      {
+        key: 'min_severity', label: 'Описывать события от уровня', type: 'select', def: 'warn',
+        options: [
+          { value: 'info', label: 'Все (включая информационные)' },
+          { value: 'warn', label: 'Предупреждения и выше' },
+          { value: 'critical', label: 'Только критические' },
+        ],
+      },
     ],
   },
   face_id: { label: 'Распознавание лиц', note: 'В разработке: требует серверной модели + согласие по 152-ФЗ.', fields: [] },
@@ -153,6 +169,7 @@ function StatusChip({ status }: { status: PluginStatus | undefined }): React.JSX
 
 /** Where the local-VLM chain stands: container → Ollama → pulled model. */
 function VlmHealth({ s }: { s: VlmStatus | undefined }): React.JSX.Element | null {
+  const probe = useMutation<VlmTest>({ mutationFn: testVlm })
   if (!s) return null
   const problems: string[] = []
   if (!s.workerAlive) problems.push('контейнер worker-ai не запущен')
@@ -172,7 +189,26 @@ function VlmHealth({ s }: { s: VlmStatus | undefined }): React.JSX.Element | nul
         </span>
         <span className="text-muted-foreground">модель {s.model}</span>
         {!s.enabled && <span className="text-amber-400">функция выключена</span>}
+        <Button
+          size="sm" variant="outline" className="ml-auto h-7"
+          disabled={probe.isPending}
+          onClick={() => probe.mutate()}
+          title="Один реальный запрос к модели: проверяет цепочку и скорость ответа"
+        >
+          {probe.isPending ? 'Проверяю…' : 'Проверить ИИ'}
+        </Button>
       </div>
+      {probe.data && (
+        <p className={probe.data.ok && probe.data.ms < 20_000 ? 'text-emerald-400' : 'text-amber-400'}>
+          {probe.data.ok
+            ? `Ответ за ${(probe.data.ms / 1000).toFixed(1)} с: «${probe.data.answer}»`
+              + (probe.data.ms > 20_000
+                ? ' — медленно: при загруженной видеопамяти проверка событий может не успевать'
+                : '')
+            : `Модель не ответила за ${(probe.data.ms / 1000).toFixed(1)} с: ${probe.data.error ?? ''}`}
+        </p>
+      )}
+      {probe.isError && <p className="text-red-400">{errorMessage(probe.error)}</p>}
       {!ok && (
         <p className="text-red-400">
           {problems.join(' · ')}
@@ -215,6 +251,9 @@ function FeatureCard(
       o[f.key] = f.type === 'bool'
         ? (typeof cur === 'boolean' ? cur : Boolean(f.def))
         : (cur !== undefined && cur !== null ? String(cur) : String(f.def))
+      if (f.type === 'select' && !f.options?.some((op) => op.value === o[f.key])) {
+        o[f.key] = String(f.def) // stale/unknown value → fall back to the default
+      }
     }
     return o
   })
@@ -225,6 +264,7 @@ function FeatureCard(
       for (const f of meta.fields) {
         const v = vals[f.key]
         if (f.type === 'bool') config[f.key] = Boolean(v)
+        else if (f.type === 'select') config[f.key] = String(v)
         else {
           const n = Number(v)
           if (!Number.isNaN(n)) config[f.key] = n
@@ -267,6 +307,20 @@ function FeatureCard(
                 >
                   {vals[f.key] ? 'Да' : 'Нет'}
                 </Button>
+              ) : f.type === 'select' ? (
+                <Select
+                  value={String(vals[f.key] ?? '')}
+                  onValueChange={(v) => setVals((s) => ({ ...s, [f.key]: v }))}
+                >
+                  <SelectTrigger className="h-9 w-64 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(f.options ?? []).map((op) => (
+                      <SelectItem key={op.value} value={op.value}>{op.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               ) : (
                 <Input
                   type="number"

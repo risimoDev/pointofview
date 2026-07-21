@@ -61,11 +61,18 @@ echo "--- модели в ollama (нужна qwen3-vl:4b; пусто = ollama pu
 $COMPOSE exec -T ollama ollama list 2>&1
 echo "--- тест генерации с замером времени (90с максимум, без картинки):"
 echo "    если дольше ~40с — верификация не успевает и алерты уходят без проверки"
-$COMPOSE exec -T ollama sh -c '
-  start=$(date +%s)
-  out=$(curl -s -m 90 http://127.0.0.1:11434/api/generate -d "{\"model\":\"qwen3-vl:4b\",\"prompt\":\"Ответь одним словом: работаешь?\",\"stream\":false,\"think\":false}")
-  echo "время: $(( $(date +%s) - start )) с"
-  echo "$out" | head -c 400
+echo "    (то же самое — кнопкой «Проверить ИИ» в /admin/features)"
+# curl нет в образе ollama — идём из контейнера api (node 22, есть fetch)
+$COMPOSE exec -T api node -e '
+const t = Date.now();
+fetch(`${process.env.OLLAMA_URL}/api/generate`, {
+  method: "POST", headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ model: process.env.VLM_MODEL || "qwen3-vl:4b",
+    prompt: "Ответь одним словом: работаешь?", stream: false, think: false }),
+  signal: AbortSignal.timeout(90000),
+}).then(r => r.json())
+  .then(d => console.log(`время: ${((Date.now()-t)/1000).toFixed(1)} с, ответ: ${(d.response||"").slice(0,120)}`))
+  .catch(e => console.log(`ОШИБКА за ${((Date.now()-t)/1000).toFixed(1)} с: ${e.message}`));
 ' 2>&1
 
 echo "--- сколько VRAM занято (ollama делит GPU с YOLO/ppe/pose):"

@@ -278,6 +278,32 @@ const peopleRoutes: FastifyPluginAsyncZod = async (app) => {
     return { gid: targetGid, staff: true, absorbed }
   })
 
+  // Name (or rename) a staff card. Marking someone staff doesn't require a
+  // name, so the roster fills up with anonymous cards — naming one of them is
+  // the first step of folding the duplicates into it.
+  app.patch('/people/:gid/name', {
+    preHandler: [app.requirePerm('people')],
+    schema: {
+      params: z.object({ gid: z.string().min(1).max(64) }),
+      body: z.object({ name: z.string().trim().min(1).max(80) }),
+    },
+  }, async (req, reply) => {
+    const { gid } = req.params
+    const raw = await app.redis.hget(staffKey(req.tenantId), gid)
+    if (!raw) return reply.code(404).send({ message: 'not a staff person' })
+    let embs: number[][] = []
+    try {
+      embs = staffEmbs(JSON.parse(raw) as StaffJson)
+    } catch { /* keep the card, lose the samples */ }
+    await app.redis.hset(staffKey(req.tenantId), gid,
+      JSON.stringify({ embs, name: req.body.name }))
+    await writeAudit({
+      tenantId: req.tenantId, userId: req.userId, action: 'person.rename',
+      resourceType: 'person', resourceId: gid, details: { name: req.body.name },
+    })
+    return { gid, name: req.body.name }
+  })
+
   // Fold several staff cards into one. Marking the same person again and
   // again (a weak clothing match mints a new identity every time) leaves a
   // roster of nameless duplicates — this merges their clothing/face samples

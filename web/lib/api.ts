@@ -444,6 +444,22 @@ export async function getVlmStatus(): Promise<VlmStatus> {
   return apiJson('/api/v1/features/vlm/status', VlmStatusSchema)
 }
 
+const VlmTestSchema = z.object({
+  ok: z.boolean(),
+  ms: z.number(),
+  model: z.string(),
+  answer: z.string(),
+  error: z.string().nullable(),
+})
+export type VlmTest = z.infer<typeof VlmTestSchema>
+
+/** One real generation — checks the chain and measures how slow it is. */
+export async function testVlm(): Promise<VlmTest> {
+  const res = await apiFetch('/api/v1/features/vlm/test', { method: 'POST' })
+  if (!res.ok) await throwApiError(res, 'testVlm')
+  return VlmTestSchema.parse(await res.json())
+}
+
 export async function setFeature(
   feature: string,
   enabled: boolean,
@@ -533,6 +549,16 @@ export async function uploadFacePhoto(gid: string, file: File): Promise<void> {
     body: form,
   })
   if (!res.ok) await throwApiError(res, 'uploadFacePhoto')
+}
+
+/** Give a staff card a name (or rename it). */
+export async function renamePerson(gid: string, name: string): Promise<void> {
+  const res = await apiFetch(`/api/v1/people/${encodeURIComponent(gid)}/name`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  })
+  if (!res.ok) await throwApiError(res, 'renamePerson')
 }
 
 /** Fold duplicate staff cards into one (samples are combined). */

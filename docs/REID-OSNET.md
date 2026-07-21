@@ -21,6 +21,20 @@ pip install git+https://github.com/KaiyangZhou/deep-person-reid.git
 python scripts/export_osnet.py
 ```
 
+Ставить torch на прод-сервер не нужно. Если под рукой только сервер — экспорт
+делается в одноразовом контейнере, ничего не оседает в системе:
+
+```bash
+cd ~/pointofview
+docker run --rm -v "$PWD:/w" -w /w python:3.12 bash -c "
+  pip install -q torch torchvision gdown &&
+  pip install -q git+https://github.com/KaiyangZhou/deep-person-reid.git &&
+  python scripts/export_osnet.py"
+```
+
+Файл `osnet_x0_25.onnx` появится в корне репозитория (≈2.5 ГБ качается один раз,
+занимает время; сам файл модели — около 9 МБ).
+
 Скрипт качает готовые веса `osnet_x0_25` (самая лёгкая, CPU-инференс ~5 мс на
 кроп), экспортирует `osnet_x0_25.onnx` и печатает размерность эмбеддинга.
 Обучать ничего не нужно.

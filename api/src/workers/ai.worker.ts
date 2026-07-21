@@ -5,7 +5,7 @@ import { db } from '../db/client.js'
 import { event } from '../../db/schema.js'
 import { config } from '../config.js'
 import { minio } from '../minio.js'
-import { AI_QUEUE, alertsQueue, type AiJob } from '../queues.js'
+import { AI_QUEUE, aiQueue, alertsQueue, type AiJob } from '../queues.js'
 import { typeLabel } from '../event_labels.js'
 import {
   VLM_WORKER_ALIVE_KEY, bumpVlmStat, fpKey, ollamaVision, parseVerdict, snapshotB64,
@@ -25,6 +25,12 @@ import {
 //     meta.ai_verified=false). Fail-open: any VLM error → alert goes out.
 
 const SNAPSHOT_TIMEOUT_MS = 5_000
+// A frame older than this no longer shows the event: verification would judge
+// an empty scene, so it is skipped (alert goes out) instead of suppressing.
+const MAX_VERIFY_AGE_SEC = 45
+// When the queue is this deep the VLM (~10 s per call) can never catch up;
+// enrichment degrades to snapshots only until the backlog drains.
+const BACKLOG_SKIP_VLM = 30
 
 // types where a single frame genuinely shows whether the event is real;
 // infrastructure events (camera_offline/tampered) are never suppressed
@@ -72,7 +78,7 @@ async function processJob(job: Job<AiJob>, redis: IORedis): Promise<void> {
   const { event_id, tenant_id } = job.data
   const [ev] = await db.select({
     id: event.id, cameraId: event.cameraId, severity: event.severity,
-    type: event.type, snapshotKey: event.snapshotKey,
+    type: event.type, snapshotKey: event.snapshotKey, tsStart: event.tsStart,
   }).from(event)
     .where(and(eq(event.id, event_id), eq(event.tenantId, tenant_id)))
     .limit(1)
@@ -91,7 +97,11 @@ async function processJob(job: Job<AiJob>, redis: IORedis): Promise<void> {
 
     try {
       const vlm = await vlmSettings(tenant_id)
-      if (vlm.enabled && snapshotKey) {
+      const backlog = await aiQueue.getWaitingCount()
+      if (backlog > BACKLOG_SKIP_VLM) {
+        await bumpVlmStat(redis, tenant_id, 'skipped')
+        log('vlm skipped: queue backlog', { backlog })
+      } else if (vlm.enabled && snapshotKey) {
         const image = await snapshotB64(snapshotKey)
         const label = typeLabel(ev.type)
 
@@ -109,9 +119,18 @@ async function processJob(job: Job<AiJob>, redis: IORedis): Promise<void> {
           }
         }
 
-        // verification gate: only after operator feedback (or forced), and
-        // only for frame-verifiable event types
-        if (VERIFIABLE_TYPES.has(ev.type)) {
+        // verification gate: only after operator feedback (or forced), only
+        // for frame-verifiable types, and only while the frame still shows the
+        // moment. The snapshot is a LIVE go2rtc frame grabbed here, so a queue
+        // backlog means an empty scene — and the model honestly answers НЕТ.
+        // Suppressing on that evidence throws real alerts away (623 НЕТ vs 2 ДА).
+        const ageSec = (Date.now() - ev.tsStart.getTime()) / 1000
+        const fresh = ageSec <= MAX_VERIFY_AGE_SEC
+        if (VERIFIABLE_TYPES.has(ev.type) && !fresh) {
+          await mergeMeta(event_id, tenant_id, { ai_verify_skipped: 'stale_frame' })
+          await bumpVlmStat(redis, tenant_id, 'stale')
+        }
+        if (VERIFIABLE_TYPES.has(ev.type) && fresh) {
           const fpCount = Math.max(0, Number(
             await redis.get(fpKey(tenant_id, ev.cameraId, ev.type)) ?? 0,
           ))

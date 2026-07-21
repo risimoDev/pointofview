@@ -223,8 +223,17 @@ function VlmHealth({ s }: { s: VlmStatus | undefined }): React.JSX.Element | nul
       <p className="text-muted-foreground">
         Обработано событий: {s.stats.jobs} · описано: {s.stats.described} ·
         подтверждено: {s.stats.verified} · отсеяно: {s.stats.suppressed} ·
+        кадр устарел: {s.stats.stale} · пропущено из-за очереди: {s.stats.skipped} ·
         сбоев: {s.stats.failed}
       </p>
+      {s.stats.suppressed > 10 && s.stats.suppressed > s.stats.verified * 5 && (
+        <p className="text-amber-400">
+          ИИ отклоняет почти все события. Обычно это значит, что событий слишком
+          много и кадр к моменту проверки уже не тот — уменьшите поток событий
+          (пауза оповещения в настройках зоны), иначе полезные оповещения тоже
+          не дойдут.
+        </p>
+      )}
       {s.stats.lastError && (
         <p className="text-amber-400">Последняя ошибка: {s.stats.lastError}</p>
       )}

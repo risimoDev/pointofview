@@ -82,6 +82,8 @@ const featuresRoutes: FastifyPluginAsyncZod = async (app) => {
         described: num('described'),
         verified: num('verified'),
         suppressed: num('suppressed'),
+        stale: num('stale'),
+        skipped: num('skipped'),
         failed: num('failed'),
         lastError: stats.last_error ?? null,
       },

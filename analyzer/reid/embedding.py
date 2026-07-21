@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import logging
 import os
 
 import cv2
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 # Appearance embedding for person re-identification.
 #
@@ -65,12 +68,26 @@ class OnnxEmbedder:
 
 
 def make_embedder() -> HistogramEmbedder | OnnxEmbedder:
+    """ONNX (OSNet) when REID_ONNX points at a usable model, histograms otherwise.
+
+    The choice is logged loudly: a silent fallback looks exactly like a working
+    upgrade from the outside, while the thresholds a wrong embedder needs differ
+    almost twofold (0.88 for histograms vs 0.70 for OSNet).
+    """
     path = os.environ.get("REID_ONNX", "")
-    if path and os.path.isfile(path):
-        try:
-            return OnnxEmbedder(path)
-        except Exception:  # noqa: BLE001 — fall back rather than kill the worker
-            pass
+    if path:
+        if not os.path.isfile(path):
+            logger.error("REID_ONNX=%s not found — falling back to histograms", path)
+        else:
+            try:
+                emb = OnnxEmbedder(path)
+                logger.info("reid embedder: ONNX %s (dim %d) — пороги 0.70/0.75",
+                            path, emb.dim)
+                return emb
+            except Exception:  # noqa: BLE001 — fall back rather than kill the worker
+                logger.exception("REID_ONNX=%s failed to load — using histograms", path)
+    logger.info("reid embedder: HSV histograms (dim %d) — пороги 0.88/0.90",
+                HistogramEmbedder().dim)
     return HistogramEmbedder()
 
 

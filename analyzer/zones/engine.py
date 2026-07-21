@@ -161,6 +161,11 @@ class ZoneEngine:
         self.settings = settings
         self._zones: dict[str, list[Zone]] = {}
         self._state: dict[tuple[str, str, str], EntryState] = {}
+        # last alert per (camera, subject, zone) — OUTLIVES the entry state so
+        # that leaving and re-entering (or the tracker losing and re-acquiring
+        # the person) can't bypass the cooldown. Without this a forbidden zone
+        # produced a critical event per re-appearance: 5.9k alerts a day.
+        self._last_alert: dict[tuple[str, str, str], float] = {}
 
     # ── zone loading ──────────────────────────────────────────
     async def load_zones(self, camera_ids: list[str]) -> None:
@@ -238,9 +243,10 @@ class ZoneEngine:
                 if state is None:
                     state = EntryState(entered_at=now, last_seen_at=now, track_id=te.track_id)
                     self._state[key] = state
-                    if zone.kind == "forbidden":
+                    if zone.kind == "forbidden" and self._cooldown_ok(zone, state, now, key):
                         state.alerted = True
                         state.last_alert_at = now
+                        self._last_alert[key] = now
                         out.append(self._event(te, zone, "zone_violation", "critical",
                                                {"kind": zone.kind}))
                     elif zone.kind in ENTRY_EXIT_KINDS:
@@ -253,15 +259,17 @@ class ZoneEngine:
                     if zone.kind in DWELL_KINDS:
                         limit = zone.config.get("dwell_seconds")
                         if (limit and dwell >= float(limit)
-                                and self._cooldown_ok(zone, state, now)):
+                                and self._cooldown_ok(zone, state, now, key)):
                             state.alerted = True
                             state.last_alert_at = now
+                            self._last_alert[key] = now
                             out.append(self._event(te, zone, "queue_alert", "warn",
                                                    {"kind": zone.kind, "dwell_sec": dwell}))
                     elif zone.kind == "forbidden":
                         # still inside → re-alert no more than cooldown
-                        if self._cooldown_ok(zone, state, now):
+                        if self._cooldown_ok(zone, state, now, key):
                             state.last_alert_at = now
+                            self._last_alert[key] = now
                             out.append(self._event(te, zone, "zone_violation", "critical",
                                                    {"kind": zone.kind, "dwell_sec": dwell}))
             else:
@@ -285,6 +293,9 @@ class ZoneEngine:
         """Emit zone_exit for tracks not seen within track_lost_seconds."""
         timeout = self.settings.track_lost_seconds
         out: list[Event] = []
+        # cooldown history outlives entries but not the day
+        for k in [k for k, ts in self._last_alert.items() if now - ts > 3600.0]:
+            del self._last_alert[k]
         for key in list(self._state.keys()):
             state = self._state[key]
             if now - state.last_seen_at <= timeout:
@@ -315,10 +326,18 @@ class ZoneEngine:
             )
 
     # ── helpers ───────────────────────────────────────────────
-    def _cooldown_ok(self, zone: Zone, state: EntryState, now: float) -> bool:
+    def _cooldown_ok(
+        self, zone: Zone, state: EntryState, now: float,
+        key: tuple[str, str, str] | None = None,
+    ) -> bool:
         cooldown = float(zone.config.get("cooldown_seconds",
                                          self.settings.default_cooldown_seconds))
-        return state.last_alert_at is None or (now - state.last_alert_at) >= cooldown
+        last = state.last_alert_at
+        if key is not None:
+            prev = self._last_alert.get(key)
+            if prev is not None and (last is None or prev > last):
+                last = prev
+        return last is None or (now - last) >= cooldown
 
     def _find_zone(self, camera_id: str, zone_id: str) -> Zone | None:
         for z in self._zones.get(camera_id, ()):

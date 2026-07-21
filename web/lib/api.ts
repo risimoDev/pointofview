@@ -434,6 +434,8 @@ const VlmStatusSchema = z.object({
     described: z.number(),
     verified: z.number(),
     suppressed: z.number(),
+    stale: z.number(),
+    skipped: z.number(),
     failed: z.number(),
     lastError: z.string().nullable(),
   }),

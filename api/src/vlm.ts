@@ -111,7 +111,10 @@ export const fpKey = (tenantId: string, cameraId: string, type: string): string 
 export const vlmStatsKey = (tenantId: string): string => `vlm:stats:${tenantId}`
 export const VLM_WORKER_ALIVE_KEY = 'vlm:worker_alive'
 
-export type VlmStat = 'described' | 'verified' | 'suppressed' | 'failed' | 'jobs'
+export type VlmStat =
+  | 'described' | 'verified' | 'suppressed' | 'failed' | 'jobs'
+  // verification could not be trusted: frame too old / queue backlog
+  | 'stale' | 'skipped'
 
 /** Best-effort counter bump; stats must never break the alert path. */
 export async function bumpVlmStat(

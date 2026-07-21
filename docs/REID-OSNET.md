@@ -27,7 +27,7 @@ OSNet — нейросеть, обученная именно для re-identifi
 cd ~/pointofview
 docker run --rm -v "$PWD:/w" -w /w python:3.12 bash -c "
   pip install -q torch --index-url https://download.pytorch.org/whl/cpu &&
-  pip install -q gdown &&
+  pip install -q numpy gdown onnx onnxscript &&
   git clone --depth 1 https://github.com/KaiyangZhou/deep-person-reid.git /tmp/reid &&
   python scripts/export_osnet.py --repo /tmp/reid"
 ```

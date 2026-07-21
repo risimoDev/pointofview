@@ -8,7 +8,7 @@ one module is loaded directly.
 
     docker run --rm -v "$PWD:/w" -w /w python:3.12 bash -c "
       pip install -q torch --index-url https://download.pytorch.org/whl/cpu &&
-      pip install -q gdown &&
+      pip install -q numpy gdown onnx onnxscript &&
       git clone --depth 1 https://github.com/KaiyangZhou/deep-person-reid.git /tmp/reid &&
       python scripts/export_osnet.py --repo /tmp/reid"
 
@@ -61,6 +61,12 @@ def main() -> int:
     except ImportError:
         print("missing torch: pip install torch --index-url "
               "https://download.pytorch.org/whl/cpu", file=sys.stderr)
+        return 1
+    try:
+        import onnxscript  # noqa: F401 — torch>=2.6 exports ONNX through it
+    except ImportError:
+        print("missing onnxscript: pip install numpy onnx onnxscript",
+              file=sys.stderr)
         return 1
 
     osnet = load_osnet_module(Path(args.repo))

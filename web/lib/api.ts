@@ -630,6 +630,46 @@ export function archivePlayUrl(segmentId: string, ticket: string): string {
   return `/api/v1/archive/play/${encodeURIComponent(segmentId)}?t=${encodeURIComponent(ticket)}`
 }
 
+// ── Training dataset (super): false-positive frames curation ──
+const TrainingSummarySchema = z.object({
+  items: z.array(z.object({
+    tenantId: z.string(),
+    tenantName: z.string(),
+    type: z.string(),
+    count: z.number(),
+  })),
+})
+const TrainingItemsSchema = z.object({
+  items: z.array(z.object({
+    key: z.string(),
+    size: z.number(),
+    lastModified: z.string(),
+    url: z.string(),
+  })),
+})
+export type TrainingSummary = z.infer<typeof TrainingSummarySchema>['items']
+export type TrainingItem = z.infer<typeof TrainingItemsSchema>['items'][number]
+
+export async function getTrainingSummary(): Promise<TrainingSummary> {
+  return (await apiJson('/api/v1/admin/training/summary', TrainingSummarySchema)).items
+}
+
+export async function getTrainingItems(
+  tenantId: string, type: string,
+): Promise<TrainingItem[]> {
+  const q = new URLSearchParams({ tenant_id: tenantId, type })
+  return (await apiJson(`/api/v1/admin/training/items?${q.toString()}`, TrainingItemsSchema)).items
+}
+
+export async function deleteTrainingItems(keys: string[]): Promise<void> {
+  const res = await apiFetch('/api/v1/admin/training/items', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ keys }),
+  })
+  if (!res.ok) await throwApiError(res, 'deleteTrainingItems')
+}
+
 // ── Role (decoded from the JWT payload; UX gating only) ───────
 export async function getRole(): Promise<string | null> {
   try {

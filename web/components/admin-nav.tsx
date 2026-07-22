@@ -12,6 +12,7 @@ import {
   IconAdjustmentsHorizontal,
   IconBell,
   IconPlayerPlay,
+  IconSchool,
   IconTool,
   IconSettings,
 } from '@tabler/icons-react'
@@ -32,6 +33,7 @@ const ITEMS: { href: string; label: string; icon: NavIcon; scope: Scope }[] = [
   { href: '/admin/cameras', label: 'Камеры', icon: IconVideo, scope: 'cameras' },
   { href: '/admin/features', label: 'Функции', icon: IconAdjustmentsHorizontal, scope: 'features' },
   { href: '/admin/alerts', label: 'Алерты', icon: IconBell, scope: 'alerts' },
+  { href: '/admin/training', label: 'Обучение', icon: IconSchool, scope: 'super' },
   { href: '/admin/video', label: 'Видео-тесты', icon: IconPlayerPlay, scope: 'super' },
   { href: '/admin/settings', label: 'Настройки сервера', icon: IconSettings, scope: 'super' },
   { href: '/admin/maintenance', label: 'Обслуживание', icon: IconTool, scope: 'super' },

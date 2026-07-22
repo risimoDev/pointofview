@@ -10,7 +10,7 @@ const PUBLIC = ['/login', '/api/auth', '/invite']
 // admin-nav.tsx hiding links the caller's checkboxes don't cover — this gate
 // only keeps users with zero admin-area permission from loading a shell full
 // of 403s.
-const SUPER_ONLY_ADMIN_PATHS = ['/admin/orgs', '/admin/video', '/admin/settings', '/admin/maintenance']
+const SUPER_ONLY_ADMIN_PATHS = ['/admin/orgs', '/admin/video', '/admin/settings', '/admin/maintenance', '/admin/training']
 // scopes admin-nav.tsx uses for non-super items (see that file's `ITEMS`)
 const ADMIN_AREA_PERMS = ['users', 'people', 'cameras', 'features', 'alerts']
 

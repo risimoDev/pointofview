@@ -140,7 +140,12 @@ function UserRow({ user, isOwner, onChanged }: {
               </Button>
               <Button
                 size="sm" variant="ghost" className="text-muted-foreground hover:text-red-300"
-                disabled={rm.isPending} onClick={() => rm.mutate()}
+                disabled={rm.isPending}
+                onClick={() => {
+                  if (confirm(`Удалить пользователя «${user.name || user.email}»? Он потеряет доступ навсегда. Чтобы просто закрыть вход — используйте «Отключить».`)) {
+                    rm.mutate()
+                  }
+                }}
               >
                 <IconTrash className="h-4 w-4" stroke={1.75} />
               </Button>

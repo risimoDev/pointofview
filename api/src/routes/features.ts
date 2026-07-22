@@ -1,6 +1,6 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import type Redis from 'ioredis'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { db } from '../db/client.js'
 import { camera, site, tenantFeature } from '../../db/schema.js'
 import { writeAudit } from '../audit.js'
@@ -21,6 +21,19 @@ async function syncFeatures(app: { redis: Redis }, tenantId: string): Promise<vo
   for (const r of rows) obj[r.feature] = { enabled: r.enabled, config: r.config }
   await app.redis.set(`features:${tenantId}`, JSON.stringify(obj))
 }
+
+// Feature-config keys only super may change (web hides them, API enforces):
+// model paths get torch-unpickled in the analyzer, thresholds are the classic
+// way to silently break recognition for a whole tenant.
+export const SUPER_ONLY_CONFIG_KEYS = [
+  'model', 'class_map',
+  'match_threshold', 'staff_threshold', 'face_threshold', 'face_min_px',
+  'min_samples', 'min_track_age_seconds', 'min_confidence', 'min_crop_px',
+  'min_saturation', 'gallery_ttl_hours', 'staff_auto_ttl_hours',
+  'fall_angle_deg', 'min_aspect_down', 'aspect_ratio',
+  'min_checks_down', 'min_checks_without', 'min_checks',
+  'check_interval_seconds', 'scene_threshold', 'min_person_px',
+] as const
 
 const featuresRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get('/features', {
@@ -121,12 +134,32 @@ const featuresRoutes: FastifyPluginAsyncZod = async (app) => {
     schema: { params: FeatureParams, body: UpsertFeatureBody },
   }, async (req, reply) => {
     const { feature } = req.params
-    const { enabled, config } = req.body
+    const { enabled } = req.body
+    let cfg = req.body.config
+
+    // Expert keys are super-only. `model`/`class_map` because a model path is
+    // executed (torch pickle) inside the analyzer; the recognition thresholds
+    // because a mistuned 0.88→OSNet is exactly the «288 посетителей» incident.
+    // For non-super the previous values are silently preserved (the panel
+    // doesn't even show these fields to them).
+    if (req.role !== 'super') {
+      const [existing] = await db.select({ config: tenantFeature.config })
+        .from(tenantFeature)
+        .where(and(eq(tenantFeature.tenantId, req.tenantId), eq(tenantFeature.feature, feature)))
+        .limit(1)
+      const prev = existing?.config ?? {}
+      cfg = { ...cfg }
+      for (const key of SUPER_ONLY_CONFIG_KEYS) {
+        if (key in prev) cfg[key] = prev[key]
+        else delete cfg[key]
+      }
+    }
+
     const [row] = await db.insert(tenantFeature).values({
-      tenantId: req.tenantId, feature, enabled, config,
+      tenantId: req.tenantId, feature, enabled, config: cfg,
     }).onConflictDoUpdate({
       target: [tenantFeature.tenantId, tenantFeature.feature],
-      set: { enabled, config },
+      set: { enabled, config: cfg },
     }).returning()
 
     await syncFeatures(app, req.tenantId)

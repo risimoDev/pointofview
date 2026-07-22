@@ -61,7 +61,12 @@ function CameraRow(
           </Link>
           <Button
             size="sm" variant="ghost" className="text-muted-foreground hover:text-red-300"
-            disabled={rm.isPending} onClick={() => rm.mutate()}
+            disabled={rm.isPending}
+            onClick={() => {
+              if (confirm(`Удалить камеру «${cam.name}»? Её зоны, события и записи будут отвязаны. Отменить нельзя.`)) {
+                rm.mutate()
+              }
+            }}
           >
             <IconTrash className="h-4 w-4" stroke={1.75} />
           </Button>

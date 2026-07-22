@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { IconAdjustmentsHorizontal } from '@tabler/icons-react'
 import {
-  getFeatures, getFeatureStatus, getVlmStatus, setFeature, testVlm, errorMessage,
+  getFeatures, getFeatureStatus, getVlmStatus, getRole, setFeature, testVlm, errorMessage,
   type Feature, type PluginStatus, type VlmStatus, type VlmTest,
 } from '@/lib/api'
 import {
@@ -21,6 +21,9 @@ type FieldDef = {
   type: 'number' | 'bool' | 'select'
   def: number | boolean | string
   options?: { value: string; label: string }[]
+  // expert knob: hidden from tenant owners, editable only by super
+  // (the API enforces the same list — SUPER_ONLY_CONFIG_KEYS in features.ts)
+  superOnly?: boolean
 }
 type FeatureMeta = { label: string; note?: string; fields: FieldDef[] }
 
@@ -61,14 +64,14 @@ const FEATURE_META: Record<string, FeatureMeta> = {
       + 'Пороги зависят от режима (см. плашку ниже): гистограммы ≈0.88/0.90, '
       + 'нейросеть OSNet ≈0.70/0.75.',
     fields: [
-      { key: 'match_threshold', label: 'Порог совпадения (0..1)', type: 'number', def: 0.88 },
-      { key: 'staff_threshold', label: 'Порог сотрудника (0..1)', type: 'number', def: 0.90 },
+      { key: 'match_threshold', label: 'Порог совпадения (0..1)', type: 'number', def: 0.88, superOnly: true },
+      { key: 'staff_threshold', label: 'Порог сотрудника (0..1)', type: 'number', def: 0.90, superOnly: true },
       { key: 'gallery_ttl_hours', label: 'Память о посетителе, ч', type: 'number', def: 12 },
-      { key: 'min_samples', label: 'Замеров до новой личности', type: 'number', def: 3 },
-      { key: 'min_track_age_seconds', label: 'Мин. время наблюдения, сек', type: 'number', def: 3 },
-      { key: 'min_confidence', label: 'Мин. уверенность детекции (0..1)', type: 'number', def: 0.5 },
-      { key: 'min_crop_px', label: 'Мин. размер кадра человека, пикс', type: 'number', def: 64 },
-      { key: 'min_saturation', label: 'Мин. цветность кадра (0-255)', type: 'number', def: 25 },
+      { key: 'min_samples', label: 'Замеров до новой личности', type: 'number', def: 3, superOnly: true },
+      { key: 'min_track_age_seconds', label: 'Мин. время наблюдения, сек', type: 'number', def: 3, superOnly: true },
+      { key: 'min_confidence', label: 'Мин. уверенность детекции (0..1)', type: 'number', def: 0.5, superOnly: true },
+      { key: 'min_crop_px', label: 'Мин. размер кадра человека, пикс', type: 'number', def: 64, superOnly: true },
+      { key: 'min_saturation', label: 'Мин. цветность кадра (0-255)', type: 'number', def: 25, superOnly: true },
     ],
   },
   queue: { label: 'Очередь', note: 'Порог времени нахождения задаётся в настройках зоны.', fields: [] },
@@ -79,11 +82,11 @@ const FEATURE_META: Record<string, FeatureMeta> = {
       + 'Требуемый набор (helmet/vest) задаётся в настройках зоны, поле required.',
     fields: [
       { key: 'grace_seconds', label: 'Отсрочка после входа, сек', type: 'number', def: 5 },
-      { key: 'min_checks_without', label: 'Проверок без СИЗ до события', type: 'number', def: 3 },
-      { key: 'min_confidence', label: 'Мин. уверенность (0..1)', type: 'number', def: 0.6 },
-      { key: 'min_person_px', label: 'Мин. рост человека, пикс', type: 'number', def: 80 },
+      { key: 'min_checks_without', label: 'Проверок без СИЗ до события', type: 'number', def: 3, superOnly: true },
+      { key: 'min_confidence', label: 'Мин. уверенность (0..1)', type: 'number', def: 0.6, superOnly: true },
+      { key: 'min_person_px', label: 'Мин. рост человека, пикс', type: 'number', def: 80, superOnly: true },
       { key: 'cooldown_seconds', label: 'Пауза по человеку, сек', type: 'number', def: 300 },
-      { key: 'check_interval_seconds', label: 'Интервал проверки, сек', type: 'number', def: 1 },
+      { key: 'check_interval_seconds', label: 'Интервал проверки, сек', type: 'number', def: 1, superOnly: true },
     ],
   },
   pose: {
@@ -93,14 +96,14 @@ const FEATURE_META: Record<string, FeatureMeta> = {
       + '(плечи→стопы), ширина силуэта и время нахождения на полу. Если всё '
       + 'равно ловит наклоны — поднимите «Мин. время на полу» и «Мин. ширину».',
     fields: [
-      { key: 'fall_angle_deg', label: 'Угол тела от вертикали, °', type: 'number', def: 65 },
+      { key: 'fall_angle_deg', label: 'Угол тела от вертикали, °', type: 'number', def: 65, superOnly: true },
       { key: 'min_down_seconds', label: 'Мин. время на полу, сек', type: 'number', def: 5 },
-      { key: 'min_aspect_down', label: 'Мин. ширина/высота силуэта', type: 'number', def: 0.85 },
-      { key: 'min_checks_down', label: 'Проверок лёжа до события', type: 'number', def: 3 },
-      { key: 'min_person_px', label: 'Мин. рост человека, пикс', type: 'number', def: 80 },
-      { key: 'min_confidence', label: 'Мин. уверенность (0..1)', type: 'number', def: 0.4 },
+      { key: 'min_aspect_down', label: 'Мин. ширина/высота силуэта', type: 'number', def: 0.85, superOnly: true },
+      { key: 'min_checks_down', label: 'Проверок лёжа до события', type: 'number', def: 3, superOnly: true },
+      { key: 'min_person_px', label: 'Мин. рост человека, пикс', type: 'number', def: 80, superOnly: true },
+      { key: 'min_confidence', label: 'Мин. уверенность (0..1)', type: 'number', def: 0.4, superOnly: true },
       { key: 'cooldown_seconds', label: 'Пауза по человеку, сек', type: 'number', def: 300 },
-      { key: 'check_interval_seconds', label: 'Интервал проверки, сек', type: 'number', def: 0.7 },
+      { key: 'check_interval_seconds', label: 'Интервал проверки, сек', type: 'number', def: 0.7, superOnly: true },
     ],
   },
   tamper: {
@@ -109,9 +112,9 @@ const FEATURE_META: Record<string, FeatureMeta> = {
       + 'событие «Камера перекрыта или сдвинута». Без нейросетей, эталон сцены '
       + 'строится сам. Резкая смена день/ночь может дать одно срабатывание.',
     fields: [
-      { key: 'min_checks', label: 'Проверок подряд до события', type: 'number', def: 8 },
-      { key: 'check_interval_seconds', label: 'Интервал проверки, сек', type: 'number', def: 1 },
-      { key: 'scene_threshold', label: 'Порог сходства сцены (0..1)', type: 'number', def: 0.35 },
+      { key: 'min_checks', label: 'Проверок подряд до события', type: 'number', def: 8, superOnly: true },
+      { key: 'check_interval_seconds', label: 'Интервал проверки, сек', type: 'number', def: 1, superOnly: true },
+      { key: 'scene_threshold', label: 'Порог сходства сцены (0..1)', type: 'number', def: 0.35, superOnly: true },
       { key: 'cooldown_seconds', label: 'Пауза по камере, сек', type: 'number', def: 600 },
     ],
   },
@@ -393,6 +396,12 @@ export default function AdminFeaturesPage(): React.JSX.Element {
     queryFn: getVlmStatus,
     refetchInterval: 20_000,
   })
+  const role = useQuery({ queryKey: ['role'], queryFn: getRole })
+  const isSuper = role.data === 'super'
+  // expert fields are super-only: hidden here, and the API keeps their stored
+  // values even if a tampered client sends them
+  const visibleMeta = (meta: FeatureMeta): FeatureMeta =>
+    isSuper ? meta : { ...meta, fields: meta.fields.filter((f) => !f.superOnly) }
   const onSaved = (): void => void qc.invalidateQueries({ queryKey: ['admin', 'features'] })
   const m = status.data?.metrics
 
@@ -428,9 +437,9 @@ export default function AdminFeaturesPage(): React.JSX.Element {
         {!features.data && <p className="text-sm text-muted-foreground">Загрузка…</p>}
         {features.data && Object.entries(FEATURE_META).map(([feature, meta]) => (
           <FeatureCard
-            key={feature}
+            key={`${feature}:${isSuper ? 's' : 'a'}`}
             feature={feature}
-            meta={meta}
+            meta={visibleMeta(meta)}
             current={features.data.find((f) => f.feature === feature)}
             status={status.data?.items.find((s) => s.feature_id === feature)}
             extra={

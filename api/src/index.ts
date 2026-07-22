@@ -21,6 +21,7 @@ import adminRoutes from './routes/admin.js'
 import platformRoutes from './routes/platform.js'
 import reportsRoutes from './routes/reports.js'
 import archiveRoutes from './routes/archive.js'
+import trainingRoutes from './routes/training.js'
 import internalRoutes from './routes/internal.js'
 import publicRoutes from './routes/public.js'
 import { EventConsumer } from './streams/event_consumer.js'
@@ -67,6 +68,7 @@ async function main(): Promise<void> {
   await app.register(platformRoutes, { prefix: '/api/v1/platform' })
   await app.register(reportsRoutes, { prefix: '/api/v1' })
   await app.register(archiveRoutes, { prefix: '/api/v1' })
+  await app.register(trainingRoutes, { prefix: '/api/v1/admin' })
   await app.register(internalRoutes, { prefix: '/internal' })
   await app.register(publicRoutes, { prefix: '/api/v1/public' })
 

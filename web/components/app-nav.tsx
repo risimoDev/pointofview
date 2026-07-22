@@ -12,6 +12,7 @@ import {
   IconChartHistogram,
   IconFileAnalytics,
   IconVideo,
+  IconPlayerPlay,
   IconAdjustmentsHorizontal,
 } from '@tabler/icons-react'
 import { cn } from '@/lib/utils'
@@ -24,6 +25,7 @@ type NavIcon = React.ComponentType<{ className?: string; stroke?: number }>
 const NAV: { href: string; label: string; icon: NavIcon; perm: PermissionCode }[] = [
   { href: '/dashboard', label: 'Дашборд', icon: IconLayoutGrid, perm: 'live' },
   { href: '/events', label: 'События', icon: IconActivity, perm: 'events' },
+  { href: '/archive', label: 'Архив', icon: IconPlayerPlay, perm: 'live' },
   { href: '/analytics', label: 'Аналитика', icon: IconChartHistogram, perm: 'analytics' },
   { href: '/reports', label: 'Отчёты', icon: IconFileAnalytics, perm: 'reports' },
   // perm 'zones' → просмотр камер + переход в редактор зон; управление самими

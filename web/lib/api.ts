@@ -592,6 +592,44 @@ export async function deletePerson(gid: string): Promise<void> {
   if (!res.ok) await throwApiError(res, 'deletePerson')
 }
 
+// ── Video archive ─────────────────────────────────────────────
+const ArchiveSegmentSchema = z.object({
+  id: z.string(),
+  startedAt: z.string(),
+  endedAt: z.string().nullable(),
+  sizeBytes: z.number().nullable(),
+})
+const ArchiveEventSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  severity: z.string(),
+  tsStart: z.string(),
+})
+const ArchiveWindowSchema = z.object({
+  segments: z.array(ArchiveSegmentSchema),
+  events: z.array(ArchiveEventSchema),
+  ticket: z.string(),
+  ttl: z.number(),
+})
+export type ArchiveSegment = z.infer<typeof ArchiveSegmentSchema>
+export type ArchiveEvent = z.infer<typeof ArchiveEventSchema>
+export type ArchiveWindow = z.infer<typeof ArchiveWindowSchema>
+
+export async function getArchiveWindow(
+  cameraId: string, from: string, to: string,
+): Promise<ArchiveWindow> {
+  const q = new URLSearchParams({ from, to })
+  return apiJson(
+    `/api/v1/cameras/${encodeURIComponent(cameraId)}/archive?${q.toString()}`,
+    ArchiveWindowSchema,
+  )
+}
+
+/** Playback URL for a segment — ticket in the query so <video> can load it. */
+export function archivePlayUrl(segmentId: string, ticket: string): string {
+  return `/api/v1/archive/play/${encodeURIComponent(segmentId)}?t=${encodeURIComponent(ticket)}`
+}
+
 // ── Role (decoded from the JWT payload; UX gating only) ───────
 export async function getRole(): Promise<string | null> {
   try {

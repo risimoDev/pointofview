@@ -21,6 +21,16 @@ class Settings(BaseSettings):
     yolo_model: str = "yolov8n.pt"
     yolo_conf: float = 0.3
     yolo_imgsz: int = 640
+    # ByteTrack only assigns a stable track_id after this many CONSECUTIVE
+    # detections (supervision default is 1 — instant). At night, IR noise
+    # (reflections, insects near the illuminator) produces single-frame
+    # "person" detections that would otherwise mint a track inside a
+    # forbidden zone and fire a critical event with nobody actually there —
+    # the exact false-positive reported from прод (200+ ложных «Нарушение
+    # зоны» с пустым кадром). 3 frames filters flicker without losing real
+    # fast walk-throughs (segment_seconds-scale movement still spans several
+    # frames at any reasonable frame_skip).
+    track_min_consecutive_frames: int = 3
 
     # Soft VRAM budget (MB) for plugin models: a plugin whose setup pushes
     # torch allocation past the budget is torn down and marked vram_exceeded

@@ -17,6 +17,13 @@ import { cn } from '@/lib/utils'
 // здесь супер-админ просматривает набор, выкидывает мусорные кадры и видит,
 // по каким типам уже накопилось достаточно для дообучения (стадия 2 — trainer).
 
+// Event types with NO underlying model to fine-tune: zone_violation/queue_alert
+// (zone-engine geometry — how long/where a track sat, not what it looks like),
+// unknown_person and lone_worker (headcount logic). Their fp/ frames are only
+// useful for spotting a detection bug (e.g. a track_id minted from noise) —
+// never for training, so the panel says so instead of implying a model exists.
+const NOT_TRAINABLE = new Set(['zone_violation', 'queue_alert', 'unknown_person', 'lone_worker'])
+
 function fmtDate(iso: string): string {
   if (!iso) return ''
   return new Date(iso).toLocaleString('ru-RU', {
@@ -89,7 +96,9 @@ export default function TrainingPage(): React.JSX.Element {
               <div>{labelOf(eventTypeLabels, r.type as never)}</div>
               <div className="text-xs text-muted-foreground">
                 {r.tenantName} · {r.count} кадров
-                {r.count >= 200 ? ' · достаточно для обучения' : ''}
+                {NOT_TRAINABLE.has(r.type)
+                  ? ' · без модели для дообучения'
+                  : (r.count >= 200 ? ' · достаточно для обучения' : '')}
               </div>
             </button>
           ))}
@@ -98,6 +107,15 @@ export default function TrainingPage(): React.JSX.Element {
 
       {sel && (
         <section className="space-y-2">
+          {NOT_TRAINABLE.has(sel.type) && (
+            <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+              У этого типа нет отдельной модели — решение принимает движок зон
+              (геометрия/время), а не нейросеть. Дообучить здесь нечего; кадры
+              полезны только чтобы найти причину ложного срабатывания вручную
+              (например, тряский трек от шумной детекции). Кандидаты на
+              дообучение — «Нарушение СИЗ» и «Скопление людей».
+            </p>
+          )}
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-sm font-medium text-muted-foreground">
               Кадры: {labelOf(eventTypeLabels, sel.type as never)}

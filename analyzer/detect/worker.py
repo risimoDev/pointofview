@@ -109,7 +109,9 @@ class AnalyzerWorker:
         persons = [d for d in detections if d.class_id == PERSON_CLASS]
         others = [d for d in detections if d.class_id != PERSON_CLASS]
 
-        tracker = self._trackers.setdefault(frame.camera_id, sv.ByteTrack())
+        tracker = self._trackers.setdefault(frame.camera_id, sv.ByteTrack(
+            minimum_consecutive_frames=self.settings.track_min_consecutive_frames,
+        ))
         tracked = tracker.update_with_detections(_to_sv(persons))
 
         frame_h, frame_w = frame.data.shape[0], frame.data.shape[1]

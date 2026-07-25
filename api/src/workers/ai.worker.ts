@@ -8,7 +8,7 @@ import { minio } from '../minio.js'
 import { AI_QUEUE, aiQueue, alertsQueue, type AiJob } from '../queues.js'
 import { typeLabel } from '../event_labels.js'
 import {
-  VLM_WORKER_ALIVE_KEY, bumpVlmStat, fpKey, ollamaVision, parseVerdict, snapshotB64,
+  VLM_WORKER_ALIVE_KEY, bumpVlmStat, fpKey, ollamaVerdict, ollamaVision, parseVerdict, snapshotB64,
   vlmSettings,
 } from '../vlm.js'
 
@@ -140,7 +140,7 @@ async function processJob(job: Job<AiJob>, redis: IORedis): Promise<void> {
             await redis.get(fpKey(tenant_id, ev.cameraId, ev.type)) ?? 0,
           ))
           if (vlm.verify || fpCount >= vlm.autoVerifyAfter) {
-            const verdict = await ollamaVision(vlm.model, image,
+            const verdict = await ollamaVerdict(vlm.model, image,
               `Событие видеонаблюдения: «${label}». Посмотри на кадр и ответь, `
               + 'действительно ли событие подтверждается изображением. Первым '
               + 'словом напиши строго ДА или НЕТ, затем одну короткую фразу почему.')

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # One-time host provisioning for the home GPU server (Ubuntu 24.04, run as root).
-# Covers DEPLOY.md §4.1-4.3 except the WireGuard config itself (§4.2).
+# Covers docs/operations/DEPLOY.md §4.1-4.3 except the WireGuard config itself (§4.2).
 set -euo pipefail
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
@@ -19,7 +19,7 @@ apt-get install -y curl git make ufw fail2ban ca-certificates gnupg lsb-release 
 # AmneziaWG (WireGuard-compatible protocol with traffic obfuscation) instead of
 # vanilla WireGuard — some ISPs run DPI that specifically detects and kills
 # plain WireGuard's rekey handshake every ~2 minutes. Config format and keys
-# are compatible; see DEPLOY.md §2/§4.2 for the awg0.conf setup.
+# are compatible; see docs/operations/DEPLOY.md §2/§4.2 for the awg0.conf setup.
 info "Installing AmneziaWG"
 add-apt-repository -y ppa:amnezia/ppa
 apt-get update -y
@@ -107,4 +107,4 @@ else
   warn "nvidia-smi not available (reboot if the driver was just installed)"
 fi
 echo
-info "Next: WireGuard client (DEPLOY.md §4.2), then ./scripts/init.sh --seed"
+info "Next: WireGuard client (docs/operations/DEPLOY.md §4.2), then ./scripts/init.sh --seed"

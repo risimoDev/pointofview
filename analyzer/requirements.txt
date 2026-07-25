@@ -1,6 +1,13 @@
 # torch installed separately in Dockerfile (CUDA vs CPU wheel index)
-# 8.4: required to load the YOLO26 PPE checkpoint (trained on 8.4.x);
-# YOLOv8 detect/pose weights remain fully supported
+
+# Main detector (Apache-2.0). Nano/Small/Medium/Large only — XL/2XL ship under
+# a separate licence. See docs/commercial/01_LICENSE_REMEDIATION.md.
+rfdetr==1.3.*
+
+# LEGACY, AGPL-3.0 — being removed. Still imported by plugins/pose.py and
+# plugins/ppe.py; drop this line once both are migrated off ultralytics, and
+# the on-premise licence blocker is closed.
+# 8.4: required to load the YOLO26 PPE checkpoint (trained on 8.4.x).
 ultralytics==8.4.*
 supervision==0.25.*
 opencv-python-headless==4.11.*

@@ -46,12 +46,12 @@ fi
 
 # ---------------------------------------------------------------------------
 line "5. Redis: heartbeat-ключи камер"
-ALIVE_COUNT="$($COMPOSE exec -T redis redis-cli --scan --pattern 'camera_alive:*' | wc -l)"
+ALIVE_COUNT="$($COMPOSE exec -T redis sh -c 'exec $(command -v valkey-cli || command -v redis-cli) "$@"' -- --scan --pattern 'camera_alive:*' | wc -l)"
 echo "Живых heartbeat-ключей camera_alive:*: $ALIVE_COUNT (0 = анализатор не пишет вообще ни для одной камеры)"
 TENANT_ID="${TENANT_ID:-}"
 if [ -n "$TENANT_ID" ]; then
   echo "--- cameras:{tenant} (список камер, который видит analyzer):"
-  $COMPOSE exec -T redis redis-cli STRLEN "cameras:$TENANT_ID"
+  $COMPOSE exec -T redis sh -c 'exec $(command -v valkey-cli || command -v redis-cli) "$@"' -- STRLEN "cameras:$TENANT_ID"
 fi
 
 # ---------------------------------------------------------------------------

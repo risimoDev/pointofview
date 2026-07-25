@@ -26,13 +26,17 @@ services:
       start_period: 30s
 
   redis:
-    image: redis:7-alpine
+    # Valkey: BSD-3 fork of Redis 7.2.4 (Linux Foundation). redis:7-alpine now
+    # resolves to 7.4+ under RSALv2/SSPL, which is not an open-source licence
+    # and blocks on-premise delivery — see docs/commercial/01_LICENSE_REMEDIATION.md.
+    # Service name stays "redis" so every REDIS_URL keeps working.
+    image: valkey/valkey:8-alpine
     restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes"]
+    command: ["valkey-server", "--appendonly", "yes"]
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "valkey-cli", "ping"]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -200,7 +204,7 @@ services:
       INTERNAL_API_URL: http://api:3000
       INTERNAL_TOKEN: ${INTERNAL_TOKEN}
       # optional OSNet ONNX for re-id (e.g. /models/osnet_x0_25.onnx);
-      # empty → HSV-histogram fallback. See docs/REID-OSNET.md
+      # empty → HSV-histogram fallback. See docs/operations/REID-OSNET.md
       REID_ONNX: ${REID_ONNX:-}
     volumes:
       - yolo_cache:/root/.cache

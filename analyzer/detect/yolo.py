@@ -28,8 +28,8 @@ class YoloDetector:
         result = self._model.predict(
             frame,
             classes=classes,
-            conf=self.settings.yolo_conf,
-            imgsz=self.settings.yolo_imgsz,
+            conf=self.settings.conf(),
+            imgsz=self.settings.imgsz(),
             device=self.settings.analyzer_device,
             verbose=False,
         )[0]

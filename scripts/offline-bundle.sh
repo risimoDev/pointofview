@@ -30,7 +30,7 @@ docker save $IMAGES | gzip > "$BUNDLE/images.tar.gz"
 
 echo "— 3/4: конфиги, миграции, скрипты…"
 mkdir -p "$BUNDLE/repo"
-cp -r infra scripts docs/OFFLINE-INSTALL.md "$BUNDLE/repo/" 2>/dev/null || true
+cp -r infra scripts docs/operations/OFFLINE-INSTALL.md "$BUNDLE/repo/" 2>/dev/null || true
 rm -f "$BUNDLE/repo/infra/.env.prod"   # секреты в поставку не кладём
 
 cat > "$BUNDLE/install-offline.sh" <<'EOF'

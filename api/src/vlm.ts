@@ -47,47 +47,97 @@ export async function snapshotB64(snapshotKey: string): Promise<string> {
   return Buffer.concat(chunks).toString('base64')
 }
 
-/** One vision call; trimmed single-paragraph answer or null when empty. */
-export async function ollamaVision(
-  model: string, imageB64: string, prompt: string, timeoutMs = VLM_TIMEOUT_MS,
+// Why /api/chat and not /api/generate: on the generate endpoint Ollama drops
+// `think: false` (ollama#14793), and the qwen3-vl templates carry no
+// thinking-control logic at all (ollama#14798, #12906). The model then spends
+// the whole num_predict budget reasoning and `response` comes back EMPTY —
+// the "VLM отвечает пустотой" symptom from прод. On /api/chat the top-level
+// `think` flag is honoured, reasoning (when it still happens) is separated
+// into message.thinking, and the budget below leaves room for an answer even
+// if a future template ignores the flag again.
+
+const NUM_PREDICT_ANSWER = 320  // descriptions / free-form answers
+const NUM_PREDICT_VERDICT = 192 // ДА/НЕТ — short, but must survive a stray preamble
+
+interface OllamaChatResponse {
+  message?: { content?: string; thinking?: string }
+  done_reason?: string
+  error?: string
+}
+
+const clean = (s: string): string =>
+  s.replace(/<think>[\s\S]*?<\/think>/gi, '').trim().replace(/\s+/g, ' ')
+
+/**
+ * One Ollama chat call. Returns the answer, or throws with a diagnosable
+ * reason — callers fail open and record it via bumpVlmStat, so the panel
+ * shows WHY instead of going quiet.
+ */
+async function ollamaChat(
+  model: string, prompt: string, images: string[] | undefined,
+  timeoutMs: number, numPredict: number,
 ): Promise<string | null> {
-  const res = await fetch(`${config.OLLAMA_URL}/api/generate`, {
+  const res = await fetch(`${config.OLLAMA_URL}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model,
-      prompt,
-      images: [imageB64],
+      messages: [{ role: 'user', content: prompt, ...(images ? { images } : {}) }],
       stream: false,
-      think: false, // qwen3-vl reasons by default; we want the answer only
-      options: { temperature: 0.2, num_predict: 160 },
+      think: false, // top-level: honoured here, silently dropped by /api/generate
+      options: { temperature: 0.2, num_predict: numPredict },
     }),
     signal: AbortSignal.timeout(timeoutMs),
   })
   if (!res.ok) throw new Error(`ollama: HTTP ${res.status}`)
-  const data = (await res.json()) as { response?: string }
-  const text = (data.response ?? '')
-    .replace(/<think>[\s\S]*?<\/think>/gi, '') // …and strip it if it leaks anyway
-    .trim().replace(/\s+/g, ' ')
-  return text ? text.slice(0, 800) : null
+
+  const data = (await res.json()) as OllamaChatResponse
+  if (data.error) throw new Error(`ollama: ${data.error}`)
+
+  const content = clean(data.message?.content ?? '')
+  if (content) return content.slice(0, 800)
+
+  // Template ignored `think: false`: the answer, if any, is inside the
+  // reasoning. Salvage it rather than reporting a failure — for a ДА/НЕТ
+  // verdict the reasoning almost always contains the verdict.
+  const thinking = clean(data.message?.thinking ?? '')
+  if (thinking) {
+    if (data.done_reason === 'length') {
+      throw new Error(
+        `модель ушла в размышление и не успела ответить за ${numPredict} токенов ` +
+        '(шаблон модели игнорирует think=false — обновите образ: ollama pull ' +
+        `${model})`,
+      )
+    }
+    return thinking.slice(0, 800)
+  }
+
+  throw new Error(
+    `пустой ответ модели ${model} (done_reason=${data.done_reason ?? 'нет'}); ` +
+    'проверьте, что модель скачана и поддерживает изображения',
+  )
+}
+
+/** One vision call; trimmed single-paragraph answer. */
+export async function ollamaVision(
+  model: string, imageB64: string, prompt: string, timeoutMs = VLM_TIMEOUT_MS,
+  numPredict = NUM_PREDICT_ANSWER,
+): Promise<string | null> {
+  return ollamaChat(model, prompt, [imageB64], timeoutMs, numPredict)
+}
+
+/** Vision call for a ДА/НЕТ verdict — smaller budget, same plumbing. */
+export async function ollamaVerdict(
+  model: string, imageB64: string, prompt: string, timeoutMs = VLM_TIMEOUT_MS,
+): Promise<string | null> {
+  return ollamaChat(model, prompt, [imageB64], timeoutMs, NUM_PREDICT_VERDICT)
 }
 
 /** Text-only generation — the panel's «проверить ИИ» probe. */
 export async function ollamaText(
   model: string, prompt: string, timeoutMs = VLM_TIMEOUT_MS,
 ): Promise<string | null> {
-  const res = await fetch(`${config.OLLAMA_URL}/api/generate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model, prompt, stream: false, think: false,
-      options: { temperature: 0.2, num_predict: 32 },
-    }),
-    signal: AbortSignal.timeout(timeoutMs),
-  })
-  if (!res.ok) throw new Error(`ollama: HTTP ${res.status}`)
-  const data = (await res.json()) as { response?: string }
-  const text = (data.response ?? '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim()
+  const text = await ollamaChat(model, prompt, undefined, timeoutMs, 64)
   return text ? text.slice(0, 200) : null
 }
 

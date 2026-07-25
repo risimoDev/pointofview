@@ -92,11 +92,12 @@ class IdentityManager:
         # operator hasn't overridden the thresholds, pick sane defaults for the
         # embedder in use instead of the histogram numbers (running OSNet at
         # 0.88 splits every person into a new visitor — the 288/day bug).
-        color = getattr(self.embedder, "color_based", True)
-        self._def_match = 0.88 if color else 0.70
-        self._def_staff = 0.90 if color else 0.75
+        # Each embedder carries its own defaults (histogram / osnet / dinov2)
+        # instead of a color/neural coin flip — the scales are all different.
+        self._def_match = float(getattr(self.embedder, "def_match", 0.88))
+        self._def_staff = float(getattr(self.embedder, "def_staff", 0.90))
         # surfaced in analyzer_metrics so the panel shows the right thresholds
-        self.embedder_kind = "histogram" if color else "onnx"
+        self.embedder_kind = str(getattr(self.embedder, "kind", "histogram"))
         self.def_match_threshold = self._def_match
         self.def_staff_threshold = self._def_staff
         self.face = FaceEngine(settings)

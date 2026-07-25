@@ -12,7 +12,7 @@ COMPOSE="docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.p
 set -a; source infra/.env.prod; set +a
 
 line() { printf '\n========== %s ==========\n' "$1"; }
-redis_() { $COMPOSE exec -T redis redis-cli "$@"; }
+redis_() { $COMPOSE exec -T redis sh -c 'exec $(command -v valkey-cli || command -v redis-cli) "$@"' -- "$@"; }
 
 # ---------------------------------------------------------------------------
 line "1. Face-модели в контейнере analyzer (главный подозреваемый)"

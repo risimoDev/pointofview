@@ -23,7 +23,7 @@ PG_FILE="$BACKUP_DIR/pg-$STAMP.dump"
 RDB_FILE="$BACKUP_DIR/redis-$STAMP.rdb"
 
 write_status() { # $1 = json
-  echo "$1" | $COMPOSE exec -T redis redis-cli -x SET backup:last >/dev/null 2>&1 || true
+  echo "$1" | $COMPOSE exec -T redis sh -c 'exec $(command -v valkey-cli || command -v redis-cli) "$@"' -- -x SET backup:last >/dev/null 2>&1 || true
 }
 on_error() {
   write_status "{\"ok\":false,\"ts\":$(date +%s),\"error\":\"backup failed, see /var/log/viziai-backup.log\"}"
@@ -38,7 +38,7 @@ $COMPOSE exec -T postgres pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc > "$
 PG_BYTES=$(stat -c%s "$PG_FILE")
 
 # 2. Redis: галереи re-id, эталоны сотрудников, настройки фич
-$COMPOSE exec -T redis redis-cli SAVE >/dev/null
+$COMPOSE exec -T redis sh -c 'exec $(command -v valkey-cli || command -v redis-cli) "$@"' -- SAVE >/dev/null
 $COMPOSE cp redis:/data/dump.rdb "$RDB_FILE" >/dev/null
 RDB_BYTES=$(stat -c%s "$RDB_FILE")
 

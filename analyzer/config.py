@@ -17,10 +17,28 @@ class Settings(BaseSettings):
     tenant_id: str  # this worker serves one tenant: reads cameras:{tenant_id}
 
     analyzer_device: Literal["cuda", "cpu"] = "cuda"
-    detector_kind: Literal["yolo"] = "yolo"  # main detector implementation
+    # "rfdetr" (Apache-2.0) is the target; "yolo" (ultralytics, AGPL-3.0) is
+    # kept only until the migration is verified on прод — see
+    # docs/commercial/01_LICENSE_REMEDIATION.md.
+    detector_kind: Literal["yolo", "rfdetr"] = "yolo"
     yolo_model: str = "yolov8n.pt"
     yolo_conf: float = 0.3
     yolo_imgsz: int = 640
+
+    # RF-DETR: nano/small/medium/large only (XL/2XL are licensed separately).
+    rfdetr_size: str = "small"
+    rfdetr_weights: str = ""  # empty = pretrained COCO; else a fine-tuned .pth
+
+    # Detector-neutral knobs. Default to the yolo_* values so existing .env
+    # files keep working; set these to move off the yolo-prefixed names.
+    detector_conf: float | None = None
+    detector_imgsz: int | None = None
+
+    def conf(self) -> float:
+        return self.detector_conf if self.detector_conf is not None else self.yolo_conf
+
+    def imgsz(self) -> int:
+        return self.detector_imgsz if self.detector_imgsz is not None else self.yolo_imgsz
     # ByteTrack only assigns a stable track_id after this many CONSECUTIVE
     # detections (supervision default is 1 — instant). At night, IR noise
     # (reflections, insects near the illuminator) produces single-frame

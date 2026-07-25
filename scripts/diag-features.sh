@@ -14,7 +14,7 @@ set -a; source infra/.env.prod; set +a
 
 line() { printf '\n========== %s ==========\n' "$1"; }
 psql_() { $COMPOSE exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tA -F'|' -c "$1"; }
-redis_() { $COMPOSE exec -T redis redis-cli "$@"; }
+redis_() { $COMPOSE exec -T redis sh -c 'exec $(command -v valkey-cli || command -v redis-cli) "$@"' -- "$@"; }
 
 # ---------------------------------------------------------------------------
 line "1. Миграция 0006: enum-значения в БД"

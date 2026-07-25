@@ -44,8 +44,16 @@ def make_detector(settings: Settings) -> Detector:
     so a load failure must crash loudly at startup, not degrade.
     """
     kind = settings.detector_kind
+    if kind == "rfdetr":
+        from analyzer.detect.rfdetr import RfDetrDetector
+
+        return RfDetrDetector(settings)
     if kind == "yolo":
         from analyzer.detect.yolo import YoloDetector
 
+        logger.warning(
+            "detector_kind=yolo uses ultralytics (AGPL-3.0): not licensed for "
+            "on-premise delivery. Switch to detector_kind=rfdetr."
+        )
         return YoloDetector(settings)
     raise ValueError(f"unknown detector_kind: {kind}")

@@ -65,7 +65,7 @@ class AnalyzerWorker:
         self._site_by_camera: dict[str, str] = {}
         self._tz_by_camera: dict[str, str] = {}
         self._tasks: dict[str, asyncio.Task[None]] = {}  # camera_id → consumer
-        self._infer_ms_ema = 0.0  # capacity metric (docs/CAPACITY-ANALYSIS.md, 9)
+        self._infer_ms_ema = 0.0  # capacity metric (docs/operations/CAPACITY-ANALYSIS.md, 9)
         self.zones = ZoneEngine(self.redis, settings)
         self.plugins = PluginManager(settings, self.redis, self._infer_pool)
         self.identity = IdentityManager(settings, self.redis)

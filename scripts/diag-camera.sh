@@ -61,7 +61,7 @@ echo "URL, который реально использует анализато
 
 # ---------------------------------------------------------------------------
 line "2. Heartbeat анализатора в Redis (от него зависит бейдж В СЕТИ/НЕ В СЕТИ)"
-TTL="$($COMPOSE exec -T redis redis-cli TTL "camera_alive:${CAM_ID}" 2>/dev/null | tr -d '\r')"
+TTL="$($COMPOSE exec -T redis sh -c 'exec $(command -v valkey-cli || command -v redis-cli) "$@"' -- TTL "camera_alive:${CAM_ID}" 2>/dev/null | tr -d '\r')"
 if [ "$TTL" != "-2" ] && [ -n "$TTL" ]; then
   echo "ЕСТЬ heartbeat, осталось ${TTL}с (TTL 15с, обновляется раз в 5с) — анализатор РЕАЛЬНО читает кадры."
 else
@@ -69,7 +69,7 @@ else
 fi
 
 line "3. Список камер, который видит анализатор (Redis cameras:{tenant})"
-CAMS_JSON="$($COMPOSE exec -T redis redis-cli GET "cameras:${TENANT_ID}" 2>/dev/null)"
+CAMS_JSON="$($COMPOSE exec -T redis sh -c 'exec $(command -v valkey-cli || command -v redis-cli) "$@"' -- GET "cameras:${TENANT_ID}" 2>/dev/null)"
 if echo "$CAMS_JSON" | grep -q "$CAM_ID"; then
   echo "Камера ЕСТЬ в списке — API её синхронизировал в Redis (syncCameras)."
 else

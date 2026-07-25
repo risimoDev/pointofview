@@ -62,7 +62,7 @@ const FEATURE_META: Record<string, FeatureMeta> = {
       + 'Новая личность создаётся только после нескольких качественных замеров — '
       + 'это защита от двойного счёта при мерцании трекинга и ночной ИК-съёмке. '
       + 'Пороги зависят от режима (см. плашку ниже): гистограммы ≈0.88/0.90, '
-      + 'нейросеть OSNet ≈0.70/0.75.',
+      + 'DINOv2 ≈0.82/0.86, OSNet ≈0.70/0.75.',
     fields: [
       { key: 'match_threshold', label: 'Порог совпадения (0..1)', type: 'number', def: 0.88, superOnly: true },
       { key: 'staff_threshold', label: 'Порог сотрудника (0..1)', type: 'number', def: 0.90, superOnly: true },
@@ -258,20 +258,28 @@ function ReidHealth(
   { embedder: string | undefined; defMatch: number | undefined; defStaff: number | undefined },
 ): React.JSX.Element | null {
   if (!embedder) return null
-  const onnx = embedder === 'onnx'
+  const LABELS: Record<string, string> = {
+    dinov2: 'Нейросеть DINOv2',
+    osnet: 'Нейросеть OSNet (устаревший режим)',
+    onnx: 'Нейросеть OSNet (устаревший режим)', // до обновления анализатора
+    histogram: 'Цветовые гистограммы',
+  }
+  const neural = embedder !== 'histogram'
   return (
     <div className="mt-2 rounded-md border border-border/60 bg-background/40 p-2 text-xs">
       <span className={cn('rounded-full border px-2 py-0.5',
-        onnx ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-300'
-             : 'border-zinc-500/30 bg-zinc-500/15 text-zinc-300')}>
-        {onnx ? 'Модель OSNet (нейросеть)' : 'Цветовые гистограммы'}
+        neural ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-300'
+               : 'border-zinc-500/30 bg-zinc-500/15 text-zinc-300')}>
+        {LABELS[embedder] ?? embedder}
       </span>
       <span className="ml-2 text-muted-foreground">
         Рекомендуемые пороги для этого режима: совпадение {defMatch ?? '—'},
         сотрудник {defStaff ?? '—'}.
-        {onnx
-          ? ' Если стоят 0.88/0.90 — понизьте, иначе один человек дробится на многих.'
-          : ' Для перехода на OSNet — docs/REID-OSNET.md.'}
+        {neural
+          ? ' Если стоят пороги от другого режима — приведите к рекомендуемым,'
+            + ' иначе один человек дробится на многих.'
+          : ' Гистограммы слепнут ночью — перейдите на DINOv2,'
+            + ' docs/operations/REID-DINOV2.md.'}
       </span>
     </div>
   )

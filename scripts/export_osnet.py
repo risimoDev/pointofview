@@ -12,7 +12,7 @@ one module is loaded directly.
       git clone --depth 1 https://github.com/KaiyangZhou/deep-person-reid.git /tmp/reid &&
       python scripts/export_osnet.py --repo /tmp/reid"
 
-Output: osnet_x0_25.onnx — see docs/REID-OSNET.md for deployment.
+Output: osnet_x0_25.onnx — see docs/operations/REID-OSNET.md for deployment.
 """
 
 from __future__ import annotations

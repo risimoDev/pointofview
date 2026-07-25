@@ -92,20 +92,46 @@ def export(url: str, out_path: str) -> int:
     return 0
 
 
-def import_(url: str, in_path: str) -> int:
+def inspect(in_path: str) -> int:
+    """What is actually in a dump file — keys decoded, staff highlighted."""
+    with open(in_path, encoding="utf-8") as fh:
+        items = json.load(fh)["items"]
+    by_type: dict[str, int] = {}
+    staff: list[str] = []
+    for it in items:
+        by_type[it["type"]] = by_type.get(it["type"], 0) + 1
+        name = unb64(it["key"]).decode("utf-8", "replace")
+        if "staff" in name:
+            size = len(it.get("value") or [])
+            staff.append(f"{name} ({it['type']}, {size} полей)")
+    print(f"{in_path}: {len(items)} keys, by type {by_type}")
+    print(f"staff keys: {len(staff)}")
+    for s in staff:
+        print(f"  {s}")
+    return 0
+
+
+def import_(url: str, in_path: str, force: bool) -> int:
     r = connect(url)
     with open(in_path, encoding="utf-8") as fh:
         items = json.load(fh)["items"]
 
-    existing = r.dbsize()
-    if existing:
-        print(f"refusing to import: target already holds {existing} keys "
-              "(start Valkey on an empty volume first)", file=sys.stderr)
+    # Collision check, not a dbsize check: the analyzer starts writing
+    # heartbeats (camera_alive:*) seconds after the server comes up, so a
+    # plain "target must be empty" rule blocks every realistic import window.
+    collisions = [unb64(it["key"]).decode("utf-8", "replace")
+                  for it in items if r.exists(unb64(it["key"]))]
+    if collisions and not force:
+        print(f"refusing to import: {len(collisions)} keys already exist, "
+              f"e.g. {collisions[:5]}. Re-run with --force to overwrite them.",
+              file=sys.stderr)
         return 1
 
     pipe = r.pipeline(transaction=False)
     for it in items:
         key, ktype, value = unb64(it["key"]), it["type"], it.get("value")
+        if force:
+            pipe.delete(key)  # replace, don't merge into a stale value
         if ktype == "string":
             pipe.set(key, unb64(value))
         elif ktype == "hash":
@@ -126,13 +152,18 @@ def import_(url: str, in_path: str) -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("mode", choices=("export", "import"))
+    ap.add_argument("mode", choices=("export", "import", "inspect"))
     ap.add_argument("--url", default="redis://redis:6379")
     ap.add_argument("--out", default="/data/keys.json")
     ap.add_argument("--in", dest="in_path", default="/data/keys.json")
+    ap.add_argument("--force", action="store_true",
+                    help="overwrite keys that already exist in the target")
     args = ap.parse_args()
-    return export(args.url, args.out) if args.mode == "export" \
-        else import_(args.url, args.in_path)
+    if args.mode == "export":
+        return export(args.url, args.out)
+    if args.mode == "inspect":
+        return inspect(args.in_path)
+    return import_(args.url, args.in_path, args.force)
 
 
 if __name__ == "__main__":

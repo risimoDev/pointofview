@@ -34,7 +34,11 @@ services:
     restart: unless-stopped
     command: ["valkey-server", "--appendonly", "yes"]
     volumes:
-      - redis_data:/data
+      # New volume on purpose: Redis 7.4 writes RDB v12 and Valkey 8 reads at
+      # most v11, so the old files abort startup ("Can't handle RDB format
+      # version 12"). Data moves across with scripts/redis_migrate.py; the old
+      # redis_data volume is left untouched as the rollback path.
+      - valkey_data:/data
     healthcheck:
       test: ["CMD", "valkey-cli", "ping"]
       interval: 10s
@@ -257,6 +261,7 @@ services:
 
 volumes:
   pg_data:
-  redis_data:
+  valkey_data:
+  redis_data:   # legacy Redis data, kept as the rollback path — do not prune
   yolo_cache:
   ollama_data:

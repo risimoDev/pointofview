@@ -29,7 +29,8 @@ services:
     ports:
       - "${REDIS_PORT}:6379"
     volumes:
-      - redis_data:/data
+      # separate volume — see the note in docker-compose.prod.yml
+      - valkey_data:/data
     healthcheck:
       test: ["CMD", "valkey-cli", "ping"]
       interval: 10s
@@ -91,5 +92,6 @@ services:
 
 volumes:
   pg_data:
-  redis_data:
+  valkey_data:
+  redis_data:   # legacy Redis data, kept as the rollback path
   wg_config:

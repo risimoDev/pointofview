@@ -75,7 +75,7 @@ const clean = (s: string): string =>
  */
 async function ollamaChat(
   model: string, prompt: string, images: string[] | undefined,
-  timeoutMs: number, numPredict: number,
+  timeoutMs: number, numPredict: number, salvageOnLength = false,
 ): Promise<string | null> {
   const res = await fetch(`${config.OLLAMA_URL}/api/chat`, {
     method: 'POST',
@@ -102,7 +102,10 @@ async function ollamaChat(
   // verdict the reasoning almost always contains the verdict.
   const thinking = clean(data.message?.thinking ?? '')
   if (thinking) {
-    if (data.done_reason === 'length') {
+    // A liveness probe only needs proof the model ran: truncated reasoning is
+    // still an answer. For descriptions and verdicts it is not — half a
+    // thought would land in a Telegram alert or decide an alert's fate.
+    if (data.done_reason === 'length' && !salvageOnLength) {
       throw new Error(
         `модель ушла в размышление и не успела ответить за ${numPredict} токенов ` +
         '(шаблон модели игнорирует think=false — обновите образ: ollama pull ' +
@@ -133,11 +136,17 @@ export async function ollamaVerdict(
   return ollamaChat(model, prompt, [imageB64], timeoutMs, NUM_PREDICT_VERDICT)
 }
 
-/** Text-only generation — the panel's «проверить ИИ» probe. */
+/**
+ * Text-only generation — the panel's «проверить ИИ» probe.
+ *
+ * 256 tokens, not 64: the qwen3-vl template ignores `think: false`, so even a
+ * one-word answer pays for a paragraph of reasoning first. A probe that fails
+ * on its own budget reports the model as broken while it is perfectly healthy.
+ */
 export async function ollamaText(
   model: string, prompt: string, timeoutMs = VLM_TIMEOUT_MS,
 ): Promise<string | null> {
-  const text = await ollamaChat(model, prompt, undefined, timeoutMs, 64)
+  const text = await ollamaChat(model, prompt, undefined, timeoutMs, 256, true)
   return text ? text.slice(0, 200) : null
 }
 

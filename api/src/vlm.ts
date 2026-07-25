@@ -56,8 +56,15 @@ export async function snapshotB64(snapshotKey: string): Promise<string> {
 // into message.thinking, and the budget below leaves room for an answer even
 // if a future template ignores the flag again.
 
-const NUM_PREDICT_ANSWER = 320  // descriptions / free-form answers
-const NUM_PREDICT_VERDICT = 192 // ДА/НЕТ — short, but must survive a stray preamble
+const NUM_PREDICT_ANSWER = 512  // descriptions / free-form answers
+const NUM_PREDICT_VERDICT = 256 // ДА/НЕТ — short, but must survive a stray preamble
+
+// Qwen3's own soft switch, baked in during post-training and handled by the
+// model rather than by the Ollama template. Since the qwen3-vl template
+// carries no thinking-control logic at all, the API-level `think: false` has
+// nothing to act on — but this still does. Harmless for models that never
+// reason: it is just trailing text they ignore.
+const NO_THINK = ' /no_think'
 
 interface OllamaChatResponse {
   message?: { content?: string; thinking?: string }
@@ -82,7 +89,11 @@ async function ollamaChat(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model,
-      messages: [{ role: 'user', content: prompt, ...(images ? { images } : {}) }],
+      messages: [{
+        role: 'user',
+        content: prompt + NO_THINK,
+        ...(images ? { images } : {}),
+      }],
       stream: false,
       think: false, // top-level: honoured here, silently dropped by /api/generate
       options: { temperature: 0.2, num_predict: numPredict },
@@ -107,9 +118,10 @@ async function ollamaChat(
     // thought would land in a Telegram alert or decide an alert's fate.
     if (data.done_reason === 'length' && !salvageOnLength) {
       throw new Error(
-        `модель ушла в размышление и не успела ответить за ${numPredict} токенов ` +
-        '(шаблон модели игнорирует think=false — обновите образ: ollama pull ' +
-        `${model})`,
+        `модель ${model} ушла в размышление и не уложилась в ${numPredict} токенов. ` +
+        'Шаблон игнорирует и think=false, и /no_think. Попробуйте обновить образ ' +
+        `(ollama pull ${model}); если не поможет — смените модель в настройках ` +
+        'функции на нерассуждающую, например qwen2.5vl:3b',
       )
     }
     return thinking.slice(0, 800)

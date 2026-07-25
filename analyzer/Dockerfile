@@ -44,12 +44,24 @@ RUN python -m pip install --upgrade pip && \
 # Without the tag the installed CUDA wheel satisfies the requirement and pip
 # leaves it alone. The check afterwards tests the property that actually
 # matters — that this is still a CUDA build — not a version string.
+#
+# requirements.txt is passed as a constraint too, so rfdetr cannot quietly
+# move numpy/opencv/pydantic and break the rest of the analyzer. If it ever
+# becomes incompatible with those pins the BUILD fails and we choose
+# deliberately, instead of finding out from a crash loop on прод.
+#
+# transformers<5: rfdetr 1.3 imports helpers from transformers.pytorch_utils
+# that were removed in transformers 5 (ImportError on
+# find_pruneable_heads_and_indices). Known upstream issue, upper bound is the
+# documented workaround.
 ARG WITH_RFDETR=1
 RUN if [ "$WITH_RFDETR" = "1" ]; then \
       python -c "import torch, torchvision; print('torch==' + torch.__version__.split('+')[0]); print('torchvision==' + torchvision.__version__.split('+')[0])" > /tmp/pins.txt && \
+      echo "transformers<5" >> /tmp/pins.txt && \
       cat /tmp/pins.txt && \
-      python -m pip install -c /tmp/pins.txt rfdetr==1.3.* \
+      python -m pip install -c requirements.txt -c /tmp/pins.txt rfdetr==1.3.* \
           --extra-index-url "https://download.pytorch.org/whl/${TORCH_VARIANT}" && \
+      python -c "from rfdetr import RFDETRSmall; print('rfdetr imports ok')" && \
       if [ "$TORCH_VARIANT" != "cpu" ]; then \
         python -c "import torch, sys; sys.exit('FATAL: the rfdetr install replaced torch with a CPU build') if torch.version.cuda is None else print('torch ok:', torch.__version__, 'cuda', torch.version.cuda)" ; \
       fi ; \

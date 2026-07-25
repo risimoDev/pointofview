@@ -203,6 +203,13 @@ services:
       REDIS_URL: redis://redis:6379
       TENANT_ID: ${TENANT_ID}
       ANALYZER_DEVICE: cuda
+      # detector: yolo (ultralytics, AGPL — legacy) | rfdetr (Apache-2.0).
+      # RF-DETR requires DETECTOR_IMGSZ divisible by 56 (e.g. 672); leave the
+      # variable empty to keep the YOLO value.
+      DETECTOR_KIND: ${DETECTOR_KIND:-yolo}
+      DETECTOR_IMGSZ: ${DETECTOR_IMGSZ:-}
+      RFDETR_SIZE: ${RFDETR_SIZE:-small}
+      RFDETR_WEIGHTS: ${RFDETR_WEIGHTS:-}
       YOLO_MODEL: ${YOLO_MODEL}
       DEFAULT_FRAME_SKIP: ${DEFAULT_FRAME_SKIP}
       INTERNAL_API_URL: http://api:3000
@@ -210,6 +217,10 @@ services:
       # optional OSNet ONNX for re-id (e.g. /models/osnet_x0_25.onnx);
       # empty → HSV-histogram fallback. See docs/operations/REID-OSNET.md
       REID_ONNX: ${REID_ONNX:-}
+      # osnet (legacy weights, no usable licence) | dinov2 (Apache-2.0).
+      # Must match the file in REID_ONNX — the profiles use different
+      # thresholds. See docs/operations/REID-DINOV2.md
+      REID_ONNX_KIND: ${REID_ONNX_KIND:-osnet}
     volumes:
       - yolo_cache:/root/.cache
       # test/file-source videos: a `file` camera with url /data/<name>.mp4

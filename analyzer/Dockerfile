@@ -30,6 +30,34 @@ RUN python -m pip install --upgrade pip && \
     python -m pip install torch --index-url "https://download.pytorch.org/whl/${TORCH_VARIANT}" && \
     python -m pip install -r requirements.txt
 
+# RF-DETR (Apache-2.0) — the licence-clean detector. Installed separately and
+# defensively: it declares its own torch/torchvision requirement, and a plain
+# `pip install` resolves that against PyPI, which would silently replace the
+# CUDA wheel above with a CPU build. The constraint pins the exact torch
+# already present, and the extra index makes any companion package (e.g.
+# torchvision) come from the CUDA channel too.
+ARG WITH_RFDETR=1
+RUN if [ "$WITH_RFDETR" = "1" ]; then \
+      python -c "import torch; print('torch==' + torch.__version__)" > /tmp/torch.txt && \
+      cat /tmp/torch.txt && \
+      python -m pip install -c /tmp/torch.txt rfdetr==1.3.* \
+          --extra-index-url "https://download.pytorch.org/whl/${TORCH_VARIANT}" && \
+      python -c "import torch; assert torch.__version__ == open('/tmp/torch.txt').read().strip().split('==')[1], 'torch was replaced by the rfdetr install'; print('torch intact:', torch.__version__)" ; \
+    fi
+
+# Bake the RF-DETR checkpoint into the image so a first start needs no
+# internet. The package downloads on first construction; whatever file that
+# produces is copied to a stable path. Non-fatal: without it the first start
+# downloads once (and the /root/.cache volume then keeps it).
+RUN if [ "$WITH_RFDETR" = "1" ]; then \
+      mkdir -p /opt/models && \
+      (python -c "from rfdetr import RFDETRSmall; RFDETRSmall()" >/dev/null 2>&1 || true) && \
+      W="$(find / -xdev -iname '*rf*detr*.pth' 2>/dev/null | head -1)" && \
+      if [ -n "$W" ]; then cp "$W" /opt/models/rfdetr_small.pth && \
+          echo "RF-DETR weights baked from $W"; \
+      else echo "WARN: RF-DETR weights not baked — first start needs internet"; fi ; \
+    fi
+
 # staff face-id models (YuNet + SFace, ~40MB total). media.githubusercontent
 # resolves git-lfs binaries. Failure only disables face-id at runtime.
 RUN mkdir -p /opt/models && \

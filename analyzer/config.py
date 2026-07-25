@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -33,6 +33,14 @@ class Settings(BaseSettings):
     # files keep working; set these to move off the yolo-prefixed names.
     detector_conf: float | None = None
     detector_imgsz: int | None = None
+
+    # docker-compose passes unset variables as an empty string (`${X:-}`),
+    # which would otherwise fail int/float parsing and take the worker down
+    # on startup. Treat empty as "not configured".
+    @field_validator("detector_conf", "detector_imgsz", mode="before")
+    @classmethod
+    def _blank_is_none(cls, v: object) -> object:
+        return None if isinstance(v, str) and not v.strip() else v
 
     def conf(self) -> float:
         return self.detector_conf if self.detector_conf is not None else self.yolo_conf

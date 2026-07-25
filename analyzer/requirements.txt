@@ -1,17 +1,9 @@
 # torch installed separately in Dockerfile (CUDA vs CPU wheel index)
 
-# Main detector (Apache-2.0), Nano/Small/Medium/Large only — XL/2XL ship under
-# a separate licence. See docs/commercial/01_LICENSE_REMEDIATION.md.
-#
-# DELIBERATELY NOT INSTALLED YET. `import rfdetr` in analyzer/detect/rfdetr.py
-# is lazy, so the adapter sits inert while DETECTOR_KIND=yolo, and enabling it
-# early would only add risk: rfdetr declares its own torch requirement, and
-# `pip install` resolves it against the DEFAULT index — which can replace the
-# CUDA wheel installed above with a CPU build and silently kill GPU inference.
-# Enable together with the detector switch, and verify torch afterwards:
-#   docker compose ... exec analyzer python -c \
-#     "import torch; print(torch.__version__, torch.cuda.is_available())"
-# rfdetr==1.3.*
+# NOTE: rfdetr (the main detector, Apache-2.0) is NOT listed here on purpose.
+# It is installed by the Dockerfile after torch, under a version constraint
+# that keeps the CUDA wheel from being replaced by a CPU build. Listing it in
+# this file would let pip resolve torch freely and break GPU inference.
 
 # LEGACY, AGPL-3.0 — being removed. Still imported by plugins/pose.py and
 # plugins/ppe.py; drop this line once both are migrated off ultralytics, and

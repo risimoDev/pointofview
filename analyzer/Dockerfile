@@ -26,23 +26,33 @@ RUN ln -sf "$(command -v python3.12 || command -v python3)" /usr/local/bin/pytho
 
 WORKDIR /app
 COPY requirements.txt .
+# torchvision is installed here, from the CUDA channel, even though nothing in
+# requirements.txt needs it: rfdetr does, and letting pip pull it later from
+# PyPI would drag a CPU-built torch along with it.
 RUN python -m pip install --upgrade pip && \
-    python -m pip install torch --index-url "https://download.pytorch.org/whl/${TORCH_VARIANT}" && \
+    python -m pip install torch torchvision --index-url "https://download.pytorch.org/whl/${TORCH_VARIANT}" && \
     python -m pip install -r requirements.txt
 
 # RF-DETR (Apache-2.0) — the licence-clean detector. Installed separately and
 # defensively: it declares its own torch/torchvision requirement, and a plain
 # `pip install` resolves that against PyPI, which would silently replace the
-# CUDA wheel above with a CPU build. The constraint pins the exact torch
-# already present, and the extra index makes any companion package (e.g.
-# torchvision) come from the CUDA channel too.
+# CUDA wheels above with CPU builds.
+#
+# The constraint file carries PUBLIC versions only (torch==2.13.0, not
+# 2.13.0+cu130): a local version tag is resolvable only from the index that
+# hosts that exact build, so pinning it makes the install unsatisfiable.
+# Without the tag the installed CUDA wheel satisfies the requirement and pip
+# leaves it alone. The check afterwards tests the property that actually
+# matters — that this is still a CUDA build — not a version string.
 ARG WITH_RFDETR=1
 RUN if [ "$WITH_RFDETR" = "1" ]; then \
-      python -c "import torch; print('torch==' + torch.__version__)" > /tmp/torch.txt && \
-      cat /tmp/torch.txt && \
-      python -m pip install -c /tmp/torch.txt rfdetr==1.3.* \
+      python -c "import torch, torchvision; print('torch==' + torch.__version__.split('+')[0]); print('torchvision==' + torchvision.__version__.split('+')[0])" > /tmp/pins.txt && \
+      cat /tmp/pins.txt && \
+      python -m pip install -c /tmp/pins.txt rfdetr==1.3.* \
           --extra-index-url "https://download.pytorch.org/whl/${TORCH_VARIANT}" && \
-      python -c "import torch; assert torch.__version__ == open('/tmp/torch.txt').read().strip().split('==')[1], 'torch was replaced by the rfdetr install'; print('torch intact:', torch.__version__)" ; \
+      if [ "$TORCH_VARIANT" != "cpu" ]; then \
+        python -c "import torch, sys; sys.exit('FATAL: the rfdetr install replaced torch with a CPU build') if torch.version.cuda is None else print('torch ok:', torch.__version__, 'cuda', torch.version.cuda)" ; \
+      fi ; \
     fi
 
 # Bake the RF-DETR checkpoint into the image so a first start needs no

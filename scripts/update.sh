@@ -51,7 +51,7 @@ git log -1 --oneline
 
 # 2. build app images --------------------------------------------------------
 APP_SVCS=""
-for svc in api web analyzer worker-clips worker-alerts; do
+for svc in api web analyzer worker-clips worker-alerts worker-ai; do
   has "$svc" && APP_SVCS="$APP_SVCS $svc"
 done
 info "Building:$APP_SVCS"
@@ -72,7 +72,7 @@ info "Restarting api"
 $COMPOSE up -d --no-deps api
 wait_api || exit 1
 
-for svc in worker-clips worker-alerts web analyzer; do
+for svc in worker-clips worker-alerts worker-ai web analyzer; do
   if has "$svc"; then
     info "Restarting $svc"
     $COMPOSE up -d --no-deps "$svc"

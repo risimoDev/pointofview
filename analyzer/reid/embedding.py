@@ -111,7 +111,11 @@ def make_embedder() -> HistogramEmbedder | OnnxEmbedder:
     thresholds differ almost twofold between backends.
     """
     path = os.environ.get("REID_ONNX", "")
-    kind = os.environ.get("REID_ONNX_KIND", "dinov2").strip().lower()
+    # Default is osnet, not dinov2: an existing install already has REID_ONNX
+    # pointing at an OSNet file, and flipping its profile on a routine rebuild
+    # would quietly move the recommended thresholds. Switching is an explicit
+    # act — set REID_ONNX_KIND=dinov2 together with the new model file.
+    kind = os.environ.get("REID_ONNX_KIND", "osnet").strip().lower()
     if kind not in _ONNX_PROFILES:
         logger.error("REID_ONNX_KIND=%s unknown, expected one of %s — using dinov2",
                      kind, sorted(_ONNX_PROFILES))

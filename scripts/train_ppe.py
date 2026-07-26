@@ -165,9 +165,8 @@ def evaluate(weights: str, root: Path, size: str, resolution: int,
     the two classes the product actually uses, at the confidence the analyzer
     actually runs at, so the number means what the operator will see.
     """
-    import numpy as np
+    import cv2
     import rfdetr
-    from PIL import Image
 
     coco = load_coco(root / "valid")
     mapped, _ = classify_names(coco.get("categories", []))
@@ -196,7 +195,10 @@ def evaluate(weights: str, root: Path, size: str, resolution: int,
         path = root / "valid" / str(img["file_name"])
         if not path.is_file():
             continue
-        frame = np.asarray(Image.open(path).convert("RGB"))
+        bgr = cv2.imread(str(path))
+        if bgr is None:
+            continue
+        frame = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
         res = model.predict(frame, threshold=conf)
         preds: list[tuple[str, tuple[float, float, float, float]]] = []
         xyxy = getattr(res, "xyxy", None)

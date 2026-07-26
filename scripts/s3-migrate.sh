@@ -70,7 +70,14 @@ for b in "${BUCKETS[@]}"; do
   s="$(count "src:$b")"; d="$(count "dst:$b")"
   s="${s:-0}"; d="${d:-0}"
   if [[ "$s" == "$d" ]]; then
-    info "  $b: $s = $d"
+    # 0 = 0 is a match but proves nothing: it also happens when the source
+    # cannot be read at all. clips may legitimately be empty (the recorder is
+    # off until the archive disk is installed); snapshots must not be.
+    if [[ "$s" -eq 0 ]]; then
+      warn "  $b: обе стороны пусты — ничего не скопировано, убедитесь что это ожидаемо"
+    else
+      info "  $b: $s = $d"
+    fi
   else
     err "  $b: MinIO $s, SeaweedFS $d — расхождение"
     FAIL=1

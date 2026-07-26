@@ -42,20 +42,6 @@ const FEATURE_META: Record<string, FeatureMeta> = {
       { key: 'interval_seconds', label: 'Интервал записи метрики, сек', type: 'number', def: 60 },
     ],
   },
-  repack: {
-    label: 'Перепаковка на стойке',
-    fields: [
-      { key: 'min_seconds', label: 'Мин. время на стойке, сек', type: 'number', def: 8 },
-      { key: 'require_second_person', label: 'Требовать второго человека', type: 'bool', def: false },
-    ],
-  },
-  shelf: {
-    label: 'Полки / ячейки',
-    fields: [
-      { key: 'change_threshold', label: 'Порог изменения (0..1)', type: 'number', def: 0.1 },
-      { key: 'settle_seconds', label: 'Стабилизация, сек', type: 'number', def: 2 },
-    ],
-  },
   reid: {
     label: 'Сквозная идентификация',
     note: 'Один человек на всех камерах точки. Сотрудники отмечаются на странице «Люди». '
@@ -74,7 +60,6 @@ const FEATURE_META: Record<string, FeatureMeta> = {
       { key: 'min_saturation', label: 'Мин. цветность кадра (0-255)', type: 'number', def: 25, superOnly: true },
     ],
   },
-  queue: { label: 'Очередь', note: 'Порог времени нахождения задаётся в настройках зоны.', fields: [] },
   ppe: {
     label: 'Средства защиты (СИЗ)',
     note: 'Каски и жилеты в зонах «Зона СИЗ». Нужен файл модели на сервере '

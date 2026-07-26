@@ -67,6 +67,16 @@ RUN if [ "$WITH_RFDETR" = "1" ]; then \
       fi ; \
     fi
 
+# rtmlib (Apache-2.0): RTMO pose behind pure ONNX Runtime — no mmcv, no extra
+# torch. Same discipline as rfdetr: constrained by requirements.txt so it
+# cannot move numpy/opencv, and the import is exercised HERE so a broken
+# dependency fails the build instead of the analyzer on прод.
+ARG WITH_RTMO=1
+RUN if [ "$WITH_RTMO" = "1" ]; then \
+      python -m pip install -c requirements.txt rtmlib==0.0.* && \
+      python -c "from rtmlib import RTMO; print('rtmlib imports ok')" ; \
+    fi
+
 # Bake the RF-DETR checkpoint into the image so a first start needs no
 # internet. The package downloads on first construction; whatever file that
 # produces is copied to a stable path. Non-fatal: without it the first start

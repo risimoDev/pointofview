@@ -67,8 +67,18 @@ class Settings(BaseSettings):
     # (${DATA_ROOT}/models); pose falls back to an ultralytics model name
     # (auto-download) for dev. Missing file = plugin reports "model missing"
     # and stays inactive — never kills the worker.
+    # PPE: "rfdetr" needs a checkpoint retrained with rfdetr — an ultralytics
+    # .pt cannot be loaded by it. Until pilot data produces one, "yolo" is the
+    # only working backend, and it is why ultralytics is still in the image.
+    ppe_backend: Literal["yolo", "rfdetr"] = "yolo"
     ppe_model: str = "/models/ppe.pt"
-    pose_model: str = "yolov8n-pose.pt"
+
+    # Pose backend: "rtmo" (rtmlib, Apache-2.0) is the target, "yolo"
+    # (ultralytics, AGPL-3.0) is legacy and blocks on-premise delivery.
+    pose_backend: Literal["yolo", "rtmo"] = "yolo"
+    pose_model: str = "yolov8n-pose.pt"          # yolo backend
+    rtmo_model: str = "/models/rtmo.onnx"        # rtmo backend, operator-supplied
+    rtmo_input: int = 640
 
     default_frame_skip: int = 0
     max_backoff_seconds: float = 60.0

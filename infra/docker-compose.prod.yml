@@ -64,6 +64,41 @@ services:
       timeout: 5s
       retries: 5
 
+  # S3 storage, replacing MinIO: the MinIO community repository was archived in
+  # Feb 2026 (no security patches) and it is AGPL-3.0, which blocks on-premise
+  # delivery. SeaweedFS is Apache-2.0 and actively maintained.
+  # See docs/commercial/01_LICENSE_REMEDIATION.md (decision 5) and
+  # docs/operations/S3-SEAWEEDFS.md for the cutover.
+  #
+  # Runs alongside MinIO on a separate host port until the data is copied and
+  # verified; the switch is then MINIO_ENDPOINT + the 9000 port mapping.
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.40
+    restart: unless-stopped
+    environment:
+      ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      SECRET_KEY: ${MINIO_SECRET_KEY}
+    # The S3 identity file is written at start from the env so credentials
+    # stay in .env.prod and never land in git.
+    entrypoint:
+      - sh
+      - -c
+      - |
+        mkdir -p /etc/seaweedfs
+        cat > /etc/seaweedfs/s3.json <<EOF
+        {"identities":[{"name":"viziai","credentials":[{"accessKey":"$${ACCESS_KEY}","secretKey":"$${SECRET_KEY}"}],"actions":["Admin","Read","Write","List","Tagging"]}]}
+        EOF
+        exec weed server -dir=/data -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json -master.volumeSizeLimitMB=1024
+    ports:
+      - "${SEAWEEDFS_PORT:-9002}:8333"
+    volumes:
+      - ${DATA_ROOT}/seaweedfs:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8333/status"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
   go2rtc:
     image: alexxit/go2rtc:latest
     restart: unless-stopped
@@ -211,6 +246,10 @@ services:
       RFDETR_SIZE: ${RFDETR_SIZE:-small}
       RFDETR_WEIGHTS: ${RFDETR_WEIGHTS:-}
       YOLO_MODEL: ${YOLO_MODEL}
+      # pose: rtmo (rtmlib, Apache-2.0) | yolo (ultralytics, AGPL — legacy).
+      # rtmo needs the ONNX file in ${DATA_ROOT}/models — docs/operations/POSE-RTMO.md
+      POSE_BACKEND: ${POSE_BACKEND:-yolo}
+      RTMO_MODEL: ${RTMO_MODEL:-/models/rtmo.onnx}
       DEFAULT_FRAME_SKIP: ${DEFAULT_FRAME_SKIP}
       INTERNAL_API_URL: http://api:3000
       INTERNAL_TOKEN: ${INTERNAL_TOKEN}

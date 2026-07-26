@@ -8,12 +8,11 @@ import { getFeatures, setFeature, type Feature } from '@/lib/api'
 // Catalog of toggleable plugins. `feature` must match analyzer FeaturePlugin.feature_id
 // and the DB feature_kind enum. `dev: true` — планируемая функция: карточка видна,
 // но переключатель заблокирован, пока нет реализации в analyzer.
+// Розничные функции (repack/shelf/queue) убраны 2026-07-26: целевой рынок —
+// производство. Значения enum в БД оставлены намеренно, см. PLAN.md.
 const CATALOG: { feature: string; title: string; hint: string; dev?: boolean }[] = [
   { feature: 'crowd', title: 'Скопление людей', hint: 'Событие при превышении числа людей в кадре или зоне' },
   { feature: 'counter', title: 'Подсчёт посетителей', hint: 'Занятость и трафик по зонам-счётчикам' },
-  { feature: 'repack', title: 'Перепаковка', hint: 'Обслуживание на стойке по времени нахождения в зоне выдачи' },
-  { feature: 'queue', title: 'Очередь', hint: 'Оповещение по времени ожидания в зоне очереди' },
-  { feature: 'shelf', title: 'Полки', hint: 'Нарушения на полках и в ячейках выдачи' },
   { feature: 'reid', title: 'Сквозная идентификация', hint: 'Один человек на всех камерах точки считается один раз; сотрудники (страница «Люди») не считаются посетителями и не вызывают оповещений' },
   { feature: 'ppe', title: 'Средства защиты (СИЗ)', hint: 'Каска и жилет для производств и складов', dev: true },
   { feature: 'face_id', title: 'Распознавание лиц', hint: 'Неизвестные лица, чёрные списки. Внимание: 152-ФЗ', dev: true },

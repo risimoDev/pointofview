@@ -3,20 +3,20 @@ from __future__ import annotations
 import asyncio
 import logging
 import math
-import os
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Any
 
 from analyzer.config import Settings
 from analyzer.plugins.base import BasePlugin, FrameContext, TrackInfo
+from analyzer.pose.base import (
+    L_ANKLE, L_HIP, L_KNEE, L_SHOULDER, PoseDetection, R_ANKLE, R_HIP, R_KNEE,
+    R_SHOULDER, make_pose_estimator,
+)
 from analyzer.zones.engine import Event
 
 logger = logging.getLogger(__name__)
 
-# COCO-17 keypoint indices used by the fall heuristic
-_L_SHOULDER, _R_SHOULDER, _L_HIP, _R_HIP = 5, 6, 11, 12
-_L_KNEE, _R_KNEE, _L_ANKLE, _R_ANKLE = 13, 14, 15, 16
 _KP_MIN_CONF = 0.3
 
 
@@ -40,7 +40,8 @@ class _DownState:
 
 
 class PosePlugin(BasePlugin):
-    """Fall detection via pose estimation (yolov8-pose, ready-made model).
+    """Fall detection via pose estimation; the backend is replaceable
+    (analyzer/pose/: rtmo = Apache-2.0, yolo = legacy ultralytics).
 
     "Down" is judged on the WHOLE body axis (mid-shoulders → mid-ankles, knees
     or hips as fallback), not on the torso alone: bending over a parcel and
@@ -51,7 +52,8 @@ class PosePlugin(BasePlugin):
     a bend does not.
 
     config:
-      model                  str    weights (default Settings.pose_model)
+      backend                str    rtmo | yolo (default Settings.pose_backend)
+      model                  str    weights path (default per backend)
       zone_ids               list   restrict to zones (default: whole frame)
       fall_angle_deg         float  65 — body axis angle from vertical
       aspect_ratio           float  1.4 — bbox w/h fallback threshold
@@ -78,34 +80,12 @@ class PosePlugin(BasePlugin):
 
     # ── lifecycle ─────────────────────────────────────────────
     async def setup(self, cfg: dict[str, Any]) -> None:
-        # Resolution order (rule 10.4: degrade, don't die):
-        #   1. explicit config.model — must exist, no silent fallback
-        #   2. Settings.pose_model (image-baked /opt/models copy)
-        #   3. /models mount (drop the file there — no rebuild needed)
-        #   4. bare ultralytics name → runtime auto-download (needs internet)
-        def is_path(p: str) -> bool:
-            return os.sep in p or "/" in p
-
-        override = cfg.get("model")
-        if override:
-            path = str(override)
-            if is_path(path) and not os.path.isfile(path):
-                raise FileNotFoundError(f"pose model not found: {path}")
-        else:
-            path = next(
-                (c for c in (self.settings.pose_model, "/models/yolov8n-pose.pt")
-                 if not is_path(c) or os.path.isfile(c)),
-                "yolov8n-pose.pt",
-            )
-        from ultralytics import YOLO
-
-        model = YOLO(path)  # bare name may auto-download; failure → error status
-        model.to(self.settings.analyzer_device)
-        self._model = model
-        self.model_version = f"pose:{os.path.basename(path)}"
-        logger.info("pose: model %s", path)
+        self._model = make_pose_estimator(self.settings, cfg)
+        self.model_version = self._model.model_version
 
     async def teardown(self) -> None:
+        if self._model is not None:
+            self._model.close()
         self._model = None
         self._down.clear()
         self._last_infer.clear()
@@ -118,39 +98,23 @@ class PosePlugin(BasePlugin):
             pass
 
     # ── inference (runs on the shared GPU thread) ─────────────
-    def _predict(self, frame: Any) -> list[dict[str, Any]]:
-        result = self._model.predict(
-            frame,
-            conf=float(self._cfg.get("min_confidence", 0.4)),
-            imgsz=self.settings.yolo_imgsz,
-            device=self.settings.analyzer_device,
-            verbose=False,
-        )[0]
-        boxes = result.boxes
-        kps = result.keypoints
-        if boxes is None or len(boxes) == 0:
-            return []
-        xyxy = boxes.xyxy.cpu().numpy()
-        kp_xy = kps.xy.cpu().numpy() if kps is not None else None
-        kp_conf = (
-            kps.conf.cpu().numpy()
-            if kps is not None and kps.conf is not None else None
+    def _predict(self, frame: Any) -> list[PoseDetection]:
+        return self._model.predict(
+            frame, float(self._cfg.get("min_confidence", 0.4)),
         )
-        out = []
-        for i in range(len(xyxy)):
-            out.append({
-                "bbox": tuple(float(v) for v in xyxy[i]),
-                "kp_xy": kp_xy[i] if kp_xy is not None else None,
-                "kp_conf": kp_conf[i] if kp_conf is not None else None,
-            })
-        return out
 
     # ── fall heuristic ────────────────────────────────────────
-    def _is_down(self, det: dict[str, Any]) -> tuple[bool, dict[str, Any]]:
-        x1, y1, x2, y2 = det["bbox"]
+    def _is_down(
+        self, det: PoseDetection, track_bbox: tuple[float, float, float, float],
+    ) -> tuple[bool, dict[str, Any]]:
+        # Aspect comes from the TRACK box, not the pose box: RTMO returns no
+        # person box and a keypoint-derived one hugs the skeleton, which would
+        # silently shift min_aspect_down. The track box has the same meaning on
+        # every backend.
+        x1, y1, x2, y2 = track_bbox
         h = max(1.0, y2 - y1)
         ratio = (x2 - x1) / h
-        kp_xy, kp_conf = det["kp_xy"], det["kp_conf"]
+        kp_xy, kp_conf = det.kp_xy, det.kp_conf
         if kp_xy is not None and kp_conf is not None:
             def _mid(*idx: int) -> tuple[float, float] | None:
                 pts = [kp_xy[k] for k in idx if float(kp_conf[k]) >= _KP_MIN_CONF]
@@ -161,13 +125,13 @@ class PosePlugin(BasePlugin):
                     sum(float(p[1]) for p in pts) / len(pts),
                 )
 
-            top = _mid(_L_SHOULDER, _R_SHOULDER)
+            top = _mid(L_SHOULDER, R_SHOULDER)
             # legs first: bending over keeps the feet under the body, so the
             # shoulders→ankles axis stays vertical while the torso is horizontal
-            bottom = _mid(_L_ANKLE, _R_ANKLE) or _mid(_L_KNEE, _R_KNEE)
+            bottom = _mid(L_ANKLE, R_ANKLE) or _mid(L_KNEE, R_KNEE)
             method = "body"
             if bottom is None:
-                bottom = _mid(_L_HIP, _R_HIP)
+                bottom = _mid(L_HIP, R_HIP)
                 method = "torso"
             if top and bottom:
                 dx = bottom[0] - top[0]
@@ -225,7 +189,7 @@ class PosePlugin(BasePlugin):
                 continue
             ident = track.identity_key()
             matched.add(ident)
-            down, details = self._is_down(det)
+            down, details = self._is_down(det, track.bbox)
             st = self._down.setdefault(ident, _DownState())
             st.last_seen = now
             if not down:
@@ -265,10 +229,10 @@ class PosePlugin(BasePlugin):
         return events
 
     @staticmethod
-    def _match(track: TrackInfo, detections: list[dict[str, Any]]) -> dict[str, Any] | None:
+    def _match(track: TrackInfo, detections: list[PoseDetection]) -> PoseDetection | None:
         best, best_iou = None, 0.3  # minimum overlap to trust the association
         for det in detections:
-            iou = _iou(track.bbox, det["bbox"])
+            iou = _iou(track.bbox, det.bbox)
             if iou > best_iou:
                 best, best_iou = det, iou
         return best

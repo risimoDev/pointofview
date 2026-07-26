@@ -15,8 +15,6 @@ from analyzer.plugins.crowd import CrowdPlugin
 from analyzer.plugins.heatmap import HeatmapPlugin
 from analyzer.plugins.ppe import PpePlugin
 from analyzer.plugins.pose import PosePlugin
-from analyzer.plugins.repack import RepackPlugin
-from analyzer.plugins.shelf import ShelfPlugin
 from analyzer.plugins.tamper import TamperPlugin
 from analyzer.zones.engine import Event
 
@@ -68,11 +66,14 @@ class PluginManager:
     ) -> None:
         self.settings = settings
         self.redis = redis
+        # Retail-only plugins (repack, shelf) were unregistered 2026-07-26:
+        # the target market is production. Their modules and the feature_kind /
+        # event_type enum values stay in place — the enum values cannot be
+        # removed from PostgreSQL without losing existing rows, and an
+        # unregistered plugin simply never runs. See PLAN.md.
         self._all: list[FeaturePlugin] = [
             CrowdPlugin(settings),
             CounterPlugin(settings, redis),
-            RepackPlugin(settings),
-            ShelfPlugin(settings),
             PpePlugin(settings, gpu_pool),
             PosePlugin(settings, gpu_pool),
             TamperPlugin(settings),

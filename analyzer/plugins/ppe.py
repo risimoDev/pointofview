@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from analyzer.config import Settings
+from analyzer.detect.auxiliary import make_aux_detector
 from analyzer.plugins.base import BasePlugin, FrameContext, TrackInfo
 from analyzer.zones.engine import Event
 
@@ -43,6 +44,7 @@ class PpePlugin(BasePlugin):
     size thresholds, per-identity cooldown.
 
     config:
+      backend               str    rfdetr | yolo (default Settings.ppe_backend)
       model                 str    weights path (default Settings.ppe_model)
       required              list   default required items (zone.config.required wins)
       grace_seconds         float  5 — time to put the helmet on after entering
@@ -69,17 +71,11 @@ class PpePlugin(BasePlugin):
 
     # ── lifecycle ─────────────────────────────────────────────
     async def setup(self, cfg: dict[str, Any]) -> None:
-        path = str(cfg.get("model") or self.settings.ppe_model)
-        if not os.path.isfile(path):
-            raise FileNotFoundError(
-                f"PPE model not found: {path} — put trained weights into the /models mount"
-            )
-        from ultralytics import YOLO  # deferred: only pay when the feature is on
-
-        model = YOLO(path)
-        model.to(self.settings.analyzer_device)
+        model = make_aux_detector(
+            self.settings, cfg, self.settings.ppe_model, self.settings.ppe_backend,
+        )
         class_map: dict[int, str] = {}
-        names = getattr(model, "names", None) or {}
+        names = model.class_names
         for cid, raw_name in names.items():
             name = str(raw_name).lower()
             if name.startswith(("no-", "no_", "no ")):
@@ -94,15 +90,17 @@ class PpePlugin(BasePlugin):
                     class_map[int(cid)] = item
         if not class_map:
             raise ValueError(
-                f"PPE model {path}: no helmet/vest classes recognized in {names} — "
-                "set config.class_map"
+                f"PPE model {model.model_version}: no helmet/vest classes "
+                f"recognized in {names} — set config.class_map"
             )
         self._model = model
         self._class_map = class_map
-        self.model_version = f"ppe:{os.path.basename(path)}"
-        logger.info("ppe: model %s, classes %s", path, class_map)
+        self.model_version = f"ppe:{model.model_version}"
+        logger.info("ppe: %s, classes %s", model.model_version, class_map)
 
     async def teardown(self) -> None:
+        if self._model is not None:
+            self._model.close()
         self._model = None
         self._class_map = {}
         self._state.clear()
@@ -117,24 +115,14 @@ class PpePlugin(BasePlugin):
 
     # ── inference (runs on the shared GPU thread) ─────────────
     def _predict(self, frame: Any) -> list[tuple[str, tuple[float, float, float, float], float]]:
-        result = self._model.predict(
-            frame,
-            conf=float(self._cfg.get("min_confidence", 0.6)),
-            imgsz=self.settings.yolo_imgsz,
-            device=self.settings.analyzer_device,
-            verbose=False,
-        )[0]
-        boxes = result.boxes
-        if boxes is None or len(boxes) == 0:
-            return []
+        dets = self._model.predict(
+            frame, float(self._cfg.get("min_confidence", 0.6)),
+        )
         out = []
-        xyxy = boxes.xyxy.cpu().numpy()
-        conf = boxes.conf.cpu().numpy()
-        cls = boxes.cls.cpu().numpy()
-        for x, c, k in zip(xyxy, conf, cls):
-            item = self._class_map.get(int(k))
+        for d in dets:
+            item = self._class_map.get(d.class_id)
             if item:
-                out.append((item, (float(x[0]), float(x[1]), float(x[2]), float(x[3])), float(c)))
+                out.append((item, d.bbox, d.confidence))
         return out
 
     # ── geometry: assign PPE detections to a person ───────────

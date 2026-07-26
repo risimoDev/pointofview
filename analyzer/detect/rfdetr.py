@@ -35,6 +35,14 @@ _CANONICAL = {name: idx for idx, name in enumerate(COCO80)}
 _SIZES = ("nano", "small", "medium", "large")
 RESOLUTION_STEP = 56  # RF-DETR requires input resolution divisible by 56
 
+# DETR-family scores are calibrated differently from YOLO's: the model emits
+# hundreds of query proposals per frame, and YOLO's 0.3 lets through boxes an
+# NMS pipeline would never have produced. Inheriting yolo_conf here is what
+# caused the zone false positives on прод right after the switch. Same class
+# of bug as running OSNet on the histogram thresholds — so the fix is the
+# same: the backend states its own default and logs it.
+DEFAULT_CONF = 0.5
+
 
 def _round_resolution(value: int) -> int:
     """Snap to the nearest valid resolution; RF-DETR rejects anything else."""
@@ -93,6 +101,9 @@ class RfDetrDetector:
 
         self._model = cls(**kwargs)
         self._version = os.path.basename(weights) if weights else f"coco-{size}"
+        # yolo_conf is NOT a fallback here — see DEFAULT_CONF.
+        self._conf = (settings.detector_conf if settings.detector_conf is not None
+                      else DEFAULT_CONF)
         self._native_to_canonical = self._build_class_map()
 
         # torch.compile-based speedup; never fatal — an unoptimised model is
@@ -128,10 +139,13 @@ class RfDetrDetector:
                 "a custom checkpoint must expose a class literally named 'person'"
             )
         logger.info(
-            "rfdetr: %s, resolution %s, person native id=%d -> canonical 0, "
-            "%d of %d classes mapped",
+            "rfdetr: %s, resolution %s, conf %.2f (%s), person native id=%d -> "
+            "canonical 0, %d of %d classes mapped",
             self._version,
             _round_resolution(self.settings.imgsz()),
+            self._conf,
+            "DETECTOR_CONF" if self.settings.detector_conf is not None
+            else f"default for rfdetr; yolo_conf={self.settings.yolo_conf} ignored",
             person_native[0],
             len(mapping),
             len(names),
@@ -147,7 +161,7 @@ class RfDetrDetector:
         its own, so filtering happens after translation.
         """
         wanted = set(classes)
-        result = self._model.predict(frame, threshold=self.settings.conf())
+        result = self._model.predict(frame, threshold=self._conf)
 
         xyxy = getattr(result, "xyxy", None)
         if xyxy is None or len(xyxy) == 0:

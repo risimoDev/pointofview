@@ -9,7 +9,7 @@ import { animate, createAnimatable, createScope, createTimer, stagger, svg } fro
  *
  * Процедурные скелеты позы (13 суставов): ноги шагают, руки машут в
  * противофазе, частота шага привязана к реальной скорости движения.
- * Каждый актёр живёт по сценарию (вошёл → очередь → стойка → ушёл),
+ * Каждый актёр живёт по сценарию (прошёл по цеху → зашёл в опасную зону → ушёл),
  * глубина сцены — через масштаб/скорость/яркость. Поверх — target-lock
  * рамки, шлейфы траекторий, HUD камеры, параллакс за курсором и
  * реакция на скролл. Всё процедурно: SVG + anime.js, ни одной картинки.
@@ -19,6 +19,7 @@ import { animate, createAnimatable, createScope, createTimer, stagger, svg } fro
 const TEAL = 'hsl(172 70% 52%)'
 const TEAL_DIM = 'hsl(172 60% 40%)'
 const GRAY = 'hsl(215 16% 62%)'
+const AMBER = 'hsl(38 92% 56%)'
 const INK = 'hsl(222 47% 8%)'
 
 // ── floor projection: t=0 near (bottom) … t=1 far (horizon) ───
@@ -107,6 +108,10 @@ type Seg =
 interface ActorCfg {
   id: string
   staff?: boolean
+  /** rendered amber: this actor is the one the hazard zone fires on */
+  alert?: boolean
+  /** helmet arc over the head — everyone on a shop floor wears one */
+  helmet?: boolean
   start: [number, number] // [x, t]
   segs: Seg[]
   startDelay: number
@@ -114,39 +119,40 @@ interface ActorCfg {
 }
 
 const ACTORS: ActorCfg[] = [
+  // walks the aisle in front of the machines, stops to work, leaves
   {
-    id: 'a', trkId: 'TRK 012', start: [-70, 0.30], startDelay: 0,
+    id: 'a', trkId: 'ТРК 012', helmet: true, start: [-70, 0.28], startDelay: 0,
     segs: [
-      { kind: 'walk', to: [360, 0.42], fadeIn: true },
-      { kind: 'idle', dur: 3200, chip: true },
-      { kind: 'walk', to: [470, 0.50] },
+      { kind: 'walk', to: [300, 0.36], fadeIn: true },
+      { kind: 'idle', dur: 3400, chip: true },
+      { kind: 'walk', to: [415, 0.31] },
       { kind: 'idle', dur: 2600 },
-      { kind: 'walk', to: [640, 0.60] },
-      { kind: 'idle', dur: 3400 },
-      { kind: 'walk', to: [1040, 0.46], fadeOut: true },
-      { kind: 'gone', dur: 2800 },
+      { kind: 'walk', to: [1040, 0.34], fadeOut: true },
+      { kind: 'gone', dur: 3200 },
     ],
   },
+  // crosses into the marked hazard zone, lingers there, walks out
   {
-    id: 'b', trkId: 'TRK 013', start: [1040, 0.66], startDelay: 5200,
+    id: 'b', trkId: 'ТРК 013', alert: true, helmet: true, start: [1040, 0.52], startDelay: 5200,
     segs: [
-      { kind: 'walk', to: [560, 0.55], fadeIn: true },
-      { kind: 'idle', dur: 2400 },
-      { kind: 'walk', to: [430, 0.44], },
-      { kind: 'idle', dur: 4200, chip: true },
-      { kind: 'walk', to: [230, 0.34] },
-      { kind: 'idle', dur: 1600 },
-      { kind: 'walk', to: [-80, 0.30], fadeOut: true },
+      { kind: 'walk', to: [780, 0.50], fadeIn: true },
+      { kind: 'idle', dur: 1800 },
+      { kind: 'walk', to: [660, 0.52], speed: 42 },
+      { kind: 'idle', dur: 4600, chip: true },
+      { kind: 'walk', to: [430, 0.44] },
+      { kind: 'idle', dur: 1500 },
+      { kind: 'walk', to: [-80, 0.40], fadeOut: true },
       { kind: 'gone', dur: 4200 },
     ],
   },
+  // operator at a fixed workstation, barely moves
   {
-    id: 'c', trkId: 'TRK 002', staff: true, start: [760, 0.78], startDelay: 1000,
+    id: 'c', trkId: 'ТРК 002', staff: true, helmet: true, start: [880, 0.74], startDelay: 1000,
     segs: [
-      { kind: 'idle', dur: 5200 },
-      { kind: 'walk', to: [680, 0.78], speed: 30 },
-      { kind: 'idle', dur: 4200 },
-      { kind: 'walk', to: [810, 0.78], speed: 30 },
+      { kind: 'idle', dur: 5600 },
+      { kind: 'walk', to: [820, 0.74], speed: 26 },
+      { kind: 'idle', dur: 4600 },
+      { kind: 'walk', to: [905, 0.74], speed: 26 },
     ],
   },
 ]
@@ -172,6 +178,7 @@ interface ActorState {
     bones: SVGPathElement
     head: SVGCircleElement
     joints: SVGCircleElement[]
+    helmet: SVGPathElement | null
     bbox: SVGGElement
     conf: SVGTextElement
     trail: SVGPolylineElement
@@ -195,62 +202,98 @@ function gridLines(): { x1: number; y1: number; x2: number; y2: number; o: numbe
   return out
 }
 
-/** ПВЗ hint: стеллаж с ячейками на задней стене (композиция уточнится по
- *  реальному кадру точки). */
-function Shelves(): React.JSX.Element {
-  const rows = 3; const cols = 7
-  const x0 = 570; const y0 = 118; const w = 350; const h = 86
-  const cells: React.JSX.Element[] = []
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      cells.push(
-        <rect
-          key={`${r}-${c}`}
-          x={x0 + 4 + c * (w / cols)} y={y0 + 4 + r * (h / rows)}
-          width={w / cols - 8} height={h / rows - 8} rx="1.5"
-          fill="hsl(217 19% 14% / 0.5)" stroke="hsl(215 16% 60% / 0.14)" strokeWidth="1"
-        />,
-      )
-    }
-  }
+/** Shop floor: machines along the back wall and a hazard zone painted on the
+ *  floor. Deliberately plain — no glows, no floating particles: a diagram of a
+ *  real workshop reads as competence, a light show reads as a stock render. */
+function Workshop(): React.JSX.Element {
+  const machines = [
+    { x: 190, w: 132, h: 74 },
+    { x: 352, w: 96, h: 58 },
+    { x: 600, w: 150, h: 80 },
+    { x: 782, w: 110, h: 64 },
+  ]
+  const baseline = 202
   return (
     <g>
-      <rect x={x0} y={y0} width={w} height={h} rx="2" fill="none" stroke="hsl(215 16% 60% / 0.22)" strokeWidth="1" />
-      {cells}
-      <text x={x0} y={y0 - 7} fontSize="9" fontFamily="ui-monospace, monospace" fill="hsl(215 16% 60% / 0.45)">
-        стеллаж · ячейки
+      {/* conveyor run along the back wall */}
+      <line x1="120" y1={baseline + 10} x2="940" y2={baseline + 10}
+        stroke="hsl(215 16% 60% / 0.20)" strokeWidth="2" />
+      {Array.from({ length: 28 }).map((_, i) => (
+        <line key={i} x1={132 + i * 29} y1={baseline + 4} x2={132 + i * 29} y2={baseline + 16}
+          stroke="hsl(215 16% 60% / 0.14)" strokeWidth="1" />
+      ))}
+      {machines.map((m, i) => (
+        <g key={i}>
+          <rect x={m.x} y={baseline - m.h} width={m.w} height={m.h} rx="2"
+            fill="hsl(217 19% 14% / 0.55)" stroke="hsl(215 16% 60% / 0.22)" strokeWidth="1" />
+          <rect x={m.x + 12} y={baseline - m.h + 12} width={m.w - 24} height={m.h * 0.34} rx="1.5"
+            fill="none" stroke="hsl(215 16% 60% / 0.16)" strokeWidth="1" />
+        </g>
+      ))}
+    </g>
+  )
+}
+
+/** Hazard zone marked on the floor — the thing the system actually watches.
+ *  Corners are intentionally uneven: painted floor markings never are. */
+function HazardZone(): React.JSX.Element {
+  const pts = `524,${yOf(0.40)} 868,${yOf(0.40)} 806,${yOf(0.63)} 578,${yOf(0.63)}`
+  return (
+    <g>
+      <polygon points={pts} fill="hsl(38 92% 56% / 0.07)"
+        stroke="hsl(38 92% 56% / 0.55)" strokeWidth="1.6" strokeDasharray="10 7" />
+      <text x="590" y={yOf(0.63) + 16} fontSize="9.5" fontFamily="ui-monospace, monospace"
+        fill="hsl(38 92% 56% / 0.75)">
+        зона станка · вход запрещён
       </text>
     </g>
   )
 }
 
 function ActorNode({ cfg }: { cfg: ActorCfg }): React.JSX.Element {
-  const color = cfg.staff ? GRAY : TEAL
-  const dim = cfg.staff ? 'hsl(215 16% 62% / 0.35)' : 'hsl(172 70% 52% / 0.45)'
+  const color = cfg.alert ? AMBER : cfg.staff ? GRAY : TEAL
+  const dim = cfg.alert
+    ? 'hsl(38 92% 56% / 0.40)'
+    : cfg.staff ? 'hsl(215 16% 62% / 0.35)' : 'hsl(172 70% 52% / 0.45)'
+  const label = cfg.alert
+    ? `${cfg.trkId} зона станка`
+    : cfg.staff ? `${cfg.trkId} оператор` : `${cfg.trkId} каска, жилет`
+  const labelW = cfg.staff ? 74 : 104
   return (
     <g className={`actor actor-${cfg.id}`} opacity="0">
       <g className="skel">
         <path className="bones-glow" d="" fill="none" stroke={dim} strokeWidth="4.5" strokeLinecap="round" />
         <path className="bones" d="" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" />
         <circle className="head" r={L.headR} fill="none" stroke={color} strokeWidth="1.7" />
+        {/* helmet: an arc capping the head, offset by the head radius so it
+            follows the skull as the head node is translated each frame */}
+        {cfg.helmet ? (
+          <path
+            className="helmet" d={`M ${-L.headR - 1.4} 0 a ${L.headR + 1.4} ${L.headR + 1.4} 0 0 1 ${(L.headR + 1.4) * 2} 0`}
+            fill="none" stroke={color} strokeWidth="2.1" strokeLinecap="round"
+          />
+        ) : null}
         {Array.from({ length: JOINT_COUNT }).map((_, i) => (
           <circle key={i} className="joint" r="1.9" fill={color} />
         ))}
       </g>
       {/* target-lock brackets + label; local coords scale with the actor */}
       <g className="bbox">
-        <g stroke={cfg.staff ? 'hsl(215 16% 62% / 0.75)' : TEAL} strokeWidth="1.4" fill="none">
+        <g stroke={cfg.alert ? AMBER : cfg.staff ? 'hsl(215 16% 62% / 0.75)' : TEAL} strokeWidth="1.4" fill="none">
           <path d="M -21 -76 h 7 M -21 -76 v 7" />
           <path d="M 21 -76 h -7 M 21 -76 v 7" />
           <path d="M -21 6 h 7 M -21 6 v -7" />
           <path d="M 21 6 h -7 M 21 6 v -7" />
         </g>
-        <rect x="-21" y="-90" width={cfg.staff ? 74 : 96} height="12" rx="1.5" fill={cfg.staff ? 'hsl(215 16% 40%)' : TEAL} opacity="0.95" />
+        <rect
+          x="-21" y="-90" width={labelW} height="12" rx="1.5"
+          fill={cfg.alert ? AMBER : cfg.staff ? 'hsl(215 16% 40%)' : TEAL} opacity="0.95"
+        />
         <text
           className="conf" x="-17" y="-80.8" fontSize="8" fontWeight="600"
           fontFamily="ui-monospace, monospace" fill={INK}
         >
-          {cfg.staff ? `${cfg.trkId} сотрудник` : `${cfg.trkId} человек 0.93`}
+          {label}
         </text>
       </g>
     </g>
@@ -287,6 +330,7 @@ export function HeroScene({ className }: { className?: string }): React.JSX.Elem
           head: g.querySelector('.head') as SVGCircleElement,
           joints: Array.from(g.querySelectorAll<SVGCircleElement>('.joint')),
           bbox: g.querySelector('.bbox') as SVGGElement,
+          helmet: g.querySelector<SVGPathElement>('.helmet'),
           conf: g.querySelector('.conf') as SVGTextElement,
           trail,
         },
@@ -313,6 +357,10 @@ export function HeroScene({ className }: { className?: string }): React.JSX.Elem
       s.el.head.setAttribute('transform', flip)
       s.el.head.setAttribute('cx', String(p.head[0]))
       s.el.head.setAttribute('cy', String(p.head[1]))
+      // the helmet arc is drawn around the origin, so it rides the head
+      s.el.helmet?.setAttribute(
+        'transform', `${flip} translate(${p.head[0]} ${p.head[1] - 1.2})`,
+      )
       for (let i = 0; i < s.el.joints.length; i++) {
         const j = p.joints[i]
         if (!j) continue
@@ -326,7 +374,8 @@ export function HeroScene({ className }: { className?: string }): React.JSX.Elem
         s.conf += (Math.random() - 0.5) * 0.004 * dtMs
         const lo = 0.82 - s.t * 0.06
         s.conf = Math.min(0.98, Math.max(lo, s.conf))
-        s.el.conf.textContent = `${s.cfg.trkId} человек ${s.conf.toFixed(2)}`
+        const what = s.cfg.alert ? 'зона станка' : 'каска, жилет'
+        s.el.conf.textContent = `${s.cfg.trkId} ${what} ${s.conf.toFixed(2)}`
       }
     }
 
@@ -546,7 +595,8 @@ export function HeroScene({ className }: { className?: string }): React.JSX.Elem
         {/* back layer: architecture + floor (weak parallax) */}
         <g className="layer-back">
           <line x1="0" y1={HORIZON} x2="960" y2={HORIZON} stroke="hsl(172 70% 47% / 0.20)" strokeWidth="1" />
-          <Shelves />
+          <Workshop />
+          <HazardZone />
           {/* дверь */}
           <g>
             <rect x="64" y="120" width="58" height="88" rx="2" fill="none" stroke="hsl(215 16% 60% / 0.2)" strokeWidth="1" />
@@ -568,16 +618,16 @@ export function HeroScene({ className }: { className?: string }): React.JSX.Elem
               strokeWidth="1.2" strokeDasharray="8 5"
             />
             <text x="312" y="458" fontSize="11" fontFamily="ui-monospace, monospace" fill="hsl(172 70% 47% / 0.8)">
-              зона: очередь
+              участок: каска и жилет
             </text>
           </g>
 
-          {/* стойка выдачи */}
+          {/* верстак */}
           <g>
             <rect x="640" y="288" width="240" height="14" rx="2" fill="hsl(217 19% 22% / 0.9)" />
             <rect x="646" y="302" width="228" height="30" rx="1" fill="hsl(217 19% 13% / 0.85)" stroke="hsl(215 16% 60% / 0.2)" strokeWidth="1" />
             <text x="652" y="322" fontSize="10" fontFamily="ui-monospace, monospace" fill="hsl(215 16% 60% / 0.7)">
-              стойка выдачи
+              верстак
             </text>
           </g>
 
@@ -591,10 +641,10 @@ export function HeroScene({ className }: { className?: string }): React.JSX.Elem
           {ACTORS.map((a) => <ActorNode key={a.id} cfg={a} />)}
 
           <g className="event-chip" opacity="0">
-            <rect x="332" y="240" width="196" height="30" rx="6" fill="hsl(222 24% 9% / 0.94)" stroke="hsl(172 70% 47% / 0.55)" strokeWidth="1" />
-            <circle cx="348" cy="255" r="3.5" fill={TEAL} />
+            <rect x="332" y="240" width="238" height="30" rx="6" fill="hsl(222 24% 9% / 0.94)" stroke="hsl(38 92% 56% / 0.6)" strokeWidth="1" />
+            <circle cx="348" cy="255" r="3.5" fill={AMBER} />
             <text x="360" y="259" fontSize="11.5" fontFamily="ui-monospace, monospace" fill="hsl(210 22% 92%)">
-              вход в зону · очередь
+              вход в зону станка · критично
             </text>
           </g>
         </g>

@@ -11,10 +11,9 @@ import {
 } from '@/components/ui/select'
 
 const OBJECT_TYPES = [
-  { value: 'pvz', label: 'ПВЗ' },
-  { value: 'production', label: 'Производство' },
-  { value: 'retail', label: 'Ритейл' },
-  { value: 'office', label: 'Офис' },
+  { value: 'production', label: 'Завод, цех' },
+  { value: 'construction', label: 'Строительная площадка' },
+  { value: 'warehouse', label: 'Склад, логистика' },
   { value: 'other', label: 'Другое' },
 ]
 

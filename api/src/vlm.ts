@@ -83,6 +83,7 @@ const clean = (s: string): string =>
 async function ollamaChat(
   model: string, prompt: string, images: string[] | undefined,
   timeoutMs: number, numPredict: number, salvageOnLength = false,
+  format?: unknown,
 ): Promise<string | null> {
   const res = await fetch(`${config.OLLAMA_URL}/api/chat`, {
     method: 'POST',
@@ -96,6 +97,10 @@ async function ollamaChat(
       }],
       stream: false,
       think: false, // top-level: honoured here, silently dropped by /api/generate
+      // JSON schema: the model is constrained to emit valid JSON instead of
+      // prose we then parse. Regex over Russian sentences is what made the
+      // verdict unreliable twice already.
+      ...(format ? { format } : {}),
       options: { temperature: 0.2, num_predict: numPredict },
     }),
     signal: AbortSignal.timeout(timeoutMs),
@@ -142,10 +147,48 @@ export async function ollamaVision(
 }
 
 /** Vision call for a ДА/НЕТ verdict — smaller budget, same plumbing. */
+export interface Verdict {
+  /** true = event confirmed by the frame, false = not, null = no answer */
+  confirmed: boolean | null
+  reason: string
+}
+
+const VERDICT_SCHEMA = {
+  type: 'object',
+  properties: {
+    confirmed: { type: 'boolean' },
+    reason: { type: 'string' },
+  },
+  required: ['confirmed', 'reason'],
+} as const
+
+/**
+ * Structured verdict. The model is constrained to a JSON schema, so the answer
+ * is read, not guessed: no more hunting for «да»/«нет» inside a sentence that
+ * may open with "На кадре…" or arrive wrapped in reasoning. Falls back to the
+ * old text parsing only if the model returns something unparseable, which
+ * keeps the fail-open behaviour rather than dropping an alert.
+ */
 export async function ollamaVerdict(
   model: string, imageB64: string, prompt: string, timeoutMs = VLM_TIMEOUT_MS,
-): Promise<string | null> {
-  return ollamaChat(model, prompt, [imageB64], timeoutMs, NUM_PREDICT_VERDICT)
+): Promise<Verdict> {
+  const raw = await ollamaChat(
+    model, prompt, [imageB64], timeoutMs, NUM_PREDICT_VERDICT, false,
+    VERDICT_SCHEMA,
+  )
+  if (!raw) return { confirmed: null, reason: '' }
+  try {
+    const parsed = JSON.parse(raw) as { confirmed?: unknown; reason?: unknown }
+    if (typeof parsed.confirmed === 'boolean') {
+      return {
+        confirmed: parsed.confirmed,
+        reason: typeof parsed.reason === 'string' ? parsed.reason.slice(0, 300) : '',
+      }
+    }
+  } catch {
+    // not JSON — fall through to the legacy text reading
+  }
+  return { confirmed: parseVerdict(raw), reason: raw.slice(0, 300) }
 }
 
 /**

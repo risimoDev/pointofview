@@ -15,7 +15,7 @@ const display = Space_Grotesk({
 
 export const metadata: Metadata = {
   title: 'BZK-VIZIAI',
-  description: 'VMS видеоаналитика',
+  description: 'Видеоаналитика охраны труда и промышленной безопасности для заводов, цехов и строительных площадок',
 }
 
 // Auth guard is enforced in middleware.ts (cookie check + redirect).

@@ -5,10 +5,10 @@ import { useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { animate, createScope, stagger, svg } from 'animejs'
 import {
-  IconShieldCheck, IconVideo, IconUsersGroup, IconClockHour4,
-  IconBellRinging, IconPolygon, IconHistory, IconDeviceCctv, IconLock,
+  IconShieldCheck, IconHelmet, IconPolygon, IconUserExclamation,
+  IconBellRinging, IconUserOff, IconReportAnalytics, IconDeviceCctv,
   IconCpu, IconBrandTelegram, IconShieldLock, IconServer2, IconListDetails,
-  IconArrowDown,
+  IconArrowDown, IconFileDescription, IconWifiOff,
 } from '@tabler/icons-react'
 import { Button } from '@/components/ui/button'
 import { HeroScene } from './hero-scene'
@@ -48,7 +48,7 @@ function Header(): React.JSX.Element {
 }
 
 // ── hero ──────────────────────────────────────────────────────
-const H1_WORDS = ['Ваши', 'камеры', 'научились', 'думать']
+const H1_WORDS = ['Смотрит', 'за', 'цехом,', 'когда', 'смотреть', 'некому']
 
 function Hero(): React.JSX.Element {
   const ref = useRef<HTMLDivElement>(null)
@@ -84,7 +84,7 @@ function Hero(): React.JSX.Element {
         <div className="max-w-2xl">
           <div className="hero-fade mb-5 inline-flex items-center gap-2 rounded-full border border-brand/30 bg-brand/10 px-3 py-1 text-xs font-medium text-brand opacity-0">
             <IconDeviceCctv className="h-3.5 w-3.5" stroke={1.75} />
-            Видеоаналитика для пунктов выдачи
+            Видеоаналитика охраны труда и промышленной безопасности
           </div>
 
           <h1 className="font-display text-4xl font-semibold leading-tight tracking-tight sm:text-5xl lg:text-6xl">
@@ -99,9 +99,10 @@ function Hero(): React.JSX.Element {
           </h1>
 
           <p className="hero-fade mt-6 max-w-xl text-base leading-relaxed text-muted-foreground opacity-0 sm:text-lg">
-            Подключаем те камеры, что уже висят у вас на точке. Система сама
-            считает посетителей, замечает очередь и пишет архив. Если что-то
-            пошло не так, вы узнаете из Telegram раньше, чем вам позвонят.
+            Подключаем камеры, которые уже висят в цехе или на площадке.
+            Система фиксирует работу без каски, вход в опасную зону, падение
+            человека и работу в одиночку. Ответственный получает оповещение
+            сразу, а специалист по охране труда — готовый отчёт в конце месяца.
           </p>
 
           <div className="hero-fade mt-8 flex flex-wrap items-center gap-3 opacity-0">
@@ -119,19 +120,17 @@ function Hero(): React.JSX.Element {
           <div className="hero-fade mt-12 grid max-w-lg grid-cols-3 gap-6 opacity-0">
             <div>
               <div className="font-display text-2xl font-semibold tabular-nums text-brand sm:text-3xl">
-                <CountUp to={3} suffix=" с" />
-              </div>
-              <div className="mt-1 text-xs text-muted-foreground">задержка живого видео</div>
-            </div>
-            <div>
-              <div className="font-display text-2xl font-semibold tabular-nums text-brand sm:text-3xl">24/7</div>
-              <div className="mt-1 text-xs text-muted-foreground">запись в архив с автоочисткой</div>
-            </div>
-            <div>
-              <div className="font-display text-2xl font-semibold tabular-nums text-brand sm:text-3xl">
                 <CountUp to={0} />
               </div>
-              <div className="mt-1 text-xs text-muted-foreground">биометрии и проблем со 152-ФЗ</div>
+              <div className="mt-1 text-xs text-muted-foreground">биометрии — лица не распознаём</div>
+            </div>
+            <div>
+              <div className="font-display text-2xl font-semibold tabular-nums text-brand sm:text-3xl">офлайн</div>
+              <div className="mt-1 text-xs text-muted-foreground">работает в сети без интернета</div>
+            </div>
+            <div>
+              <div className="font-display text-2xl font-semibold tabular-nums text-brand sm:text-3xl">PDF</div>
+              <div className="mt-1 text-xs text-muted-foreground">отчёт для проверки одной кнопкой</div>
             </div>
           </div>
         </div>
@@ -143,28 +142,28 @@ function Hero(): React.JSX.Element {
 // ── features ──────────────────────────────────────────────────
 const FEATURES = [
   {
-    icon: IconVideo, title: 'Живое видео в браузере',
-    text: 'Открыли сайт и видите все камеры разом. Задержка пара секунд, ставить ничего не нужно.',
+    icon: IconHelmet, title: 'Каска и жилет',
+    text: 'В зонах, где СИЗ обязательны, система замечает работника без каски или жилета. Модель дообучается на кадрах с вашего производства — под вашу спецодежду и освещение.',
   },
   {
-    icon: IconUsersGroup, title: 'Честный подсчёт посетителей',
-    text: 'Человек прошёл через четыре камеры, а в статистике он один. Сотрудники в подсчёт не попадают.',
+    icon: IconPolygon, title: 'Опасные зоны',
+    text: 'Обведите зону у станка, под краном или у открытого проёма. У каждой своё правило и расписание: днём пускать наладчика, ночью не пускать никого.',
   },
   {
-    icon: IconClockHour4, title: 'Очередь под контролем',
-    text: 'Видно, сколько людей ждёт и как долго. Когда очередь вырастает, вы узнаёте об этом раньше, чем клиенты начнут злиться.',
+    icon: IconUserExclamation, title: 'Падение человека',
+    text: 'Если человек оказался на полу и не встаёт, оповещение уходит немедленно. Наклон над деталью и присед за падение не считаются.',
   },
   {
-    icon: IconBellRinging, title: 'Уведомления в Telegram',
-    text: 'Камера отвалилась, кто-то зашёл в подсобку, у стойки толпа. Важное приходит сразу и с кадром, мелочь собирается в сводку.',
+    icon: IconUserOff, title: 'Работа в одиночку',
+    text: 'Там, где по правилам нужен второй человек, система следит, что он есть. Остался один дольше заданного времени — критическое событие.',
   },
   {
-    icon: IconPolygon, title: 'Зоны и правила',
-    text: 'Обведите на кадре стойку, полки или подсобку. У каждой зоны свои правила и расписание, вплоть до ночного режима охраны.',
+    icon: IconBellRinging, title: 'Оповещения и саботаж',
+    text: 'Важное приходит в Telegram с кадром, мелочь копится сводкой. Отдельно ловим камеру, которую заклеили, развернули или отключили.',
   },
   {
-    icon: IconHistory, title: 'Архив и клипы',
-    text: 'Запись идёт круглые сутки, старое стирается само. У любого события есть кадр и короткий ролик, спорные ситуации разбираются за минуту.',
+    icon: IconReportAnalytics, title: 'Отчёты по охране труда',
+    text: 'Нарушения по участкам и сменам, динамика, перечень с кадрами. Выгрузка в PDF и Excel — то, что предъявляют при проверке и при разборе несчастного случая.',
   },
 ]
 
@@ -174,11 +173,12 @@ function Features(): React.JSX.Element {
       <div className="mx-auto max-w-6xl px-4 py-20 sm:py-28">
         <Reveal>
           <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-            Смотрит в камеры, <span className="text-brand">чтобы вам не пришлось</span>
+            Замечает то, <span className="text-brand">что человек пропускает</span>
           </h2>
           <p className="mt-3 max-w-2xl text-muted-foreground">
-            Обычная запись помогает разбираться с тем, что уже случилось.
-            Тут наоборот: о проблеме вы узнаёте, пока её ещё можно решить.
+            Специалист по охране труда не может стоять у каждого участка.
+            Запись показывает нарушение после происшествия — здесь оно
+            фиксируется в момент, и остаётся документ, что меры принимались.
           </p>
         </Reveal>
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -203,19 +203,19 @@ function Features(): React.JSX.Element {
 const STEPS = [
   {
     icon: IconDeviceCctv, title: 'Ваши камеры',
-    text: 'Подходят обычные IP-камеры, которые уже висят на точке. Менять ничего не нужно.',
+    text: 'Подходят обычные IP-камеры, которые уже стоят в цехе. Менять парк не нужно, часть камер может потребовать доворота.',
   },
   {
-    icon: IconLock, title: 'Защищённый туннель',
-    text: 'Точка соединяется с сервером по шифрованному VPN. Порты наружу не открываются.',
+    icon: IconServer2, title: 'Сервер на вашей площадке',
+    text: 'Стоит в вашей серверной, видео не покидает предприятие. Установка возможна полностью офлайн — привозим один архив, доступ в интернет не нужен.',
   },
   {
     icon: IconCpu, title: 'Разбор видео',
-    text: 'Видео обрабатывает нейросеть на нашем сервере. Она находит людей и понимает, что происходит в каждой зоне.',
+    text: 'Модели находят людей, СИЗ и позу, движок зон сверяет это с вашими правилами и расписанием смен.',
   },
   {
-    icon: IconBrandTelegram, title: 'Результат у вас',
-    text: 'Вы смотрите всё в браузере и получаете уведомления в Telegram. На подключение точки уходит меньше часа.',
+    icon: IconBrandTelegram, title: 'Результат у ответственных',
+    text: 'Мастер получает оповещение с кадром, служба охраны труда — журнал и отчёты. Разбор происшествия — переход к нужной секунде в архиве.',
   },
 ]
 
@@ -333,15 +333,15 @@ function AnalyticsMock(): React.JSX.Element {
       </svg>
       <div className="mt-4 grid grid-cols-3 gap-3">
         <div className="rounded-lg border border-border/60 bg-background/60 px-3 py-2.5">
-          <div className="text-[11px] text-muted-foreground">посетителей</div>
+          <div className="text-[11px] text-muted-foreground">нарушений за месяц</div>
           <div className="font-display text-lg font-semibold tabular-nums"><CountUp to={128} /></div>
         </div>
         <div className="rounded-lg border border-border/60 bg-background/60 px-3 py-2.5">
-          <div className="text-[11px] text-muted-foreground">пик</div>
+          <div className="text-[11px] text-muted-foreground">пик смены</div>
           <div className="font-display text-lg font-semibold tabular-nums">14:00</div>
         </div>
         <div className="rounded-lg border border-border/60 bg-background/60 px-3 py-2.5">
-          <div className="text-[11px] text-muted-foreground">ожидание, мин</div>
+          <div className="text-[11px] text-muted-foreground">разбор, ч</div>
           <div className="font-display text-lg font-semibold tabular-nums"><CountUp to={2.4} decimals={1} /></div>
         </div>
       </div>
@@ -355,18 +355,19 @@ function Analytics(): React.JSX.Element {
       <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-20 sm:py-28 lg:grid-cols-2">
         <Reveal>
           <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-            Цифры вместо <span className="text-brand">ощущений</span>
+            Доказательство, <span className="text-brand">а не ощущения</span>
           </h2>
           <p className="mt-4 leading-relaxed text-muted-foreground">
-            Сколько человек заходит по будням, в какие часы собирается очередь
-            и когда пора звать второго сотрудника. Эти цифры копятся сами,
-            без датчиков на дверях и подсчёта вручную.
+            При проверке и при разборе несчастного случая нужно показать, что
+            меры принимались: нарушения фиксировались, ответственные
+            оповещались, разбор проводился. Эти данные копятся сами, без
+            журналов от руки.
           </p>
           <ul className="mt-6 space-y-3 text-sm text-muted-foreground">
             {[
-              'Посетители по дням и часам, без двойного счёта между камерами',
-              'Сколько ждут в очереди и сколько занимает обслуживание',
-              'Все события с кадрами, видно что и когда случилось',
+              'Нарушения по участкам, сменам и типам, с динамикой к прошлому периоду',
+              'Сколько событий разобрано и за какое время — реакция, а не только фиксация',
+              'Выгрузка в PDF и Excel за любой период, отсеянные ложные — отдельной строкой',
             ].map((t) => (
               <li key={t} className="flex items-start gap-2.5">
                 <IconListDetails className="mt-0.5 h-4 w-4 shrink-0 text-brand" stroke={1.75} />
@@ -386,20 +387,20 @@ function Analytics(): React.JSX.Element {
 // ── audiences ─────────────────────────────────────────────────
 const AUDIENCES = [
   {
-    title: 'Пункты выдачи заказов', ready: true,
-    text: 'Очереди, подсчёт посетителей, перепаковка на стойке. Спор с клиентом решается просмотром кадров за минуту.',
+    title: 'Заводы и цеха',
+    text: 'СИЗ на участках, запретные зоны у оборудования, работа в одиночку на работах повышенной опасности, ночная охрана периметра.',
   },
   {
-    title: 'Производство', ready: false,
-    text: 'Запретные зоны у станков, каски и жилеты, ночная охрана периметра. Умеет работать в полностью закрытой сети, без интернета.',
+    title: 'Строительные площадки',
+    text: 'Каски и жилеты, зона под краном, открытые проёмы, учёт въезда и выезда техники. Комплект переезжает на следующий объект вместе с площадкой.',
   },
   {
-    title: 'Ритейл', ready: false,
-    text: 'Посетители и конверсия, выкладка на полках, скопления у касс.',
+    title: 'Склады и логистика',
+    text: 'Пересечение людей и техники, захламление проходов, сохранность в нерабочее время, фактическая численность смены по часам.',
   },
   {
-    title: 'Офисы и склады', ready: false,
-    text: 'Если ночью в помещении кто-то появился, сообщение с кадром придёт за секунды.',
+    title: 'Объекты с режимом',
+    text: 'Изолированная сеть без выхода наружу, установка офлайн, разграничение доступа по камерам и журнал действий для службы безопасности.',
   },
 ]
 
@@ -409,22 +410,14 @@ function Audiences(): React.JSX.Element {
       <div className="mx-auto max-w-6xl px-4 py-20 sm:py-28">
         <Reveal>
           <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-            Сделано для ПВЗ. <span className="text-muted-foreground">Остальным тоже пригодится.</span>
+            Производство, стройка, <span className="text-muted-foreground">склады</span>
           </h2>
         </Reveal>
         <div className="mt-12 grid gap-4 sm:grid-cols-2">
           {AUDIENCES.map((a, i) => (
             <Reveal key={a.title} delay={i * 100}>
               <div className="h-full rounded-xl border border-border/70 bg-card/40 p-6">
-                <div className="flex items-center gap-3">
-                  <h3 className="font-display text-base font-semibold">{a.title}</h3>
-                  <span className={a.ready
-                    ? 'rounded-full bg-brand/15 px-2.5 py-0.5 text-[11px] font-medium text-brand'
-                    : 'rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground'}
-                  >
-                    {a.ready ? 'работает на живых точках' : 'развивается'}
-                  </span>
-                </div>
+                <h3 className="font-display text-base font-semibold">{a.title}</h3>
                 <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">{a.text}</p>
               </div>
             </Reveal>
@@ -439,15 +432,15 @@ function Audiences(): React.JSX.Element {
 const TRUST = [
   {
     icon: IconShieldLock, title: 'Без биометрии',
-    text: 'Посетителей система различает по внешнему виду. Лица не сканирует и не хранит, поэтому требования 152-ФЗ о биометрии вас не касаются.',
+    text: 'Лица не распознаём и биометрических профилей не строим. Работника от постороннего система отличает по силуэту и одежде, поэтому биометрический режим 152-ФЗ не возникает.',
   },
   {
-    icon: IconServer2, title: 'Данные в России',
-    text: 'Видео и события хранятся на наших серверах в России. Для закрытых объектов есть установка целиком внутри вашей сети.',
+    icon: IconWifiOff, title: 'Видео не покидает предприятие',
+    text: 'Основной вариант — сервер в вашем периметре. Установка возможна в изолированной сети, без выхода в интернет вообще.',
   },
   {
-    icon: IconListDetails, title: 'Всё на виду',
-    text: 'В журнале аудита видно, кто заходил в систему, что смотрел и что менял.',
+    icon: IconFileDescription, title: 'Документы в комплекте',
+    text: 'Положение о видеонаблюдении, приказ, форма ознакомления работников, макеты табличек. Обычно именно эти бумаги тормозят внедрение, а не техника.',
   },
 ]
 
@@ -477,12 +470,12 @@ function Demo(): React.JSX.Element {
       <div className="relative mx-auto max-w-3xl px-4 py-20 sm:py-28">
         <Reveal>
           <h2 className="text-center font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-            Посмотрите систему <span className="text-brand">на живой точке</span>
+            Начните <span className="text-brand">с обследования объекта</span>
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-center text-muted-foreground">
-            Оставьте контакт. Покажем систему на работающем ПВЗ, ответим на
-            вопросы и посчитаем стоимость под ваши камеры. Менять оборудование
-            не придётся.
+            Оставьте контакт. Приедем на площадку, посмотрим камеры и участки,
+            согласуем контролируемые зоны и посчитаем стоимость под ваш объект.
+            Менять парк камер, как правило, не требуется.
           </p>
         </Reveal>
         <Reveal delay={150} className="mt-10">
@@ -509,7 +502,7 @@ function Footer(): React.JSX.Element {
         <div className="flex items-center gap-5">
           <span>Видеоаналитика · без биометрии · данные в РФ</span>
           <Link href="/login" className="text-foreground transition-colors hover:text-brand">
-            Вход для клиентов
+            Вход для заказчиков
           </Link>
         </div>
       </div>

@@ -53,8 +53,17 @@ rclone_run() {
     "$RCLONE_IMAGE" "$@"
 }
 
-count() { # $1 = remote:bucket
-  rclone_run size "$1" --json 2>/dev/null | sed -n 's/.*"count":\([0-9]*\).*/\1/p'
+count() { # $1 = remote:bucket -> object count on stdout, rclone error on stderr
+  # No 2>/dev/null here: hiding the error plus `set -e` made a failed size
+  # call kill the script silently right after "verifying".
+  local out status
+  out="$(rclone_run size "$1" --json 2>&1)" && status=0 || status=$?
+  if [[ $status -ne 0 ]]; then
+    err "rclone size $1 failed:"
+    echo "$out" >&2
+    return 1
+  fi
+  sed -n 's/.*"count":\([0-9]*\).*/\1/p' <<< "$out"
 }
 
 if [[ "$VERIFY_ONLY" -eq 0 ]]; then
@@ -67,7 +76,8 @@ fi
 info "verifying"
 FAIL=0
 for b in "${BUCKETS[@]}"; do
-  s="$(count "src:$b")"; d="$(count "dst:$b")"
+  s="$(count "src:$b")" || { FAIL=1; continue; }
+  d="$(count "dst:$b")" || { FAIL=1; continue; }
   s="${s:-0}"; d="${d:-0}"
   if [[ "$s" == "$d" ]]; then
     # 0 = 0 is a match but proves nothing: it also happens when the source

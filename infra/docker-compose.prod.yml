@@ -52,10 +52,9 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-    # 9000 is proxied from the VPS (s3.<domain>) for presigned URLs;
-    # restrict with ufw to the WireGuard subnet
-    ports:
-      - "9000:9000"
+    # Port 9000 moved to seaweedfs at the 2026-07-26 cutover. MinIO is kept
+    # running (unpublished) as the rollback path — do not remove it or
+    # ${DATA_ROOT}/minio until SeaweedFS has proven itself.
     volumes:
       - ${DATA_ROOT}/minio:/data
     healthcheck:
@@ -97,8 +96,10 @@ services:
         {"identities":[{"name":"viziai","credentials":[{"accessKey":"$${ACCESS_KEY}","secretKey":"$${SECRET_KEY}"}],"actions":["Admin","Read","Write","List","Tagging"]}]}
         EOF
         exec weed server -dir=/data -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json -master.volumeSizeLimitMB=1024
+    # Took over 9000 from MinIO: the VPS proxies s3.<domain> to this port and
+    # ufw already limits it to the WireGuard subnet, so neither needs touching.
     ports:
-      - "${SEAWEEDFS_PORT:-9002}:8333"
+      - "${SEAWEEDFS_PORT:-9000}:8333"
     volumes:
       - ${DATA_ROOT}/seaweedfs:/data
     healthcheck:
@@ -132,7 +133,9 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       INTERNAL_TOKEN: ${INTERNAL_TOKEN}
       GO2RTC_URL: http://host.docker.internal:1984
-      MINIO_ENDPOINT: http://minio:9000
+      # Overridable so the store can be switched from .env.prod alone:
+      # http://minio:9000 (legacy) | http://seaweedfs:8333 (current)
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://minio:9000}
       MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT}
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}

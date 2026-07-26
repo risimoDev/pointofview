@@ -76,14 +76,22 @@ services:
     image: chrislusf/seaweedfs:4.40
     restart: unless-stopped
     environment:
-      ACCESS_KEY: ${MINIO_ACCESS_KEY}
-      SECRET_KEY: ${MINIO_SECRET_KEY}
+      # Same names the api service uses (line ~129): .env.prod defines
+      # MINIO_ROOT_USER/PASSWORD, not MINIO_ACCESS_KEY/SECRET_KEY.
+      ACCESS_KEY: ${MINIO_ROOT_USER}
+      SECRET_KEY: ${MINIO_ROOT_PASSWORD}
     # The S3 identity file is written at start from the env so credentials
-    # stay in .env.prod and never land in git.
+    # stay in .env.prod and never land in git. Empty credentials abort the
+    # start: an object store on a published port with a blank key is worse
+    # than one that is down.
     entrypoint:
       - sh
       - -c
       - |
+        if [ -z "$${ACCESS_KEY}" ] || [ -z "$${SECRET_KEY}" ]; then
+          echo "FATAL: MINIO_ROOT_USER/MINIO_ROOT_PASSWORD are empty — refusing to start an unauthenticated S3 endpoint" >&2
+          exit 1
+        fi
         mkdir -p /etc/seaweedfs
         cat > /etc/seaweedfs/s3.json <<EOF
         {"identities":[{"name":"viziai","credentials":[{"accessKey":"$${ACCESS_KEY}","secretKey":"$${SECRET_KEY}"}],"actions":["Admin","Read","Write","List","Tagging"]}]}

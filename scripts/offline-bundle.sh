@@ -20,7 +20,10 @@ rm -rf "$BUNDLE"
 mkdir -p "$BUNDLE"
 
 echo "— 1/4: сборка образов (analyzer печёт модели — нужен интернет)…"
-docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" build
+# REQUIRE_RFDETR_WEIGHTS=1: an offline bundle whose image lacks the
+# detector checkpoint fails only on the customer's air-gapped site,
+# where nobody can fix it. Fail here instead.
+REQUIRE_RFDETR_WEIGHTS=1 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" build
 
 echo "— 2/4: выгрузка образов в images.tar.gz…"
 IMAGES="$(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" config --images | sort -u)"

@@ -81,13 +81,25 @@ RUN if [ "$WITH_RTMO" = "1" ]; then \
 # internet. The package downloads on first construction; whatever file that
 # produces is copied to a stable path. Non-fatal: without it the first start
 # downloads once (and the /root/.cache volume then keeps it).
+#
+# REQUIRE_RFDETR_WEIGHTS=1 turns a failed bake into a failed build. Use it for
+# offline delivery images: an image that silently lacks the checkpoint looks
+# identical to a good one and only fails on the customer's air-gapped site.
+# Default 0 keeps ordinary rebuilds working when the download is unavailable.
+#
+# NOTE: /opt/models lives INSIDE the image and disappears on every rebuild that
+# misses the bake. The durable place for weights is the ${DATA_ROOT}/models
+# mount (/models), same as ppe and re-id — point RFDETR_WEIGHTS there.
+ARG REQUIRE_RFDETR_WEIGHTS=0
 RUN if [ "$WITH_RFDETR" = "1" ]; then \
       mkdir -p /opt/models && \
       (python -c "from rfdetr import RFDETRSmall; RFDETRSmall()" >/dev/null 2>&1 || true) && \
       W="$(find / -xdev -iname '*rf*detr*.pth' 2>/dev/null | head -1)" && \
       if [ -n "$W" ]; then cp "$W" /opt/models/rfdetr_small.pth && \
           echo "RF-DETR weights baked from $W"; \
-      else echo "WARN: RF-DETR weights not baked — first start needs internet"; fi ; \
+      elif [ "$REQUIRE_RFDETR_WEIGHTS" = "1" ]; then \
+          echo "FATAL: RF-DETR weights not baked and REQUIRE_RFDETR_WEIGHTS=1" >&2; exit 1; \
+      else echo "WARN: RF-DETR weights not baked — set RFDETR_WEIGHTS=/models/... instead"; fi ; \
     fi
 
 # staff face-id models (YuNet + SFace, ~40MB total). media.githubusercontent

@@ -242,7 +242,12 @@ services:
       - api
 
   analyzer:
-    build: ../analyzer
+    build:
+      context: ../analyzer
+      args:
+        # 1 = fail the build if the RF-DETR checkpoint could not be baked in.
+        # scripts/offline-bundle.sh sets it; ordinary rebuilds leave it 0.
+        REQUIRE_RFDETR_WEIGHTS: ${REQUIRE_RFDETR_WEIGHTS:-0}
     restart: unless-stopped
     environment:
       TZ: ${TZ}

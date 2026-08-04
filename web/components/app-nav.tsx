@@ -17,6 +17,7 @@ import {
 } from '@tabler/icons-react'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { LearningBanner } from '@/components/learning-banner'
 import { getClaims, leaveOrg, type Claims } from '@/lib/api'
 import { effectivePermsOf, type PermissionCode } from '@shared/events.schema'
 
@@ -60,6 +61,7 @@ export function AppNav(): React.JSX.Element | null {
   const adminHref = isSuper ? '/admin' : '/admin/org'
 
   return (
+    <>
     <header className="sticky top-0 z-40 flex h-14 items-center gap-0.5 border-b border-border/70 bg-background/80 px-2 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:gap-1 sm:px-4">
       <Link href="/dashboard" className="mr-1 flex shrink-0 items-center gap-2 sm:mr-4">
         <span className="flex h-7 w-7 items-center justify-center rounded-md bg-brand/10 text-brand ring-1 ring-brand/30">
@@ -117,5 +119,7 @@ export function AppNav(): React.JSX.Element | null {
         <ThemeToggle />
       </div>
     </header>
+    <LearningBanner />
+    </>
   )
 }

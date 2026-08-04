@@ -889,17 +889,37 @@ export async function testAlertRule(id: string): Promise<void> {
 const OrgSettingsSchema = z.object({
   escalation_chat_id: z.string(),
   escalation_minutes: z.number().nullable(),
+  learning_until: z.string().nullable(),
 })
 export type OrgSettings = z.infer<typeof OrgSettingsSchema>
 
 export async function getOrgSettings(): Promise<OrgSettings> {
   return apiJson('/api/v1/admin/org-settings', OrgSettingsSchema)
 }
-export async function saveOrgSettings(input: OrgSettings): Promise<void> {
+export async function saveOrgSettings(
+  input: Pick<OrgSettings, 'escalation_chat_id' | 'escalation_minutes'>,
+): Promise<void> {
   const res = await apiFetch('/api/v1/admin/org-settings', {
     method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
   })
   if (!res.ok) await throwApiError(res, 'saveOrgSettings')
+}
+
+/** days = 0 turns the post-installation quiet period off. */
+export async function setLearningMode(days: number): Promise<void> {
+  const res = await apiFetch('/api/v1/admin/org-settings/learning', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ days }),
+  })
+  if (!res.ok) await throwApiError(res, 'setLearningMode')
+}
+
+// Readable by every signed-in user — the banner explaining why the site is
+// quiet must not depend on holding the «alerts» checkbox.
+const OrgStatusSchema = z.object({ learning_until: z.string().nullable() })
+export type OrgStatus = z.infer<typeof OrgStatusSchema>
+
+export async function getOrgStatus(): Promise<OrgStatus> {
+  return apiJson('/api/v1/admin/org-status', OrgStatusSchema)
 }
 
 export async function getAlertRules(): Promise<AlertRule[]> {

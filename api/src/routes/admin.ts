@@ -15,6 +15,7 @@ import { config } from '../config.js'
 import { CLIPS_BUCKET, minio } from '../minio.js'
 import { alertsQueue } from '../queues.js'
 import { SETTING_DEFS, loadSettings, saveSetting } from '../settings.js'
+import { getTenantSettings, inLearningMode, saveTenantSettings } from '../tenant_settings.js'
 import { statfs } from 'node:fs/promises'
 
 const RoleEnum = z.enum(['super', 'admin', 'manager', 'operator'])
@@ -340,13 +341,7 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
   // events into another organisation's chat. Anything naming a recipient
   // belongs to the tenant.
   app.get('/org-settings', { preHandler: [requireAlertsPerm] }, async (req) => {
-    const [row] = await db.select({ settings: tenant.settings })
-      .from(tenant).where(eq(tenant.id, req.tenantId)).limit(1)
-    const s = row?.settings ?? {}
-    return {
-      escalation_chat_id: typeof s.escalation_chat_id === 'string' ? s.escalation_chat_id : '',
-      escalation_minutes: typeof s.escalation_minutes === 'number' ? s.escalation_minutes : null,
-    }
+    return getTenantSettings(req.tenantId)
   })
 
   app.put('/org-settings', {
@@ -360,20 +355,44 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
     },
   }, async (req) => {
     const b = req.body
-    const [row] = await db.select({ settings: tenant.settings })
-      .from(tenant).where(eq(tenant.id, req.tenantId)).limit(1)
-    const next = {
-      ...(row?.settings ?? {}),
+    await saveTenantSettings(req.tenantId, {
       escalation_chat_id: b.escalation_chat_id,
       escalation_minutes: b.escalation_minutes,
-    }
-    await db.update(tenant).set({ settings: next }).where(eq(tenant.id, req.tenantId))
+    })
     await writeAudit({
       tenantId: req.tenantId, userId: req.userId, action: 'org_settings.update',
       resourceType: 'tenant', resourceId: req.tenantId,
       details: { escalation_minutes: b.escalation_minutes, has_chat: b.escalation_chat_id !== '' },
     })
     return { ok: true }
+  })
+
+  // Post-installation quiet period. Separate route from the settings above so
+  // it can be switched on and off without touching the escalation fields.
+  app.post('/org-settings/learning', {
+    preHandler: [requireAlertsPerm],
+    schema: { body: z.object({ days: z.number().int().min(0).max(60) }) },
+  }, async (req) => {
+    const until = req.body.days > 0
+      ? new Date(Date.now() + req.body.days * 86_400_000).toISOString()
+      : null
+    await saveTenantSettings(req.tenantId, { learning_until: until })
+    await writeAudit({
+      tenantId: req.tenantId, userId: req.userId,
+      action: until ? 'org.learning_mode_on' : 'org.learning_mode_off',
+      resourceType: 'tenant', resourceId: req.tenantId, details: { until },
+    })
+    return { learning_until: until }
+  })
+
+  // Readable by any signed-in user: the banner telling everyone why the site
+  // is quiet must be visible to the people who would otherwise assume the
+  // system is broken — not only to whoever holds the «alerts» checkbox.
+  app.get('/org-status', { preHandler: [app.authenticate] }, async (req) => {
+    const s = await getTenantSettings(req.tenantId)
+    return {
+      learning_until: inLearningMode(s) ? s.learning_until : null,
+    }
   })
 
   // ── Alert rules (tenant-scoped) ─────────────────────────────

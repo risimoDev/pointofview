@@ -3,13 +3,14 @@ import IORedis from 'ioredis'
 import { and, eq, gte, lt, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '../db/client.js'
-import { alertRule, camera, event, notification, site, tenant, zone } from '../../db/schema.js'
+import { alertRule, camera, event, notification, site, zone } from '../../db/schema.js'
 import { config } from '../config.js'
 import { ALERTS_QUEUE, alertsQueue, type AlertJob } from '../queues.js'
 import { minio } from '../minio.js'
 import { settingNumber, settingSecret } from '../settings.js'
 import { TYPE_LABELS } from '../event_labels.js'
 import { ackButtons, runTelegramAckPoller } from '../telegram_ack.js'
+import { allTenantSettings, getTenantSettings, inLearningMode } from '../tenant_settings.js'
 
 const log = (msg: string, extra?: unknown): void => {
   // eslint-disable-next-line no-console
@@ -28,6 +29,11 @@ const SEVERITY_RANK: Record<string, number> = { info: 0, warn: 1, critical: 2 }
 // How far back escalation looks. Anything older is history: after an outage
 // the backlog must not be paged out at once.
 const ESCALATION_LOOKBACK_HOURS = 24
+
+// Purely infrastructural: these say the SYSTEM is broken, not that a person
+// did something. Learning mode never silences them — during the first week
+// «камера не в сети» is precisely what the installer needs to hear.
+const INFRA_EVENT_TYPES = new Set(['camera_offline', 'camera_online'])
 
 // channels jsonb shape (telegram + webhook dispatched; others recorded unsupported)
 const TelegramChannel = z.object({ type: z.literal('telegram'), chat_id: z.union([z.string(), z.number()]) })
@@ -268,14 +274,14 @@ async function processEscalation(): Promise<void> {
   // Recipients live on the tenant, so escalation is resolved per organisation.
   // A server-wide chat id would post one organisation's unhandled events into
   // another's chat the moment a second tenant exists.
-  const tenants = await db.select({ id: tenant.id, settings: tenant.settings }).from(tenant)
-  for (const t of tenants) {
-    const s = t.settings ?? {}
-    const chatId = typeof s.escalation_chat_id === 'string' ? s.escalation_chat_id : ''
-    const minutes = typeof s.escalation_minutes === 'number' && s.escalation_minutes > 0
-      ? s.escalation_minutes
+  for (const t of await allTenantSettings()) {
+    const chatId = t.settings.escalation_chat_id
+    const minutes = t.settings.escalation_minutes && t.settings.escalation_minutes > 0
+      ? t.settings.escalation_minutes
       : defaultMinutes
     if (!chatId || minutes <= 0) continue
+    // nothing is escalated while the site is still being tuned
+    if (inLearningMode(t.settings)) continue
     await escalateTenant(t.id, chatId, minutes)
   }
 }
@@ -360,6 +366,20 @@ async function processAlert(job: Job<AlertJob>, redis: IORedis): Promise<void> {
     .where(and(eq(event.id, event_id), eq(event.tenantId, tenant_id)))
     .limit(1)
   if (!row) { log('alert: event not found', { event_id }); return }
+
+  // Learning mode: the site was installed days ago, nothing is tuned yet, and
+  // sending the resulting flood is how a customer ends up switching alerts off
+  // for good. Events are still recorded — the tuning is done from them.
+  // Infrastructure events are exempt: during the first week «камера не в сети»
+  // is exactly what the installer needs to hear.
+  if (!INFRA_EVENT_TYPES.has(row.type)) {
+    const ts = await getTenantSettings(tenant_id)
+    if (inLearningMode(ts)) {
+      log('alert suppressed: learning mode', { event_id, until: ts.learning_until })
+      return
+    }
+  }
+
   const ctx: EventCtx = { ...row, eventId: event_id }
 
   const rules = await db.select().from(alertRule).where(and(

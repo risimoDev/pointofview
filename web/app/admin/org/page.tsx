@@ -5,12 +5,12 @@ import { useState } from 'react'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import {
   IconUsersGroup, IconBuildingStore, IconTrash, IconLink, IconCopy, IconBan,
-  IconBellExclamation,
+  IconBellExclamation, IconSchool,
 } from '@tabler/icons-react'
 import {
   getSites, createSite, getUsers, createUser, updateUser, deleteUser,
   getInvites, createInvite, deleteInvite, getCameras, getClaims, errorMessage,
-  getOrgSettings, saveOrgSettings,
+  getOrgSettings, saveOrgSettings, setLearningMode,
   type AdminUser, type Invite,
 } from '@/lib/api'
 import { PermissionCodes, RoleDefaultPerms } from '@shared/events.schema'
@@ -462,7 +462,79 @@ export default function OrgPage(): React.JSX.Element {
       </section>
 
       <EscalationSection />
+      <LearningModeSection />
     </main>
+  )
+}
+
+/** Post-installation quiet period: events are recorded, notifications are not
+ *  sent. The first days after installation are the noisiest the system will
+ *  ever be, and that noise is the usual reason a site turns alerts off for
+ *  good. */
+function LearningModeSection(): React.JSX.Element {
+  const qc = useQueryClient()
+  const settings = useQuery({ queryKey: ['org-settings'], queryFn: getOrgSettings })
+  const [err, setErr] = useState<string | null>(null)
+
+  const until = settings.data?.learning_until
+  const untilDate = until ? new Date(until) : null
+  const active = untilDate !== null && untilDate.getTime() > Date.now()
+
+  const set = useMutation({
+    mutationFn: setLearningMode,
+    onSuccess: () => {
+      setErr(null)
+      void qc.invalidateQueries({ queryKey: ['org-settings'] })
+      void qc.invalidateQueries({ queryKey: ['org-status'] })
+    },
+    onError: (e) => setErr(errorMessage(e)),
+  })
+
+  return (
+    <section className="space-y-3">
+      <h2 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+        <IconSchool className="h-4 w-4" stroke={1.75} /> Учебный режим
+      </h2>
+      <p className="max-w-2xl text-xs text-muted-foreground">
+        События пишутся в журнал, но оповещения наружу не уходят. Нужен в первые
+        дни после установки: зоны ещё не размечены точно, пороги стоят
+        по умолчанию, и поток ложных сообщений — самая частая причина, по которой
+        оповещения отключают и больше не включают. Разбирайте журнал, донастраивайте
+        зоны, потом включайте оповещения. События «камера не в сети» приходят
+        всегда — при монтаже это как раз то, что нужно знать.
+      </p>
+      {active && untilDate !== null && (
+        <p className="text-sm">
+          Включён до{' '}
+          <span className="font-medium">
+            {new Intl.DateTimeFormat('ru-RU', { dateStyle: 'long', timeStyle: 'short' }).format(untilDate)}
+          </span>
+        </p>
+      )}
+      <div className="flex flex-wrap items-center gap-2">
+        {[3, 7, 14].map((d) => (
+          <Button
+            key={d} size="sm" variant="outline" disabled={set.isPending}
+            onClick={() => set.mutate(d)}
+          >
+            {active ? `Продлить на ${d} дн.` : `Включить на ${d} дн.`}
+          </Button>
+        ))}
+        {active && (
+          <Button
+            size="sm" variant="ghost" disabled={set.isPending}
+            onClick={() => {
+              if (confirm('Выключить учебный режим? Оповещения начнут приходить сразу.')) {
+                set.mutate(0)
+              }
+            }}
+          >
+            Выключить
+          </Button>
+        )}
+      </div>
+      {err !== null && <p className="text-xs text-destructive">{err}</p>}
+    </section>
   )
 }
 

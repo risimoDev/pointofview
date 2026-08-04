@@ -11,6 +11,7 @@ import { settingNumber, settingSecret } from '../settings.js'
 import { TYPE_LABELS } from '../event_labels.js'
 import { ackButtons, runTelegramAckPoller } from '../telegram_ack.js'
 import { allTenantSettings, getTenantSettings, inLearningMode } from '../tenant_settings.js'
+import { runScheduledSummaries } from '../summaries.js'
 
 const log = (msg: string, extra?: unknown): void => {
   // eslint-disable-next-line no-console
@@ -348,10 +349,24 @@ async function escalateTenant(
   }
 }
 
+/** Evening report + pre-shift camera check, if the organisation scheduled them. */
+async function processSummaries(redis: IORedis): Promise<void> {
+  await runScheduledSummaries({
+    redis,
+    send: async (chatId, text) => {
+      const token = await tgToken()
+      if (!token) throw new Error('telegram bot token not configured')
+      await tgJson(token, 'sendMessage', { chat_id: chatId, text, parse_mode: 'HTML' })
+    },
+    log,
+  })
+}
+
 async function processAlert(job: Job<AlertJob>, redis: IORedis): Promise<void> {
-  const { event_id, tenant_id, test_rule_id, digest, escalate } = job.data
+  const { event_id, tenant_id, test_rule_id, digest, escalate, summaries } = job.data
   if (digest) { await processDigest(redis); return }
   if (escalate) { await processEscalation(); return }
+  if (summaries) { await processSummaries(redis); return }
   if (test_rule_id) { await processTest(test_rule_id, tenant_id); return }
 
   const [row] = await db.select({
@@ -464,6 +479,13 @@ async function main(): Promise<void> {
   // digest tick: every minute check which rule buffers are due to flush
   await alertsQueue.add('digest', { event_id: '', tenant_id: '', digest: true }, {
     repeat: { every: 60_000 }, jobId: 'digest-tick',
+    removeOnComplete: 5, removeOnFail: 5,
+  })
+
+  // scheduled summaries tick: every 5 min is fine — each report is claimed
+  // for its local day, so the tick only has to be finer than the schedule
+  await alertsQueue.add('summaries', { event_id: '', tenant_id: '', summaries: true }, {
+    repeat: { every: 300_000 }, jobId: 'summaries-tick',
     removeOnComplete: 5, removeOnFail: 5,
   })
 

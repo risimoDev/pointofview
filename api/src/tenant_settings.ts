@@ -19,12 +19,27 @@ export interface TenantSettings {
   escalation_minutes: number | null
   /** ISO timestamp; while in the future, no notifications leave the system. */
   learning_until: string | null
+  /** Telegram chat for the scheduled summaries. Empty = none are sent. */
+  summary_chat_id: string
+  /** "HH:MM" in the organisation's timezone; null = off. */
+  daily_summary_at: string | null
+  /** "HH:MM" pre-shift camera check; null = off. */
+  shift_check_at: string | null
 }
 
 export const EMPTY_TENANT_SETTINGS: TenantSettings = {
   escalation_chat_id: '',
   escalation_minutes: null,
   learning_until: null,
+  summary_chat_id: '',
+  daily_summary_at: null,
+  shift_check_at: null,
+}
+
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/
+
+function hhmm(v: unknown): string | null {
+  return typeof v === 'string' && HHMM.test(v) ? v : null
 }
 
 function parse(raw: Record<string, unknown> | null | undefined): TenantSettings {
@@ -33,6 +48,9 @@ function parse(raw: Record<string, unknown> | null | undefined): TenantSettings 
     escalation_chat_id: typeof s.escalation_chat_id === 'string' ? s.escalation_chat_id : '',
     escalation_minutes: typeof s.escalation_minutes === 'number' ? s.escalation_minutes : null,
     learning_until: typeof s.learning_until === 'string' ? s.learning_until : null,
+    summary_chat_id: typeof s.summary_chat_id === 'string' ? s.summary_chat_id : '',
+    daily_summary_at: hhmm(s.daily_summary_at),
+    shift_check_at: hhmm(s.shift_check_at),
   }
 }
 

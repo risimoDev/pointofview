@@ -11,7 +11,7 @@ import {
   getSites, createSite, getUsers, createUser, updateUser, deleteUser,
   getInvites, createInvite, deleteInvite, getCameras, getClaims, errorMessage,
   getOrgSettings, saveOrgSettings, setLearningMode,
-  type AdminUser, type Invite,
+  type AdminUser, type Invite, type OrgSettingsInput,
 } from '@/lib/api'
 import { PermissionCodes, RoleDefaultPerms } from '@shared/events.schema'
 import { Button } from '@/components/ui/button'
@@ -538,35 +538,42 @@ function LearningModeSection(): React.JSX.Element {
   )
 }
 
-/** Who gets told when a critical event stays unhandled.
+/** Escalation + scheduled summaries.
  *
- *  Lives on the organisation, not in the server settings: a single server-wide
- *  chat id would post one organisation's events into another's chat. */
+ *  One form on purpose: all of it is saved with a single PUT, and two forms
+ *  writing the same object would silently overwrite each other's fields.
+ *
+ *  These live on the organisation rather than in the server settings — a
+ *  single server-wide chat id would post one organisation's events into
+ *  another's chat. */
 function EscalationSection(): React.JSX.Element {
   const qc = useQueryClient()
   const settings = useQuery({ queryKey: ['org-settings'], queryFn: getOrgSettings })
-  const [chatId, setChatId] = useState<string | null>(null)
-  const [minutes, setMinutes] = useState<string | null>(null)
+  const [draft, setDraft] = useState<Partial<OrgSettingsInput>>({})
   const [err, setErr] = useState<string | null>(null)
 
-  const current = settings.data
-  const chatValue = chatId ?? current?.escalation_chat_id ?? ''
-  const minutesValue = minutes ?? (current?.escalation_minutes === null || current === undefined
-    ? ''
-    : String(current.escalation_minutes))
+  const cur = settings.data
+  const field = <K extends keyof OrgSettingsInput>(k: K): string => {
+    const v = draft[k] ?? cur?.[k]
+    return v === null || v === undefined ? '' : String(v)
+  }
+  const set = (k: keyof OrgSettingsInput, v: string): void =>
+    setDraft((d) => ({ ...d, [k]: v }))
 
   const save = useMutation({
     mutationFn: async () => {
-      const trimmed = minutesValue.trim()
+      const minutes = field('escalation_minutes').trim()
       await saveOrgSettings({
-        escalation_chat_id: chatValue.trim(),
-        escalation_minutes: trimmed === '' ? null : Number(trimmed),
+        escalation_chat_id: field('escalation_chat_id').trim(),
+        escalation_minutes: minutes === '' ? null : Number(minutes),
+        summary_chat_id: field('summary_chat_id').trim(),
+        daily_summary_at: field('daily_summary_at').trim() || null,
+        shift_check_at: field('shift_check_at').trim() || null,
       })
     },
     onSuccess: () => {
       setErr(null)
-      setChatId(null)
-      setMinutes(null)
+      setDraft({})
       void qc.invalidateQueries({ queryKey: ['org-settings'] })
     },
     onError: (e) => setErr(errorMessage(e)),
@@ -575,32 +582,74 @@ function EscalationSection(): React.JSX.Element {
   return (
     <section className="space-y-3">
       <h2 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-        <IconBellExclamation className="h-4 w-4" stroke={1.75} /> Эскалация неразобранных событий
+        <IconBellExclamation className="h-4 w-4" stroke={1.75} /> Оповещения и сводки
       </h2>
-      <p className="max-w-2xl text-xs text-muted-foreground">
-        Если критичное событие никто не отметил «Принял» — ни в журнале, ни кнопкой
-        в Telegram — уведомление уходит руководителю. Тихие часы на эскалацию не
-        распространяются: неразобранное критичное событие — это именно то, что они
-        не должны заглушать.
-      </p>
       <form
-        className="flex flex-wrap items-end gap-2"
+        className="space-y-4"
         onSubmit={(e) => { e.preventDefault(); save.mutate() }}
       >
-        <div className="space-y-1">
-          <Label htmlFor="esc-chat">Telegram chat_id руководителя</Label>
-          <Input
-            id="esc-chat" value={chatValue} onChange={(e) => setChatId(e.target.value)}
-            placeholder="пусто — эскалация выключена" className="w-64"
-          />
+        <div className="space-y-2">
+          <p className="max-w-2xl text-xs text-muted-foreground">
+            <b>Эскалация.</b> Если критичное событие никто не отметил «Принял» —
+            ни в журнале, ни кнопкой в Telegram — уведомление уходит руководителю.
+            Тихие часы на эскалацию не распространяются: неразобранное критичное
+            событие — это именно то, что они не должны заглушать.
+          </p>
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="space-y-1">
+              <Label htmlFor="esc-chat">Telegram chat_id руководителя</Label>
+              <Input
+                id="esc-chat" value={field('escalation_chat_id')}
+                onChange={(e) => set('escalation_chat_id', e.target.value)}
+                placeholder="пусто — эскалация выключена" className="w-64"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="esc-min">Через, мин</Label>
+              <Input
+                id="esc-min" value={field('escalation_minutes')}
+                onChange={(e) => set('escalation_minutes', e.target.value)}
+                placeholder="по умолчанию" className="w-32" inputMode="numeric"
+              />
+            </div>
+          </div>
         </div>
-        <div className="space-y-1">
-          <Label htmlFor="esc-min">Через, мин</Label>
-          <Input
-            id="esc-min" value={minutesValue} onChange={(e) => setMinutes(e.target.value)}
-            placeholder="по умолчанию" className="w-32" inputMode="numeric"
-          />
+
+        <div className="space-y-2">
+          <p className="max-w-2xl text-xs text-muted-foreground">
+            <b>Сводки по расписанию.</b> Вечерняя — что произошло за день.
+            Утренняя — видит ли система объект вообще: сколько камер на связи,
+            у каких изменился обзор, свежая ли резервная копия. Время указывается
+            в часовом поясе площадки, формат ЧЧ:ММ, пусто — не отправлять.
+          </p>
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="space-y-1">
+              <Label htmlFor="sum-chat">Telegram chat_id для сводок</Label>
+              <Input
+                id="sum-chat" value={field('summary_chat_id')}
+                onChange={(e) => set('summary_chat_id', e.target.value)}
+                placeholder="пусто — сводки не отправляются" className="w-64"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="sum-daily">Вечерняя сводка</Label>
+              <Input
+                id="sum-daily" value={field('daily_summary_at')}
+                onChange={(e) => set('daily_summary_at', e.target.value)}
+                placeholder="20:00" className="w-28"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="sum-shift">Проверка перед сменой</Label>
+              <Input
+                id="sum-shift" value={field('shift_check_at')}
+                onChange={(e) => set('shift_check_at', e.target.value)}
+                placeholder="07:30" className="w-28"
+              />
+            </div>
+          </div>
         </div>
+
         <Button type="submit" disabled={save.isPending}>Сохранить</Button>
       </form>
       {err !== null && <p className="text-xs text-destructive">{err}</p>}

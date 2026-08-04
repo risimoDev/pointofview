@@ -890,15 +890,18 @@ const OrgSettingsSchema = z.object({
   escalation_chat_id: z.string(),
   escalation_minutes: z.number().nullable(),
   learning_until: z.string().nullable(),
+  summary_chat_id: z.string(),
+  daily_summary_at: z.string().nullable(),
+  shift_check_at: z.string().nullable(),
 })
 export type OrgSettings = z.infer<typeof OrgSettingsSchema>
 
 export async function getOrgSettings(): Promise<OrgSettings> {
   return apiJson('/api/v1/admin/org-settings', OrgSettingsSchema)
 }
-export async function saveOrgSettings(
-  input: Pick<OrgSettings, 'escalation_chat_id' | 'escalation_minutes'>,
-): Promise<void> {
+export type OrgSettingsInput = Omit<OrgSettings, 'learning_until'>
+
+export async function saveOrgSettings(input: OrgSettingsInput): Promise<void> {
   const res = await apiFetch('/api/v1/admin/org-settings', {
     method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
   })

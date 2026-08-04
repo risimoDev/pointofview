@@ -26,6 +26,8 @@ export interface AlertJob {
   digest?: boolean
   // repeatable tick: find critical events nobody acknowledged and escalate
   escalate?: boolean
+  // repeatable tick: daily summary / pre-shift camera check, if scheduled
+  summaries?: boolean
 }
 
 export const ALERTS_QUEUE = 'alerts'

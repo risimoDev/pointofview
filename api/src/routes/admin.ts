@@ -18,6 +18,9 @@ import { SETTING_DEFS, loadSettings, saveSetting } from '../settings.js'
 import { getTenantSettings, inLearningMode, saveTenantSettings } from '../tenant_settings.js'
 import { statfs } from 'node:fs/promises'
 
+// "HH:MM", 24-hour — the schedule fields of the org settings
+const HHMM_RE = /^([01]\d|2[0-3]):[0-5]\d$/
+
 const RoleEnum = z.enum(['super', 'admin', 'manager', 'operator'])
 // roles a tenant owner may assign — never 'super' (privilege escalation)
 const TenantRoleEnum = z.enum(['admin', 'manager', 'operator'])
@@ -351,6 +354,9 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
         escalation_chat_id: z.string().trim().max(64).default(''),
         // null = use the server-wide default from /admin/settings
         escalation_minutes: z.number().int().min(0).max(1440).nullable().default(null),
+        summary_chat_id: z.string().trim().max(64).default(''),
+        daily_summary_at: z.string().regex(HHMM_RE).nullable().default(null),
+        shift_check_at: z.string().regex(HHMM_RE).nullable().default(null),
       }),
     },
   }, async (req) => {
@@ -358,11 +364,19 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
     await saveTenantSettings(req.tenantId, {
       escalation_chat_id: b.escalation_chat_id,
       escalation_minutes: b.escalation_minutes,
+      summary_chat_id: b.summary_chat_id,
+      daily_summary_at: b.daily_summary_at,
+      shift_check_at: b.shift_check_at,
     })
     await writeAudit({
       tenantId: req.tenantId, userId: req.userId, action: 'org_settings.update',
       resourceType: 'tenant', resourceId: req.tenantId,
-      details: { escalation_minutes: b.escalation_minutes, has_chat: b.escalation_chat_id !== '' },
+      details: {
+        escalation_minutes: b.escalation_minutes,
+        has_chat: b.escalation_chat_id !== '',
+        daily_summary_at: b.daily_summary_at,
+        shift_check_at: b.shift_check_at,
+      },
     })
     return { ok: true }
   })

@@ -42,9 +42,22 @@ class SegmentRecorder:
         pattern = str(self.out_dir / f"{NAME_FORMAT}.mp4")
         if not self.cfg.url_main:
             raise ValueError(f"camera {self.cfg.id}: url_main required for recording")
+        # Video only, deliberately.
+        #
+        # Technically: cameras commonly send G.711 (pcm_alaw) audio, which mp4
+        # cannot carry. With `-c copy` ffmpeg fails writing the header and
+        # produces NOTHING — no video either. Transcoding to AAC would work but
+        # costs CPU on every camera around the clock.
+        #
+        # Legally: audio recording of people falls under stricter rules than
+        # video and is outside the position our contracts and privacy documents
+        # are built on (video without biometrics). Recording it by accident,
+        # because a camera happened to have a microphone, is a risk taken for
+        # nothing — an archive for video analytics has no use for sound.
         return [
             self.settings.ffmpeg_bin, "-nostdin", "-hide_banner", "-loglevel", "error",
             "-rtsp_transport", "tcp", "-i", self.cfg.url_main,
+            "-map", "0:v:0", "-an",
             "-c", "copy", "-f", "segment",
             "-segment_time", str(self.settings.segment_seconds),
             "-reset_timestamps", "1", "-strftime", "1", pattern,

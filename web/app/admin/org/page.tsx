@@ -5,10 +5,12 @@ import { useState } from 'react'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import {
   IconUsersGroup, IconBuildingStore, IconTrash, IconLink, IconCopy, IconBan,
+  IconBellExclamation,
 } from '@tabler/icons-react'
 import {
   getSites, createSite, getUsers, createUser, updateUser, deleteUser,
   getInvites, createInvite, deleteInvite, getCameras, getClaims, errorMessage,
+  getOrgSettings, saveOrgSettings,
   type AdminUser, type Invite,
 } from '@/lib/api'
 import { PermissionCodes, RoleDefaultPerms } from '@shared/events.schema'
@@ -458,6 +460,78 @@ export default function OrgPage(): React.JSX.Element {
           <Button type="submit" disabled={!siteName || addSite.isPending}>Добавить площадку</Button>
         </form>
       </section>
+
+      <EscalationSection />
     </main>
+  )
+}
+
+/** Who gets told when a critical event stays unhandled.
+ *
+ *  Lives on the organisation, not in the server settings: a single server-wide
+ *  chat id would post one organisation's events into another's chat. */
+function EscalationSection(): React.JSX.Element {
+  const qc = useQueryClient()
+  const settings = useQuery({ queryKey: ['org-settings'], queryFn: getOrgSettings })
+  const [chatId, setChatId] = useState<string | null>(null)
+  const [minutes, setMinutes] = useState<string | null>(null)
+  const [err, setErr] = useState<string | null>(null)
+
+  const current = settings.data
+  const chatValue = chatId ?? current?.escalation_chat_id ?? ''
+  const minutesValue = minutes ?? (current?.escalation_minutes === null || current === undefined
+    ? ''
+    : String(current.escalation_minutes))
+
+  const save = useMutation({
+    mutationFn: async () => {
+      const trimmed = minutesValue.trim()
+      await saveOrgSettings({
+        escalation_chat_id: chatValue.trim(),
+        escalation_minutes: trimmed === '' ? null : Number(trimmed),
+      })
+    },
+    onSuccess: () => {
+      setErr(null)
+      setChatId(null)
+      setMinutes(null)
+      void qc.invalidateQueries({ queryKey: ['org-settings'] })
+    },
+    onError: (e) => setErr(errorMessage(e)),
+  })
+
+  return (
+    <section className="space-y-3">
+      <h2 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+        <IconBellExclamation className="h-4 w-4" stroke={1.75} /> Эскалация неразобранных событий
+      </h2>
+      <p className="max-w-2xl text-xs text-muted-foreground">
+        Если критичное событие никто не отметил «Принял» — ни в журнале, ни кнопкой
+        в Telegram — уведомление уходит руководителю. Тихие часы на эскалацию не
+        распространяются: неразобранное критичное событие — это именно то, что они
+        не должны заглушать.
+      </p>
+      <form
+        className="flex flex-wrap items-end gap-2"
+        onSubmit={(e) => { e.preventDefault(); save.mutate() }}
+      >
+        <div className="space-y-1">
+          <Label htmlFor="esc-chat">Telegram chat_id руководителя</Label>
+          <Input
+            id="esc-chat" value={chatValue} onChange={(e) => setChatId(e.target.value)}
+            placeholder="пусто — эскалация выключена" className="w-64"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="esc-min">Через, мин</Label>
+          <Input
+            id="esc-min" value={minutesValue} onChange={(e) => setMinutes(e.target.value)}
+            placeholder="по умолчанию" className="w-32" inputMode="numeric"
+          />
+        </div>
+        <Button type="submit" disabled={save.isPending}>Сохранить</Button>
+      </form>
+      {err !== null && <p className="text-xs text-destructive">{err}</p>}
+    </section>
   )
 }

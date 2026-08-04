@@ -79,6 +79,12 @@ export const SETTING_DEFS: SettingDef[] = [
     def: '',
   },
   {
+    key: 'escalation_minutes', group: 'alerts', type: 'number',
+    label: 'Эскалация: не разобрано, мин', min: 0, max: 1440,
+    hint: 'Критичное событие никто не отметил «Принял» за это время — уведомление руководителю. Значение по умолчанию для всех организаций; получателя задаёт владелец в «Организация и доступы». 0 — выключено',
+    def: 0,
+  },
+  {
     key: 'report_telegram_chat_id', group: 'alerts', type: 'text',
     label: 'Telegram chat_id для отчётов',
     hint: 'Сюда бот отправляет PDF-отчёты по охране труда (кнопка «В Telegram» на странице «Отчёты»)',

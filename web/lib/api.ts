@@ -885,6 +885,23 @@ export async function testAlertRule(id: string): Promise<void> {
   if (res.status !== 202 && !res.ok) await throwApiError(res, 'testAlertRule')
 }
 
+// ── Organisation settings (escalation recipient) ──────────────
+const OrgSettingsSchema = z.object({
+  escalation_chat_id: z.string(),
+  escalation_minutes: z.number().nullable(),
+})
+export type OrgSettings = z.infer<typeof OrgSettingsSchema>
+
+export async function getOrgSettings(): Promise<OrgSettings> {
+  return apiJson('/api/v1/admin/org-settings', OrgSettingsSchema)
+}
+export async function saveOrgSettings(input: OrgSettings): Promise<void> {
+  const res = await apiFetch('/api/v1/admin/org-settings', {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
+  })
+  if (!res.ok) await throwApiError(res, 'saveOrgSettings')
+}
+
 export async function getAlertRules(): Promise<AlertRule[]> {
   return (await apiJson('/api/v1/admin/alert-rules', AlertRulesSchema)).items
 }

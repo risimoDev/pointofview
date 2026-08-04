@@ -1,14 +1,15 @@
 import { Worker, type Job, type ConnectionOptions } from 'bullmq'
 import IORedis from 'ioredis'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, gte, lt, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '../db/client.js'
-import { alertRule, camera, event, notification, site, zone } from '../../db/schema.js'
+import { alertRule, camera, event, notification, site, tenant, zone } from '../../db/schema.js'
 import { config } from '../config.js'
 import { ALERTS_QUEUE, alertsQueue, type AlertJob } from '../queues.js'
 import { minio } from '../minio.js'
 import { settingNumber, settingSecret } from '../settings.js'
 import { TYPE_LABELS } from '../event_labels.js'
+import { ackButtons, runTelegramAckPoller } from '../telegram_ack.js'
 
 const log = (msg: string, extra?: unknown): void => {
   // eslint-disable-next-line no-console
@@ -23,6 +24,10 @@ const SEVERITY_EMOJI: Record<string, string> = {
 // PDF/Excel reports (see event_labels.ts)
 
 const SEVERITY_RANK: Record<string, number> = { info: 0, warn: 1, critical: 2 }
+
+// How far back escalation looks. Anything older is history: after an outage
+// the backlog must not be paged out at once.
+const ESCALATION_LOOKBACK_HOURS = 24
 
 // channels jsonb shape (telegram + webhook dispatched; others recorded unsupported)
 const TelegramChannel = z.object({ type: z.literal('telegram'), chat_id: z.union([z.string(), z.number()]) })
@@ -54,6 +59,8 @@ interface EventCtx {
   tz: string
   zoneName: string | null
   meta?: Record<string, unknown>
+  /** null for the synthetic test message — nothing to acknowledge there */
+  eventId?: string | null
 }
 
 // digest buffer entry (Redis list digest:{rule_id})
@@ -122,7 +129,13 @@ async function sendTelegram(chatId: string | number, ctx: EventCtx): Promise<voi
   const token = await tgToken()
   if (!token) throw new Error('telegram bot token not configured (settings/env)')
   const text = buildText(ctx)
-  await tgJson(token, 'sendMessage', { chat_id: chatId, text, parse_mode: 'HTML' })
+  // «Принял» / «Ложное» right under the alert: the person who reads it is
+  // rarely at a computer, and an event acknowledged in one tap is an event
+  // that does not escalate and does not stay unhandled in the report.
+  await tgJson(token, 'sendMessage', {
+    chat_id: chatId, text, parse_mode: 'HTML',
+    ...(ctx.eventId ? { reply_markup: ackButtons(ctx.eventId) } : {}),
+  })
 
   if (ctx.snapshotKey) {
     const url = await minio.presignedGetObject(config.MINIO_BUCKET_SNAPSHOTS, ctx.snapshotKey, 300)
@@ -240,12 +253,102 @@ async function processDigest(redis: IORedis): Promise<void> {
   }
 }
 
+/** Nobody pressed «Принял» on a critical event — tell the manager.
+ *
+ *  Deliberately ignores quiet hours: an unhandled critical event is exactly
+ *  the case quiet hours must not swallow. It is also why the escalation
+ *  message carries the same buttons — the manager can close it in one tap.
+ *
+ *  The mark lives in event.meta rather than Redis so it survives a flush and
+ *  is visible in the journal: escalation must never fire twice for one event.
+ */
+async function processEscalation(): Promise<void> {
+  const defaultMinutes = await settingNumber('escalation_minutes')
+
+  // Recipients live on the tenant, so escalation is resolved per organisation.
+  // A server-wide chat id would post one organisation's unhandled events into
+  // another's chat the moment a second tenant exists.
+  const tenants = await db.select({ id: tenant.id, settings: tenant.settings }).from(tenant)
+  for (const t of tenants) {
+    const s = t.settings ?? {}
+    const chatId = typeof s.escalation_chat_id === 'string' ? s.escalation_chat_id : ''
+    const minutes = typeof s.escalation_minutes === 'number' && s.escalation_minutes > 0
+      ? s.escalation_minutes
+      : defaultMinutes
+    if (!chatId || minutes <= 0) continue
+    await escalateTenant(t.id, chatId, minutes)
+  }
+}
+
+async function escalateTenant(
+  tenantId: string, chatId: string, minutes: number,
+): Promise<void> {
+  const now = Date.now()
+  const due = new Date(now - minutes * 60_000)
+  // Older than this is history, not an emergency: after a long outage nobody
+  // wants yesterday's backlog paged out all at once.
+  const floor = new Date(now - ESCALATION_LOOKBACK_HOURS * 3_600_000)
+
+  const rows = await db.select({
+    id: event.id, type: event.type, tsStart: event.tsStart,
+    cameraName: camera.name, zoneName: zone.name, tz: site.timezone,
+  }).from(event)
+    .innerJoin(camera, eq(event.cameraId, camera.id))
+    .innerJoin(site, eq(event.siteId, site.id))
+    .leftJoin(zone, eq(event.zoneId, zone.id))
+    .where(and(
+      eq(event.tenantId, tenantId),
+      eq(event.severity, 'critical'),
+      eq(event.resolved, false),
+      eq(event.falsePositive, false),
+      lt(event.tsStart, due),
+      gte(event.tsStart, floor),
+      sql`${event.meta} ->> 'escalated_at' IS NULL`,
+    ))
+    .orderBy(event.tsStart)
+    .limit(20)
+
+  for (const row of rows) {
+    // Claim first: a send that throws must not leave the event eligible for
+    // an escalation storm on the next tick.
+    await db.update(event)
+      .set({ meta: sql`${event.meta} || jsonb_build_object('escalated_at', to_jsonb(now()))` })
+      .where(and(eq(event.id, row.id), eq(event.tsStart, row.tsStart)))
+
+    const tsLocal = new Intl.DateTimeFormat('ru-RU', {
+      timeZone: row.tz, dateStyle: 'short', timeStyle: 'short',
+    }).format(row.tsStart)
+    const waited = Math.round((now - row.tsStart.getTime()) / 60_000)
+    const text = [
+      `⏰ <b>Не разобрано ${waited} мин</b>`,
+      `${escapeHtml(TYPE_LABELS[row.type] ?? row.type)}`,
+      `📹 ${escapeHtml(row.cameraName)}`,
+      row.zoneName ? `📍 ${escapeHtml(row.zoneName)}` : null,
+      `🕐 ${tsLocal}`,
+    ].filter((l): l is string => l !== null).join('\n')
+
+    try {
+      const token = await tgToken()
+      if (!token) throw new Error('telegram bot token not configured')
+      await tgJson(token, 'sendMessage', {
+        chat_id: chatId, text, parse_mode: 'HTML', reply_markup: ackButtons(row.id),
+      })
+      log('escalated', { eventId: row.id, waited })
+    } catch (err) {
+      log('escalation failed', {
+        eventId: row.id, error: err instanceof Error ? err.message : String(err),
+      })
+    }
+  }
+}
+
 async function processAlert(job: Job<AlertJob>, redis: IORedis): Promise<void> {
-  const { event_id, tenant_id, test_rule_id, digest } = job.data
+  const { event_id, tenant_id, test_rule_id, digest, escalate } = job.data
   if (digest) { await processDigest(redis); return }
+  if (escalate) { await processEscalation(); return }
   if (test_rule_id) { await processTest(test_rule_id, tenant_id); return }
 
-  const [ctx] = await db.select({
+  const [row] = await db.select({
     type: event.type, severity: event.severity, tsStart: event.tsStart,
     cameraId: event.cameraId, snapshotKey: event.snapshotKey,
     cameraName: camera.name, tz: site.timezone, zoneName: zone.name,
@@ -256,11 +359,12 @@ async function processAlert(job: Job<AlertJob>, redis: IORedis): Promise<void> {
     .leftJoin(zone, eq(event.zoneId, zone.id))
     .where(and(eq(event.id, event_id), eq(event.tenantId, tenant_id)))
     .limit(1)
-  if (!ctx) { log('alert: event not found', { event_id }); return }
+  if (!row) { log('alert: event not found', { event_id }); return }
+  const ctx: EventCtx = { ...row, eventId: event_id }
 
   const rules = await db.select().from(alertRule).where(and(
     eq(alertRule.tenantId, tenant_id),
-    eq(alertRule.eventType, ctx.type),
+    eq(alertRule.eventType, row.type), // row keeps the enum literal type
     eq(alertRule.enabled, true),
   ))
 
@@ -342,6 +446,16 @@ async function main(): Promise<void> {
     repeat: { every: 60_000 }, jobId: 'digest-tick',
     removeOnComplete: 5, removeOnFail: 5,
   })
+
+  // escalation tick: critical events nobody acknowledged
+  await alertsQueue.add('escalate', { event_id: '', tenant_id: '', escalate: true }, {
+    repeat: { every: 60_000 }, jobId: 'escalate-tick',
+    removeOnComplete: 5, removeOnFail: 5,
+  })
+
+  // «Принял» / «Ложное» pressed in Telegram. Detached on purpose: it owns a
+  // long-lived polling loop and must not block worker startup or shutdown.
+  void runTelegramAckPoller({ redis: cmd, token: tgToken, log })
 
   const shutdown = async (): Promise<void> => {
     await worker.close()

@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { db } from '../db/client.js'
 import {
-  site, appUser, alertRule, camera, zone, tenantFeature, auditLog, userInvite,
+  site, appUser, alertRule, camera, zone, tenantFeature, auditLog, userInvite, tenant,
 } from '../../db/schema.js'
 import { randomBytes } from 'node:crypto'
 import { writeAudit } from '../audit.js'
@@ -331,6 +331,49 @@ const adminRoutes: FastifyPluginAsyncZod = async (app) => {
       .returning({ id: userInvite.id })
     if (!row) return reply.code(404).send({ message: 'invite not found' })
     return { deleted: true }
+  })
+
+  // ── Organisation settings (tenant.settings jsonb) ───────────
+  //
+  // Deliberately NOT in system_setting: that table is server-wide, and an
+  // escalation chat id kept there would send one organisation's unhandled
+  // events into another organisation's chat. Anything naming a recipient
+  // belongs to the tenant.
+  app.get('/org-settings', { preHandler: [requireAlertsPerm] }, async (req) => {
+    const [row] = await db.select({ settings: tenant.settings })
+      .from(tenant).where(eq(tenant.id, req.tenantId)).limit(1)
+    const s = row?.settings ?? {}
+    return {
+      escalation_chat_id: typeof s.escalation_chat_id === 'string' ? s.escalation_chat_id : '',
+      escalation_minutes: typeof s.escalation_minutes === 'number' ? s.escalation_minutes : null,
+    }
+  })
+
+  app.put('/org-settings', {
+    preHandler: [requireAlertsPerm],
+    schema: {
+      body: z.object({
+        escalation_chat_id: z.string().trim().max(64).default(''),
+        // null = use the server-wide default from /admin/settings
+        escalation_minutes: z.number().int().min(0).max(1440).nullable().default(null),
+      }),
+    },
+  }, async (req) => {
+    const b = req.body
+    const [row] = await db.select({ settings: tenant.settings })
+      .from(tenant).where(eq(tenant.id, req.tenantId)).limit(1)
+    const next = {
+      ...(row?.settings ?? {}),
+      escalation_chat_id: b.escalation_chat_id,
+      escalation_minutes: b.escalation_minutes,
+    }
+    await db.update(tenant).set({ settings: next }).where(eq(tenant.id, req.tenantId))
+    await writeAudit({
+      tenantId: req.tenantId, userId: req.userId, action: 'org_settings.update',
+      resourceType: 'tenant', resourceId: req.tenantId,
+      details: { escalation_minutes: b.escalation_minutes, has_chat: b.escalation_chat_id !== '' },
+    })
+    return { ok: true }
   })
 
   // ── Alert rules (tenant-scoped) ─────────────────────────────

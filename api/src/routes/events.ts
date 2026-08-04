@@ -11,7 +11,8 @@ import { config } from '../config.js'
 import { writeAudit } from '../audit.js'
 import { rateLimit } from '../ratelimit.js'
 import { typeLabel } from '../event_labels.js'
-import { fpKey, ollamaVision, snapshotB64, vlmSettings } from '../vlm.js'
+import { ollamaVision, snapshotB64, vlmSettings } from '../vlm.js'
+import { markFalsePositive, resolveEvent } from '../event_actions.js'
 
 const eventsRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get('/events', {
@@ -98,12 +99,11 @@ const eventsRoutes: FastifyPluginAsyncZod = async (app) => {
     preHandler: [app.requirePerm('events')],
     schema: { params: EventIdParams },
   }, async (req, reply) => {
-    const [row] = await db.update(event)
-      .set({ resolved: true, resolvedBy: req.userId, resolvedAt: new Date() })
-      .where(and(eq(event.id, req.params.id), eq(event.tenantId, req.tenantId)))
-      .returning({ id: event.id, resolved: event.resolved })
+    const row = await resolveEvent(req.params.id, {
+      tenantId: req.tenantId, userId: req.userId, via: 'ui',
+    })
     if (!row) return reply.code(404).send({ message: 'event not found' })
-    return row
+    return { id: row.id, resolved: true }
   })
 
   // Operator feedback: this alert was false. Marks the event (excluded from
@@ -116,39 +116,13 @@ const eventsRoutes: FastifyPluginAsyncZod = async (app) => {
       body: z.object({ false_positive: z.boolean().default(true) }),
     },
   }, async (req, reply) => {
-    const fp = req.body.false_positive
-    const [row] = await db.update(event)
-      .set(fp
-        ? { falsePositive: true, resolved: true, resolvedBy: req.userId, resolvedAt: new Date() }
-        : { falsePositive: false })
-      .where(and(eq(event.id, req.params.id), eq(event.tenantId, req.tenantId)))
-      .returning({
-        id: event.id, cameraId: event.cameraId, type: event.type,
-        snapshotKey: event.snapshotKey, falsePositive: event.falsePositive,
-      })
+    const row = await markFalsePositive(
+      req.params.id,
+      { tenantId: req.tenantId, userId: req.userId, via: 'ui' },
+      req.body.false_positive,
+      app.redis,
+    )
     if (!row) return reply.code(404).send({ message: 'event not found' })
-
-    const key = fpKey(req.tenantId, row.cameraId, row.type)
-    if (fp) {
-      await app.redis.incr(key)
-      await app.redis.expire(key, 30 * 86_400)
-      // frame → dataset for the future model fine-tune (real learning happens
-      // there; the VLM gate handles the meantime)
-      if (row.snapshotKey) {
-        await minio.copyObject(
-          config.MINIO_BUCKET_SNAPSHOTS,
-          `fp/${req.tenantId}/${row.type}/${row.id}.jpg`,
-          `/${config.MINIO_BUCKET_SNAPSHOTS}/${row.snapshotKey}`,
-        ).catch(() => undefined)
-      }
-    } else {
-      await app.redis.decr(key) // read side clamps negatives to 0
-    }
-    await writeAudit({
-      tenantId: req.tenantId, userId: req.userId,
-      action: fp ? 'event.false_positive' : 'event.false_positive_undo',
-      resourceType: 'event', resourceId: row.id, details: { type: row.type },
-    })
     return { id: row.id, falsePositive: row.falsePositive }
   })
 

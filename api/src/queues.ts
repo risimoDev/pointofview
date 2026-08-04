@@ -24,6 +24,8 @@ export interface AlertJob {
   test_rule_id?: string
   // repeatable tick: flush pending digest buffers instead of processing an event
   digest?: boolean
+  // repeatable tick: find critical events nobody acknowledged and escalate
+  escalate?: boolean
 }
 
 export const ALERTS_QUEUE = 'alerts'

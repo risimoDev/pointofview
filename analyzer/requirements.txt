@@ -5,11 +5,16 @@
 # that keeps the CUDA wheel from being replaced by a CPU build. Listing it in
 # this file would let pip resolve torch freely and break GPU inference.
 
-# LEGACY, AGPL-3.0 — being removed. Still imported by plugins/pose.py and
-# plugins/ppe.py; drop this line once both are migrated off ultralytics, and
-# the on-premise licence blocker is closed.
-# 8.4: required to load the YOLO26 PPE checkpoint (trained on 8.4.x).
-ultralytics==8.4.*
+# NOTE: ultralytics (LEGACY, AGPL-3.0) is NOT listed here either — same reason
+# as rfdetr, plus one more. It is installed by the Dockerfile under
+# ARG WITH_ULTRALYTICS, so that `--build-arg WITH_ULTRALYTICS=0` produces an
+# image with no AGPL code in it at all. That is the build the on-premise
+# delivery needs, and having the switch means the licence claim is verifiable
+# by inspecting the image rather than by trusting a comment.
+#
+# It stays installed by default only because PPE_BACKEND=yolo and
+# POSE_BACKEND=yolo still work that way on прод. See docs/operations/
+# PPE-TRAINING.md and POSE-RTMO.md for moving both off it.
 supervision==0.25.*
 opencv-python-headless==4.11.*
 numpy==2.1.*

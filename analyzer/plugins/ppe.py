@@ -17,10 +17,35 @@ logger = logging.getLogger(__name__)
 # PPE items we support in v1. Helmet + vest only — deliberately (docs/
 # architecture/14_FACTORY_MODULES.md, 5.1): glasses/gloves detect too poorly
 # on a CCTV frame to act on.
+#
+# Bare "hat" is listed on purpose: it catches datasets that name the class
+# "Hat", and it makes compound names like "Hat-Vest" match BOTH items, which
+# _resolve_items() then rejects as ambiguous. Keep in sync with
+# scripts/train_ppe.py.
 _ITEM_KEYWORDS = {
-    "helmet": ("helmet", "hardhat", "hard-hat"),
+    "helmet": ("helmet", "hardhat", "hard-hat", "hat"),
     "vest": ("vest", "waistcoat"),
 }
+_NEGATIVE_PREFIXES = ("no-", "no_", "no ")
+
+
+def resolve_items(name: str) -> tuple[str | None, bool]:
+    """Class name → PPE item. Returns (item, ambiguous).
+
+    Substring matching alone is not safe here. Roboflow COCO exports carry a
+    supercategory row as class 0 — in the HardHat & SafetyVest set it is
+    literally named "Hat-Vest" and holds zero annotations. Plain matching maps
+    it to "vest", so a model firing that class would credit a person with a
+    vest they are not wearing and the violation is silently missed. A name that
+    matches two items names two items; refuse it and demand config.class_map.
+    """
+    low = name.lower()
+    if low.startswith(_NEGATIVE_PREFIXES):
+        return None, False  # negative classes (no-helmet) — absence is ours to infer
+    hits = {item for item, kws in _ITEM_KEYWORDS.items() if any(k in low for k in kws)}
+    if len(hits) > 1:
+        return None, True
+    return (next(iter(hits)) if hits else None), False
 
 
 @dataclass(slots=True)
@@ -75,14 +100,20 @@ class PpePlugin(BasePlugin):
             self.settings, cfg, self.settings.ppe_model, self.settings.ppe_backend,
         )
         class_map: dict[int, str] = {}
+        ambiguous: list[str] = []
         names = model.class_names
         for cid, raw_name in names.items():
-            name = str(raw_name).lower()
-            if name.startswith(("no-", "no_", "no ")):
-                continue  # negative classes (no-helmet) — we infer absence ourselves
-            for item, keywords in _ITEM_KEYWORDS.items():
-                if any(k in name for k in keywords):
-                    class_map[int(cid)] = item
+            item, is_ambiguous = resolve_items(str(raw_name))
+            if is_ambiguous:
+                ambiguous.append(f"{cid}:{raw_name}")
+            elif item:
+                class_map[int(cid)] = item
+        if ambiguous:
+            logger.warning(
+                "ppe: class(es) %s name more than one item and are IGNORED — "
+                "set config.class_map if the model really predicts them",
+                ", ".join(ambiguous),
+            )
         # explicit override for models with non-obvious class names
         for item, ids in (cfg.get("class_map") or {}).items():
             if item in _ITEM_KEYWORDS:

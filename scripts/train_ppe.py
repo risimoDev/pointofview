@@ -40,11 +40,18 @@ for _s in (sys.stdout, sys.stderr):
         pass
 
 # Mirrors _ITEM_KEYWORDS in analyzer/plugins/ppe.py — keep in sync.
+# Bare "hat" is deliberate: it makes compound names like "Hat-Vest" match both
+# items, which classify_names() then rejects instead of guessing.
 ITEM_KEYWORDS: dict[str, tuple[str, ...]] = {
-    "helmet": ("helmet", "hardhat", "hard-hat"),
+    "helmet": ("helmet", "hardhat", "hard-hat", "hat"),
     "vest": ("vest", "waistcoat"),
 }
 NEGATIVE_PREFIXES = ("no-", "no_", "no ")
+# Below this, a class is present in the taxonomy but effectively untrainable.
+MIN_ANNOTATIONS = 200
+# Ratio between the rarest and the most common PPE item above which the rare
+# one will be noticeably weaker no matter how long training runs.
+IMBALANCE_WARN_RATIO = 5.0
 
 
 def load_coco(split_dir: Path) -> dict[str, Any]:
@@ -56,7 +63,13 @@ def load_coco(split_dir: Path) -> dict[str, Any]:
 
 
 def classify_names(categories: list[dict[str, Any]]) -> tuple[dict[int, str], list[str]]:
-    """Category id → PPE item, plus the names the analyzer will ignore."""
+    """Category id → PPE item, plus the names the analyzer will ignore.
+
+    Mirrors resolve_items() in analyzer/plugins/ppe.py. A name matching two
+    items ("Hat-Vest", the supercategory row Roboflow writes as class 0) is
+    rejected rather than guessed: mapping it to "vest" would make the analyzer
+    credit people with a vest the model never actually saw.
+    """
     mapped: dict[int, str] = {}
     ignored: list[str] = []
     for c in categories:
@@ -64,10 +77,11 @@ def classify_names(categories: list[dict[str, Any]]) -> tuple[dict[int, str], li
         if name.startswith(NEGATIVE_PREFIXES):
             ignored.append(f"{c['name']} (отрицательный класс, отсутствие выводим сами)")
             continue
-        hit = next((item for item, kws in ITEM_KEYWORDS.items()
-                    if any(k in name for k in kws)), None)
-        if hit:
-            mapped[int(c["id"])] = hit
+        hits = {item for item, kws in ITEM_KEYWORDS.items() if any(k in name for k in kws)}
+        if len(hits) > 1:
+            ignored.append(f"{c['name']} (называет несколько предметов — пропущен)")
+        elif hits:
+            mapped[int(c["id"])] = next(iter(hits))
         else:
             ignored.append(str(c["name"]))
     return mapped, ignored
@@ -104,14 +118,34 @@ def cmd_check(args: argparse.Namespace) -> int:
                   f"config.class_map у фичи ppe.", file=sys.stderr)
             ok = False
         else:
-            for item in ITEM_KEYWORDS:
-                total = sum(counts[cid] for cid, it in mapped.items() if it == item)
+            # A mapped class with no annotations is almost always a taxonomy
+            # placeholder, not a real class. Harmless while training, but the
+            # analyzer maps class ids by name and would honour it at inference.
+            for cid, item in sorted(mapped.items()):
+                if counts[cid] == 0:
+                    name = next(c["name"] for c in coco["categories"] if int(c["id"]) == cid)
+                    print(f"[!] {split}: класс {name!r} (id {cid}) отображается в "
+                          f"«{item}», но в разметке его НЕТ — служебная строка "
+                          f"датасета. Убедитесь, что анализатор его игнорирует")
+
+            totals = {
+                item: sum(counts[cid] for cid, it in mapped.items() if it == item)
+                for item in ITEM_KEYWORDS
+            }
+            for item, total in totals.items():
                 if total == 0:
                     print(f"[!] {split}: класса «{item}» нет ни в одной разметке — "
                           f"модель его не выучит")
-                elif total < 200:
+                elif total < MIN_ANNOTATIONS:
                     print(f"[!] {split}: «{item}» всего {total} разметок — мало, "
                           f"ожидайте низкую точность")
+            present = [t for t in totals.values() if t > 0]
+            if len(present) > 1 and max(present) / min(present) >= IMBALANCE_WARN_RATIO:
+                rare = min(totals, key=lambda i: totals[i] if totals[i] else 10**9)
+                print(f"[!] {split}: перекос классов — «{rare}» встречается в "
+                      f"{max(present) / min(present):.0f} раз реже остальных "
+                      f"({totals[rare]} против {max(present)}). Полнота по нему "
+                      f"будет заметно ниже; сверьте её на eval отдельно")
     return 0 if ok else 1
 
 

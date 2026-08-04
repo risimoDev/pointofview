@@ -44,7 +44,14 @@ class YoloAuxDetector:
     name = "yolo"
 
     def __init__(self, settings: Settings, path: str) -> None:
-        from ultralytics import YOLO
+        try:
+            from ultralytics import YOLO
+        except ImportError as exc:  # image built with WITH_ULTRALYTICS=0
+            raise RuntimeError(
+                "PPE backend=yolo needs ultralytics, which this image was built "
+                "without (WITH_ULTRALYTICS=0). Train a checkpoint with "
+                "scripts/train_ppe.py and set PPE_BACKEND=rfdetr."
+            ) from exc
 
         self.settings = settings
         model = YOLO(path)

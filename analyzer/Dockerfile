@@ -67,6 +67,26 @@ RUN if [ "$WITH_RFDETR" = "1" ]; then \
       fi ; \
     fi
 
+# ultralytics (AGPL-3.0) — LEGACY, and the last licence blocker for on-premise
+# delivery. Installed here rather than from requirements.txt so that
+# `--build-arg WITH_ULTRALYTICS=0` yields an image containing no AGPL code:
+# the claim becomes checkable (`pip show ultralytics` fails) instead of a
+# promise. Set it to 0 once PPE_BACKEND=rfdetr and POSE_BACKEND=rtmo are both
+# running on прод — until then the yolo backends need it.
+#
+# Same constraint discipline as rfdetr: ultralytics declares its own torch
+# requirement and would happily pull a CPU wheel over the CUDA one.
+ARG WITH_ULTRALYTICS=1
+RUN if [ "$WITH_ULTRALYTICS" = "1" ]; then \
+      python -c "import torch, torchvision; print('torch==' + torch.__version__.split('+')[0]); print('torchvision==' + torchvision.__version__.split('+')[0])" > /tmp/upins.txt && \
+      python -m pip install -c requirements.txt -c /tmp/upins.txt "ultralytics==8.4.*" \
+          --extra-index-url "https://download.pytorch.org/whl/${TORCH_VARIANT}" && \
+      python -c "from ultralytics import YOLO; print('ultralytics imports ok')" && \
+      if [ "$TORCH_VARIANT" != "cpu" ]; then \
+        python -c "import torch, sys; sys.exit('FATAL: the ultralytics install replaced torch with a CPU build') if torch.version.cuda is None else print('torch ok:', torch.__version__, 'cuda', torch.version.cuda)" ; \
+      fi ; \
+    else echo "ultralytics NOT installed (WITH_ULTRALYTICS=0) — PPE_BACKEND and POSE_BACKEND must be rfdetr/rtmo"; fi
+
 # rtmlib (Apache-2.0): RTMO pose behind pure ONNX Runtime — no mmcv, no extra
 # torch. Same discipline as rfdetr: constrained by requirements.txt so it
 # cannot move numpy/opencv, and the import is exercised HERE so a broken
@@ -111,26 +131,34 @@ RUN mkdir -p /opt/models && \
         https://media.githubusercontent.com/media/opencv/opencv_zoo/main/models/face_recognition_sface/face_recognition_sface_2021dec.onnx) \
     || echo "WARN: face models download failed — staff face-id will be disabled"
 
-# pose model (fall detection plugin, ~7MB) baked in so prod needs no internet
-# at runtime. Two release tags tried; on failure the plugin falls back to the
-# /models mount and then to a runtime auto-download.
-RUN (curl -fsSL --retry 3 -o /opt/models/yolov8n-pose.pt \
-        https://github.com/ultralytics/assets/releases/download/v8.2.0/yolov8n-pose.pt \
-     || curl -fsSL --retry 3 -o /opt/models/yolov8n-pose.pt \
-        https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8n-pose.pt) \
-    || echo "WARN: pose model download failed — plugin will use /models or auto-download"
+# Legacy yolo weights, baked so an air-gapped start needs no internet. Gated on
+# WITH_ULTRALYTICS: without the package they cannot be loaded at all, and they
+# are assets of the AGPL project we are leaving — an image built with
+# WITH_ULTRALYTICS=0 should carry neither the code nor the weights.
+#
+# pose model (fall detection, ~7MB); two release tags tried, on failure the
+# plugin falls back to the /models mount and then to a runtime auto-download.
+RUN if [ "$WITH_ULTRALYTICS" = "1" ]; then \
+      (curl -fsSL --retry 3 -o /opt/models/yolov8n-pose.pt \
+          https://github.com/ultralytics/assets/releases/download/v8.2.0/yolov8n-pose.pt \
+       || curl -fsSL --retry 3 -o /opt/models/yolov8n-pose.pt \
+          https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8n-pose.pt) \
+      || echo "WARN: pose model download failed — plugin will use /models or auto-download"; \
+    fi
 ENV POSE_MODEL=/opt/models/yolov8n-pose.pt
 
-# main detector weights baked in for offline (air-gapped) installs — with a
-# bare name in YOLO_MODEL ultralytics would try to download at startup. Online
-# deployments may still override YOLO_MODEL with a bare name (cache volume).
-RUN for M in yolov8n.pt yolov8s.pt; do \
-      (curl -fsSL --retry 3 -o /opt/models/$M \
-          https://github.com/ultralytics/assets/releases/download/v8.2.0/$M \
-       || curl -fsSL --retry 3 -o /opt/models/$M \
-          https://github.com/ultralytics/assets/releases/download/v0.0.0/$M) \
-      || echo "WARN: $M download failed — offline install will need /models/$M"; \
-    done
+# main detector weights — only relevant while DETECTOR_KIND=yolo. With a bare
+# name in YOLO_MODEL ultralytics would try to download at startup; online
+# deployments may still override it with a bare name (cache volume).
+RUN if [ "$WITH_ULTRALYTICS" = "1" ]; then \
+      for M in yolov8n.pt yolov8s.pt; do \
+        (curl -fsSL --retry 3 -o /opt/models/$M \
+            https://github.com/ultralytics/assets/releases/download/v8.2.0/$M \
+         || curl -fsSL --retry 3 -o /opt/models/$M \
+            https://github.com/ultralytics/assets/releases/download/v0.0.0/$M) \
+        || echo "WARN: $M download failed — offline install will need /models/$M"; \
+      done ; \
+    fi
 
 COPY . /app/analyzer
 ENV PYTHONPATH=/app \

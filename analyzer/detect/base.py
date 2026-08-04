@@ -49,7 +49,13 @@ def make_detector(settings: Settings) -> Detector:
 
         return RfDetrDetector(settings)
     if kind == "yolo":
-        from analyzer.detect.yolo import YoloDetector
+        try:
+            from analyzer.detect.yolo import YoloDetector
+        except ImportError as exc:  # image built with WITH_ULTRALYTICS=0
+            raise RuntimeError(
+                "detector_kind=yolo needs ultralytics, which this image was "
+                "built without (WITH_ULTRALYTICS=0). Set DETECTOR_KIND=rfdetr."
+            ) from exc
 
         logger.warning(
             "detector_kind=yolo uses ultralytics (AGPL-3.0): not licensed for "

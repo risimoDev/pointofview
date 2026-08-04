@@ -70,7 +70,14 @@ def make_pose_estimator(settings: Settings, cfg: dict[str, Any]) -> PoseEstimato
 
         return RtmoEstimator(settings, cfg)
     if backend == "yolo":
-        from analyzer.pose.yolo import YoloPoseEstimator
+        try:
+            from analyzer.pose.yolo import YoloPoseEstimator
+        except ImportError as exc:  # image built with WITH_ULTRALYTICS=0
+            raise RuntimeError(
+                "pose_backend=yolo needs ultralytics, which this image was "
+                "built without (WITH_ULTRALYTICS=0). Set POSE_BACKEND=rtmo and "
+                "put rtmo.onnx into the /models mount."
+            ) from exc
 
         logger.warning(
             "pose_backend=yolo uses ultralytics (AGPL-3.0): not licensed for "

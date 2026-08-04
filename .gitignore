@@ -44,8 +44,12 @@ dist-offline/
 *.onnx
 *.engine
 *.trt
+
+# docs/ IS tracked on purpose: the commercial and legal documents
+# (00_LEGAL, 01_LICENSE_REMEDIATION, offer, pricing) exist nowhere else,
+# and an untracked docs/ means one lost disk = they are gone. 2.7 MB of
+# markdown costs nothing to version. Do not re-add a `docs` rule here.
 doc.md
-docs
 
 # === Runtime data / volumes ===
 data/
@@ -91,5 +95,9 @@ graphify-out/2026-07-07/.graphify_labels.json
 graphify-out/2026-07-07/GRAPH_REPORT.md
 graphify-out/2026-07-07/graph.json
 graphify-out/2026-07-07/manifest.json
+# Real credentials of the first live site (RTSP urls with passwords in
+# CHECKLIST.md) — stays out of git deliberately, unlike docs/.
 pvz-onboarding
+
+# Training dataset, 4.5 GB
 HardHat - SafetyVest.coco.zip

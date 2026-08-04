@@ -16,6 +16,8 @@ logger = logging.getLogger(__name__)
 
 SEGMENT_GLOB = "*.mp4"
 NAME_FORMAT = "%Y%m%d_%H%M%S"
+# Anything smaller holds no frames — an mp4 header alone is ~1 KB.
+MIN_SEGMENT_BYTES = 4096
 
 
 def _parse_started(path: Path) -> datetime:
@@ -59,12 +61,21 @@ class SegmentRecorder:
                 stderr=asyncio.subprocess.PIPE,
             )
             watcher = asyncio.create_task(self._watch())
+            # stderr must be DRAINED, not just piped: ffmpeg writes the reason
+            # it failed there, and an unread pipe threw that reason away —
+            # "rc=1" alone says nothing and is undiagnosable from the log.
+            # Reading concurrently with wait() also avoids a full-buffer stall.
+            err_task = asyncio.create_task(proc.stderr.read()) if proc.stderr else None
             rc = await proc.wait()
             watcher.cancel()
+            err = ""
+            if err_task is not None:
+                raw = await err_task
+                err = raw.decode("utf-8", "replace").strip().replace("\n", " | ")[:500]
             await self._finalize_all(closing=True)
 
-            logger.warning("recorder %s: ffmpeg exited rc=%s, retry in %.0fs",
-                           self.cfg.id, rc, backoff)
+            logger.warning("recorder %s: ffmpeg exited rc=%s, retry in %.0fs%s",
+                           self.cfg.id, rc, backoff, f" — {err}" if err else "")
             await asyncio.sleep(backoff)
             backoff = min(backoff * 2, self.settings.max_backoff_seconds)
 
@@ -96,6 +107,18 @@ class SegmentRecorder:
         try:
             size = os.path.getsize(path)
         except OSError:
+            return
+        # A crashing ffmpeg leaves an empty file behind on every retry. Posting
+        # those fills archive_segment with rows pointing at nothing, and the
+        # timeline then shows coverage where no video exists — worse than an
+        # obviously empty archive, because it looks like it works.
+        if size < MIN_SEGMENT_BYTES:
+            logger.warning("recorder %s: skipping empty segment %s (%d bytes)",
+                           self.cfg.id, path.name, size)
+            try:
+                path.unlink()
+            except OSError:
+                pass
             return
         payload = {
             "tenant_id": self.settings.tenant_id,

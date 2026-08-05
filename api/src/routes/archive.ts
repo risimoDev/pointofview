@@ -1,5 +1,5 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
-import { and, asc, eq, gte, lte } from 'drizzle-orm'
+import { and, asc, count, eq, gte, lte } from 'drizzle-orm'
 import { createReadStream } from 'node:fs'
 import { stat } from 'node:fs/promises'
 import path from 'node:path'
@@ -19,6 +19,8 @@ import { config } from '../config.js'
 // the ticket itself; it grants nothing but reading that camera's segments.
 
 const TICKET_TTL_SECONDS = 30 * 60
+// Timeline marker cap; the total is returned alongside so the UI can say so.
+const EVENT_LIMIT = 500
 
 interface ArchiveTicket {
   typ: 'archive'
@@ -73,24 +75,30 @@ const archiveRoutes: FastifyPluginAsyncZod = async (app) => {
 
     const segments = rows.filter((r) => (r.endedAt ?? r.startedAt) >= from)
 
+    // Markers are capped so a noisy day cannot put thousands of DOM nodes on
+    // the timeline. The count goes back too: without it the second half of a
+    // busy day simply vanished from the scale with nothing saying so.
+    const eventWindow = and(
+      eq(event.cameraId, id),
+      gte(event.tsStart, from),
+      lte(event.tsStart, to),
+    )
     const events = await db.select({
       id: event.id, type: event.type, severity: event.severity,
       tsStart: event.tsStart,
     }).from(event)
-      .where(and(
-        eq(event.cameraId, id),
-        gte(event.tsStart, from),
-        lte(event.tsStart, to),
-      ))
+      .where(eventWindow)
       .orderBy(asc(event.tsStart))
-      .limit(500)
+      .limit(EVENT_LIMIT)
+    const [totals] = await db.select({ n: count() }).from(event).where(eventWindow)
+    const eventsTotal = Number(totals?.n ?? events.length)
 
     // the app JWT type is fixed to the session payload; a media ticket is a
     // deliberately different shape, so it goes through an unknown cast
     const payload = { typ: 'archive', tenant_id: req.tenantId, cam: id } satisfies ArchiveTicket
     const ticket = app.jwt.sign(payload as unknown as Parameters<typeof app.jwt.sign>[0],
       { expiresIn: TICKET_TTL_SECONDS })
-    return { segments, events, ticket, ttl: TICKET_TTL_SECONDS }
+    return { segments, events, eventsTotal, ticket, ttl: TICKET_TTL_SECONDS }
   })
 
   // Stream one segment with Range support. Auth is the media ticket in ?t=,

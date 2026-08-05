@@ -608,6 +608,8 @@ const ArchiveEventSchema = z.object({
 const ArchiveWindowSchema = z.object({
   segments: z.array(ArchiveSegmentSchema),
   events: z.array(ArchiveEventSchema),
+  // total in the window; `events` is capped for the timeline
+  eventsTotal: z.number().optional(),
   ticket: z.string(),
   ttl: z.number(),
 })

@@ -33,6 +33,7 @@ export const SUPER_ONLY_CONFIG_KEYS = [
   'fall_angle_deg', 'min_aspect_down', 'aspect_ratio',
   'min_checks_down', 'min_checks_without', 'min_checks',
   'check_interval_seconds', 'scene_threshold', 'min_person_px',
+  'window_seconds',
 ] as const
 
 const featuresRoutes: FastifyPluginAsyncZod = async (app) => {
@@ -176,22 +177,27 @@ const featuresRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get('/occupancy', {
     preHandler: [app.authenticate],
   }, async (req) => {
-    const raw = await app.redis.hgetall(`occupancy:${req.tenantId}`)
-    // only surface cameras that still exist — deleting a camera used to leave a
-    // stale occupancy row that kept showing on the dashboard
+    // Read only cameras that still exist, and read them by key: occupancy now
+    // lives in a per-camera key with a TTL, so a stopped analyzer or an
+    // unplugged camera makes the number DISAPPEAR instead of freezing the last
+    // value on the dashboard forever. (It used to be one hash per tenant,
+    // where nothing ever expired.)
     const live = await db.select({ id: camera.id }).from(camera)
       .innerJoin(site, eq(camera.siteId, site.id))
       .where(eq(site.tenantId, req.tenantId))
-    const liveIds = new Set(live.map((c) => c.id))
-    const stale = Object.keys(raw).filter((id) => !liveIds.has(id))
-    if (stale.length > 0) await app.redis.hdel(`occupancy:${req.tenantId}`, ...stale)
-    const items = Object.entries(raw)
-      .filter(([cameraId]) => liveIds.has(cameraId))
-      .map(([cameraId, json]) => {
-        // legacy rows may still carry visitors — ignored since the per-site hash took over
+    const raw = live.length > 0
+      ? await app.redis.mget(live.map((c) => `occupancy:${req.tenantId}:${c.id}`))
+      : []
+    const items = live.flatMap((c, i) => {
+      const json = raw[i]
+      if (!json) return []
+      try {
         const v = JSON.parse(json) as { occupancy: number; ts: number }
-        return { cameraId, occupancy: v.occupancy, ts: v.ts }
-      })
+        return [{ cameraId: c.id, occupancy: v.occupancy, ts: v.ts }]
+      } catch {
+        return []
+      }
+    })
 
     const sitesRaw = await app.redis.hgetall(`visitors:${req.tenantId}`)
     const names = await db.select({ id: site.id, name: site.name }).from(site)

@@ -326,8 +326,10 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
     await db.delete(camera).where(eq(camera.id, id))
     await syncCameras(app, req.tenantId)
     // clean up per-camera Redis state so the dashboard doesn't keep a ghost row
-    await app.redis.hdel(`occupancy:${req.tenantId}`, id)
-    await app.redis.del(`zones:${id}`, `camera_last_seen:${id}`, `camera_down:${id}`)
+    await app.redis.del(
+      `occupancy:${req.tenantId}:${id}`,
+      `zones:${id}`, `camera_last_seen:${id}`, `camera_down:${id}`,
+    )
     try {
       await fetch(`${config.GO2RTC_URL}/api/streams?src=${encodeURIComponent(id)}`, { method: 'DELETE' })
     } catch {

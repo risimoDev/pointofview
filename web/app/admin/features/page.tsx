@@ -38,8 +38,18 @@ const FEATURE_META: Record<string, FeatureMeta> = {
   },
   counter: {
     label: 'Подсчёт / занятость',
+    note: '«Сейчас» на дашборде — сколько людей видит камера в эту минуту, '
+      + 'сотрудники тоже считаются (в цехе все сотрудники). '
+      + '«Посетителей за день» — сколько разных людей побывало на площадке, '
+      + 'сотрудники не считаются; сутки заканчиваются в полночь по часовому '
+      + 'поясу площадки.',
     fields: [
-      { key: 'interval_seconds', label: 'Интервал записи метрики, сек', type: 'number', def: 60 },
+      { key: 'interval_seconds', label: 'Интервал записи метрики, сек', type: 'number', def: 10 },
+      {
+        key: 'window_seconds', label: 'Окно сглаживания, сек', type: 'number', def: 10,
+        superOnly: true,
+      },
+      { key: 'include_staff', label: 'Считать сотрудников в «сейчас»', type: 'bool', def: true },
     ],
   },
   reid: {

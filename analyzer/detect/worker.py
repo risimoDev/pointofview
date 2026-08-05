@@ -201,6 +201,7 @@ class AnalyzerWorker:
             ts=frame.ts,
             tracks=track_infos,
             zones=self.zones.active_zones(frame.camera_id),
+            tz=self._tz_by_camera.get(frame.camera_id, "Europe/Moscow"),
             frame=frame.data,
             detections=others,
         )

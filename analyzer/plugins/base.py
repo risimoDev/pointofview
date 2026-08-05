@@ -41,6 +41,9 @@ class FrameContext:
     ts: float
     tracks: list[TrackInfo]
     zones: list[Zone]
+    # site timezone: anything that rolls over "per day" must do it at local
+    # midnight, not at 00:00 UTC (see CounterPlugin)
+    tz: str = "UTC"
     frame: Any = None  # raw BGR ndarray; for vision plugins (PPE/face), unused by crowd/counter
     # non-person detections from the MAIN detector (classes requested via
     # FeaturePlugin.detector_classes). Plugins with their own auxiliary model

@@ -17,14 +17,19 @@ logger = logging.getLogger(__name__)
 _TZ_CACHE: dict[str, ZoneInfo | None] = {}
 
 
-def _local_hhmm(ts: float, tz_name: str) -> str:
+def local_datetime(ts: float, tz_name: str) -> datetime:
+    """Wall clock at the site. Unknown timezone falls back to UTC rather than
+    raising — a bad tz string in the DB must not take the worker down."""
     if tz_name not in _TZ_CACHE:
         try:
             _TZ_CACHE[tz_name] = ZoneInfo(tz_name)
         except Exception:  # noqa: BLE001 — unknown tz → UTC fallback
             _TZ_CACHE[tz_name] = None
-    dt = datetime.fromtimestamp(ts, tz=_TZ_CACHE[tz_name] or timezone.utc)
-    return dt.strftime("%H:%M")
+    return datetime.fromtimestamp(ts, tz=_TZ_CACHE[tz_name] or timezone.utc)
+
+
+def _local_hhmm(ts: float, tz_name: str) -> str:
+    return local_datetime(ts, tz_name).strftime("%H:%M")
 
 
 def _in_window(hhmm: str, frm: Any, to: Any) -> bool:

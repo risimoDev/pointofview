@@ -1,4 +1,5 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
+import { timingSafeEqual } from 'node:crypto'
 import { z } from 'zod'
 import { db } from '../db/client.js'
 import { archiveSegment } from '../../db/schema.js'
@@ -17,9 +18,20 @@ const ReidCropBody = z.object({
  * Service-to-service endpoints (recorder.py → here). Guarded by a shared
  * INTERNAL_TOKEN header, not JWT. Mounted without the /api/v1 prefix.
  */
+/** Constant-time compare. `!==` on a secret leaks its length and, in
+ *  principle, its prefix through response timing; the cost of doing it
+ *  properly is one buffer allocation per internal call. */
+function tokenMatches(given: unknown, expected: string): boolean {
+  if (typeof given !== 'string') return false
+  const a = Buffer.from(given)
+  const b = Buffer.from(expected)
+  if (a.length !== b.length) return false
+  return timingSafeEqual(a, b)
+}
+
 const internalRoutes: FastifyPluginAsyncZod = async (app) => {
   app.addHook('preHandler', async (req, reply) => {
-    if (req.headers['x-internal-token'] !== config.INTERNAL_TOKEN) {
+    if (!tokenMatches(req.headers['x-internal-token'], config.INTERNAL_TOKEN)) {
       return reply.code(401).send({ message: 'unauthorized' })
     }
   })

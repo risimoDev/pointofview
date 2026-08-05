@@ -29,6 +29,20 @@ async function ownsCamera(tenantId: string, cameraId: string): Promise<boolean> 
   return Boolean(row)
 }
 
+/** Tenant ownership AND the per-user camera restriction.
+ *
+ *  The restriction was applied when LISTING cameras and events but not when
+ *  addressing one directly, so a user limited to one camera could still pull
+ *  another camera's live frame or edit its zones just by changing the id in
+ *  the URL. Anything that takes a camera id from the request must go through
+ *  here, not through ownsCamera alone. Empty list = all cameras. */
+async function cameraVisible(
+  req: { tenantId: string; allowedCameraIds: string[] }, cameraId: string,
+): Promise<boolean> {
+  if (req.allowedCameraIds.length > 0 && !req.allowedCameraIds.includes(cameraId)) return false
+  return ownsCamera(req.tenantId, cameraId)
+}
+
 /** Rebuild Redis cameras:{tenant} array consumed by the analyzer. */
 async function syncCameras(app: { redis: Redis }, tenantId: string): Promise<void> {
   const cams = await db.select({
@@ -320,7 +334,7 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
     schema: { params: CameraIdParams },
   }, async (req, reply) => {
     const { id } = req.params
-    if (!(await ownsCamera(req.tenantId, id))) {
+    if (!(await cameraVisible(req, id))) {
       return reply.code(404).send({ message: 'camera not found' })
     }
     await db.delete(camera).where(eq(camera.id, id))
@@ -347,7 +361,7 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
     schema: { params: CameraIdParams },
   }, async (req, reply) => {
     const { id } = req.params
-    if (!(await ownsCamera(req.tenantId, id))) {
+    if (!(await cameraVisible(req, id))) {
       return reply.code(404).send({ message: 'camera not found' })
     }
     const rows = await db.select().from(zone).where(eq(zone.cameraId, id))
@@ -359,7 +373,7 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
     schema: { params: CameraIdParams, body: CreateZoneBody },
   }, async (req, reply) => {
     const { id } = req.params
-    if (!(await ownsCamera(req.tenantId, id))) {
+    if (!(await cameraVisible(req, id))) {
       return reply.code(404).send({ message: 'camera not found' })
     }
 
@@ -383,7 +397,7 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
     schema: { params: ZoneParams, body: UpdateZoneBody },
   }, async (req, reply) => {
     const { id, zoneId } = req.params
-    if (!(await ownsCamera(req.tenantId, id))) {
+    if (!(await cameraVisible(req, id))) {
       return reply.code(404).send({ message: 'camera not found' })
     }
     const b = req.body
@@ -414,7 +428,7 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
     schema: { params: ZoneParams },
   }, async (req, reply) => {
     const { id, zoneId } = req.params
-    if (!(await ownsCamera(req.tenantId, id))) {
+    if (!(await cameraVisible(req, id))) {
       return reply.code(404).send({ message: 'camera not found' })
     }
     const [row] = await db.delete(zone)
@@ -436,10 +450,7 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
     },
   }, async (req, reply) => {
     const { id } = req.params
-    if (!(await ownsCamera(req.tenantId, id))) {
-      return reply.code(404).send({ message: 'camera not found' })
-    }
-    if (req.allowedCameraIds.length > 0 && !req.allowedCameraIds.includes(id)) {
+    if (!(await cameraVisible(req, id))) {
       return reply.code(404).send({ message: 'camera not found' })
     }
     const pipe = app.redis.pipeline()
@@ -474,7 +485,7 @@ const camerasRoutes: FastifyPluginAsyncZod = async (app) => {
     schema: { params: CameraIdParams },
   }, async (req, reply) => {
     const { id } = req.params
-    if (!(await ownsCamera(req.tenantId, id))) {
+    if (!(await cameraVisible(req, id))) {
       return reply.code(404).send({ message: 'camera not found' })
     }
     const url = `${config.GO2RTC_URL}/api/frame.jpeg?src=${encodeURIComponent(id)}`

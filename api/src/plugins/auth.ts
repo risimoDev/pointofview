@@ -50,8 +50,18 @@ function hydrate(req: FastifyRequest): void {
   req.allowedCameraIds = req.user.cams ?? []
 }
 
+// Session lifetime. The token used to be signed with no `exp` at all, which
+// meant a copy taken from a log, a screenshot or a borrowed laptop stayed
+// valid forever — and that disabling a user or narrowing their permissions
+// never actually took anything away, because the old token kept working. It
+// matches the web cookie's maxAge, so nothing changes for a normal session.
+export const SESSION_TTL = '12h'
+
 const authPlugin: FastifyPluginAsync = async (app) => {
-  await app.register(fastifyJwt, { secret: config.JWT_SECRET })
+  await app.register(fastifyJwt, {
+    secret: config.JWT_SECRET,
+    sign: { expiresIn: SESSION_TTL },
+  })
 
   app.decorate('authenticate', async (req: FastifyRequest) => {
     await req.jwtVerify()

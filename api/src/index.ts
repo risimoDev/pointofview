@@ -24,6 +24,7 @@ import archiveRoutes from './routes/archive.js'
 import trainingRoutes from './routes/training.js'
 import internalRoutes from './routes/internal.js'
 import publicRoutes from './routes/public.js'
+import streamAuthRoutes from './routes/stream_auth.js'
 import { EventConsumer } from './streams/event_consumer.js'
 import { startCameraWatchdog } from './camera_watchdog.js'
 import { startRetention } from './retention.js'
@@ -71,6 +72,8 @@ async function main(): Promise<void> {
   await app.register(trainingRoutes, { prefix: '/api/v1/admin' })
   await app.register(internalRoutes, { prefix: '/internal' })
   await app.register(publicRoutes, { prefix: '/api/v1/public' })
+  // nginx auth_request for the go2rtc proxy (see routes/stream_auth.ts)
+  await app.register(streamAuthRoutes, { prefix: '/api/v1' })
 
   // WebSocket live events
   const hub = new WsHub(redisSub, app.log)

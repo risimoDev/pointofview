@@ -72,11 +72,18 @@ const publicRoutes: FastifyPluginAsyncZod = async (app) => {
       .where(liveInvite(req.params.token)).limit(1)
     if (!inv) return reply.code(404).send({ message: 'Приглашение не найдено или истекло' })
 
+    // The account is bound to the address the invite was issued to. Letting
+    // the redeemer pick any address meant a link that leaked (forwarded mail,
+    // a screenshot in a chat) produced an account under a name nobody at the
+    // organisation recognises — and the audit trail then points at a stranger.
+    // Only invites created without an address let the person choose one.
+    const email = inv.email || req.body.email
+
     const passwordHash = await bcrypt.hash(req.body.password, 10)
     try {
       const [user] = await db.insert(appUser).values({
         tenantId: inv.tenantId,
-        email: req.body.email,
+        email,
         passwordHash,
         role: inv.role,
         name: req.body.name ?? inv.name,
@@ -87,7 +94,7 @@ const publicRoutes: FastifyPluginAsyncZod = async (app) => {
         .where(eq(userInvite.id, inv.id))
       await writeAudit({
         tenantId: inv.tenantId, userId: user!.id, action: 'invite.accept',
-        resourceType: 'user', resourceId: user!.id, details: { email: req.body.email },
+        resourceType: 'user', resourceId: user!.id, details: { email },
       })
       return reply.code(201).send({ created: true })
     } catch {

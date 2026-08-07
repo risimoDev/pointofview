@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Page, PageHeader } from '@/components/ui/page'
 import { Input } from '@/components/ui/input'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -190,11 +191,8 @@ function EventsTable(): React.JSX.Element {
   }, [query])
 
   return (
-    <main className="space-y-4 p-4">
-      <div className="flex items-center gap-2">
-        <IconActivity className="h-5 w-5 text-brand" stroke={1.75} />
-        <h1 className="font-display text-lg font-semibold tracking-tight">События</h1>
-      </div>
+    <Page>
+      <PageHeader title="События" icon={IconActivity} />
 
       <div className="flex flex-wrap gap-2 rounded-lg border border-border/70 bg-card/40 p-3">
         <Input
@@ -298,7 +296,7 @@ function EventsTable(): React.JSX.Element {
       <div ref={sentinel} className="h-8 text-center text-sm text-muted-foreground">
         {query.isFetchingNextPage ? 'Загрузка…' : query.hasNextPage ? '' : 'Конец списка'}
       </div>
-    </main>
+    </Page>
   )
 }
 

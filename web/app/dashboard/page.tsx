@@ -3,13 +3,23 @@
 import type * as React from 'react'
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { IconUsers } from '@tabler/icons-react'
+import {
+  IconUsers, IconVideo, IconAlertTriangle, IconInbox,
+} from '@tabler/icons-react'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Input } from '@/components/ui/input'
+import { Page, PageHeader, StatCard } from '@/components/ui/page'
 import { VideoGrid } from '@/components/video-grid'
 import { EventLog } from '@/components/event-log'
-import { getCameras, getOccupancy } from '@/lib/api'
+import { getCameras, getEvents, getOccupancy } from '@/lib/api'
 import { useEventStream } from '@/hooks/use-event-stream'
+
+/** Local midnight, as the API wants it. */
+function todayFrom(): string {
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
+  return d.toISOString()
+}
 
 export default function DashboardPage(): React.JSX.Element {
   useEventStream()
@@ -24,6 +34,19 @@ export default function DashboardPage(): React.JSX.Element {
     queryFn: getOccupancy,
     refetchInterval: 5000,
   })
+  // Two counts the operator is actually judged on: what blew up today and
+  // what nobody has dealt with. Cheap queries, one minute apart.
+  const { data: criticalToday } = useQuery({
+    queryKey: ['kpi-critical'],
+    queryFn: () => getEvents({ severity: 'critical', from: todayFrom(), limit: 100 }),
+    refetchInterval: 60_000,
+  })
+  const { data: unresolved } = useQuery({
+    queryKey: ['kpi-unresolved'],
+    queryFn: () => getEvents({ resolved: 'false', limit: 100 }),
+    refetchInterval: 60_000,
+  })
+
   const occupancyItems = occupancy?.items ?? []
   const visitorSites = occupancy?.sites ?? []
 
@@ -42,77 +65,56 @@ export default function DashboardPage(): React.JSX.Element {
     () => cameras.filter((c) => c.status === 'online').length,
     [cameras],
   )
+  const peopleNow = occupancyItems.reduce((s, o) => s + o.occupancy, 0)
+  const visitorsToday = visitorSites.reduce((s, o) => s + o.visitors, 0)
+
+  // "100+" rather than a wrong number: the queries are capped at 100
+  const capped = (n: number | undefined, limit = 100): string =>
+    n === undefined ? '—' : n >= limit ? `${limit}+` : String(n)
 
   return (
-    <main className="flex min-h-[calc(100vh-3.5rem)] flex-col gap-3 p-4 lg:h-[calc(100vh-3.5rem)]">
-      <header className="flex flex-wrap items-center gap-2">
-        <h1 className="font-display text-lg font-semibold tracking-tight">Дашборд</h1>
-        <span className="text-xs text-muted-foreground">
-          {online} из {cameras.length} в сети
-        </span>
-        <div className="ml-auto flex items-center gap-2">
-          {cameras.length > 4 && (
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Поиск камеры…"
-              className="h-8 w-44"
-            />
-          )}
-          <ToggleGroup type="single" value={cols} onValueChange={(v) => v && setCols(v)}>
-            <ToggleGroupItem value="2">2×2</ToggleGroupItem>
-            <ToggleGroupItem value="3" className="hidden sm:flex">3×3</ToggleGroupItem>
-            <ToggleGroupItem value="4" className="hidden sm:flex">4×4</ToggleGroupItem>
-          </ToggleGroup>
-        </div>
-      </header>
+    <Page fill className="gap-3">
+      <PageHeader title="Дашборд" subtitle={`${online} из ${cameras.length} в сети`}>
+        {cameras.length > 4 && (
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Поиск камеры…"
+            className="h-8 w-44"
+          />
+        )}
+        <ToggleGroup type="single" value={cols} onValueChange={(v) => v && setCols(v)}>
+          <ToggleGroupItem value="2">2×2</ToggleGroupItem>
+          <ToggleGroupItem value="3" className="hidden sm:flex">3×3</ToggleGroupItem>
+          <ToggleGroupItem value="4" className="hidden sm:flex">4×4</ToggleGroupItem>
+        </ToggleGroup>
+      </PageHeader>
 
-      {(occupancyItems.length > 0 || visitorSites.length > 0) && (
-        <div className="flex flex-wrap gap-2">
-          {visitorSites.map((s) => (
-            <div
-              key={s.siteId}
-              className="flex items-center gap-3 rounded-lg border border-brand/30 bg-brand/5 px-3 py-2"
-            >
-              <span className="flex h-8 w-8 items-center justify-center rounded-md bg-brand/10 text-brand ring-1 ring-brand/20">
-                <IconUsers className="h-4 w-4" stroke={1.75} />
-              </span>
-              <div className="leading-tight">
-                <div className="text-xs text-muted-foreground">{s.siteName}</div>
-                <div className="text-sm text-muted-foreground">
-                  <span className="font-display text-base font-semibold tabular-nums text-brand">
-                    {s.visitors}
-                  </span>{' '}
-                  посетителей за день
-                </div>
-              </div>
-            </div>
-          ))}
-          {occupancyItems.map((o) => (
-            <div
-              key={o.cameraId}
-              className="flex items-center gap-3 rounded-lg border border-border/70 bg-card/60 px-3 py-2"
-            >
-              <span className="flex h-8 w-8 items-center justify-center rounded-md bg-brand/10 text-brand ring-1 ring-brand/20">
-                <IconUsers className="h-4 w-4" stroke={1.75} />
-              </span>
-              <div className="leading-tight">
-                <div className="text-xs text-muted-foreground">
-                  {cameraNames[o.cameraId] ?? o.cameraId}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  <span className="font-display text-base font-semibold tabular-nums text-brand">
-                    {o.occupancy}
-                  </span>{' '}
-                  сейчас
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      <div className="grid shrink-0 grid-cols-2 gap-2.5 lg:grid-cols-4">
+        <StatCard
+          label="Камеры в сети" icon={IconVideo}
+          value={`${online} / ${cameras.length}`}
+          tone={cameras.length > 0 && online < cameras.length ? 'warn' : 'brand'}
+        />
+        <StatCard
+          label="Критических сегодня" icon={IconAlertTriangle} tone="critical"
+          value={capped(criticalToday?.items.length)}
+        />
+        <StatCard
+          label="Не разобрано" icon={IconInbox} tone="warn"
+          value={capped(unresolved?.items.length)}
+        />
+        <StatCard
+          label={visitorSites.length > 0 ? 'Посетителей за день' : 'Людей сейчас'}
+          icon={IconUsers} tone="brand"
+          value={visitorSites.length > 0 ? visitorsToday : peopleNow}
+          hint={visitorSites.length > 0
+            ? 'Разные люди за сутки по площадке; сотрудники не считаются'
+            : 'Сколько людей видят камеры прямо сейчас'}
+        />
+      </div>
 
-      <div className="grid flex-1 grid-cols-1 gap-3 overflow-hidden lg:grid-cols-[1fr_320px]">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[1fr_320px]">
         <div className="min-h-0 overflow-y-auto">
           {visible.length === 0 && (
             <p className="p-4 text-sm text-muted-foreground">
@@ -121,10 +123,10 @@ export default function DashboardPage(): React.JSX.Element {
           )}
           <VideoGrid cameras={visible} columns={Number(cols)} />
         </div>
-        <aside className="min-h-0 overflow-hidden lg:h-auto">
+        <aside className="hidden min-h-0 overflow-hidden lg:block">
           <EventLog cameraNames={cameraNames} />
         </aside>
       </div>
-    </main>
+    </Page>
   )
 }

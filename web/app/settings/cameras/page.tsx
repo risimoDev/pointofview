@@ -3,6 +3,7 @@
 import type * as React from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
+import { Page, PageHeader } from '@/components/ui/page'
 import { IconVideo, IconVectorTriangle } from '@tabler/icons-react'
 import { getCameras } from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -18,11 +19,12 @@ export default function CamerasPage(): React.JSX.Element {
   const { data: cameras = [], isLoading } = useQuery({ queryKey: ['cameras'], queryFn: getCameras })
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-4 p-6">
-      <div className="flex items-center gap-2">
-        <IconVideo className="h-5 w-5 text-brand" stroke={1.75} />
-        <h1 className="font-display text-lg font-semibold tracking-tight">Камеры</h1>
-      </div>
+    <Page className="mx-auto w-full max-w-3xl">
+      <PageHeader
+        title="Зоны"
+        icon={IconVideo}
+        subtitle="выберите камеру, чтобы разметить зоны"
+      />
 
       {isLoading && <p className="text-muted-foreground">Загрузка…</p>}
       {!isLoading && cameras.length === 0 && (
@@ -58,6 +60,6 @@ export default function CamerasPage(): React.JSX.Element {
           ))}
         </ul>
       )}
-    </main>
+    </Page>
   )
 }

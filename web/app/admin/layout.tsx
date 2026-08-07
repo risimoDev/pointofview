@@ -1,12 +1,10 @@
 import type * as React from 'react'
 import type { ReactNode } from 'react'
-import { AdminNav } from '@/components/admin-nav'
 
+// The admin sub-navigation moved into the console rail (components/app-shell)
+// — it was a second permission-gated list of the same pages and the two drifted.
+// This layout keeps the reading width and the page padding the admin screens
+// rely on (they render a bare `space-y-*` column).
 export default function AdminLayout({ children }: { children: ReactNode }): React.JSX.Element {
-  return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-4 p-4 md:flex-row md:gap-6 md:p-6">
-      <AdminNav />
-      <div className="min-w-0 flex-1">{children}</div>
-    </div>
-  )
+  return <div className="mx-auto w-full max-w-6xl p-4 sm:p-5">{children}</div>
 }

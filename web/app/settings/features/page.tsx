@@ -2,7 +2,9 @@
 
 import type * as React from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { IconAdjustmentsHorizontal } from '@tabler/icons-react'
 import { Button } from '@/components/ui/button'
+import { Page, PageHeader } from '@/components/ui/page'
 import { getFeatures, setFeature, type Feature } from '@/lib/api'
 
 // Catalog of toggleable plugins. `feature` must match analyzer FeaturePlugin.feature_id
@@ -42,8 +44,8 @@ export default function FeaturesPage(): React.JSX.Element {
   })
 
   return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-4 p-6">
-      <h1 className="font-display text-lg font-semibold tracking-tight">Функции аналитики</h1>
+    <Page className="mx-auto w-full max-w-2xl">
+      <PageHeader title="Функции аналитики" icon={IconAdjustmentsHorizontal} />
       <p className="text-sm text-muted-foreground">
         Включение применяется воркером в течение ~30 секунд. Требуется роль администратора.
         Функции с пометкой «в разработке» появятся в ближайших обновлениях.
@@ -73,6 +75,6 @@ export default function FeaturesPage(): React.JSX.Element {
           )
         })}
       </ul>
-    </main>
+    </Page>
   )
 }

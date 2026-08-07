@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import { Space_Grotesk } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
-import { AppNav } from '@/components/app-nav'
+import { AppShell } from '@/components/app-shell'
 
 // Distinctive display face for the wordmark/headings (not the default Inter).
 const display = Space_Grotesk({
@@ -33,8 +33,7 @@ export default function RootLayout({ children }: { children: ReactNode }): React
       </head>
       <body className="min-h-screen antialiased">
         <Providers>
-          <AppNav />
-          {children}
+          <AppShell>{children}</AppShell>
         </Providers>
       </body>
     </html>

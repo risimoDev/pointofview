@@ -11,6 +11,7 @@ import {
 } from '@/lib/api'
 import { eventTypeLabels, labelOf } from '@/lib/labels'
 import { Button } from '@/components/ui/button'
+import { Page, PageHeader } from '@/components/ui/page'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -115,11 +116,8 @@ export default function ReportsPage(): React.JSX.Element {
   const maxDay = Math.max(1, ...(d?.byDay.map((x) => x.count) ?? [1]))
 
   return (
-    <main className="space-y-5 p-4">
-      <div className="flex items-center gap-2">
-        <IconFileAnalytics className="h-5 w-5 text-brand" stroke={1.75} />
-        <h1 className="font-display text-lg font-semibold tracking-tight">Отчёты по охране труда</h1>
-      </div>
+    <Page className="gap-5">
+      <PageHeader title="Отчёты по охране труда" icon={IconFileAnalytics} />
 
       <div className="flex flex-wrap items-end gap-2">
         {PRESETS.map((p) => (
@@ -244,6 +242,6 @@ export default function ReportsPage(): React.JSX.Element {
           </section>
         </>
       )}
-    </main>
+    </Page>
   )
 }

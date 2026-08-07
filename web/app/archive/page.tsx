@@ -13,6 +13,7 @@ import {
 } from '@/lib/api'
 import { eventTypeLabels, labelOf } from '@/lib/labels'
 import { Button } from '@/components/ui/button'
+import { Page, PageHeader } from '@/components/ui/page'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
@@ -286,11 +287,8 @@ export default function ArchivePage(): React.JSX.Element {
   const covered = coverageMinutes(segments)
 
   return (
-    <main className="space-y-4 p-3 sm:p-4">
-      <div className="flex items-center gap-2">
-        <IconPlayerPlay className="h-5 w-5 text-brand" stroke={1.75} />
-        <h1 className="font-display text-lg font-semibold tracking-tight">Видеоархив</h1>
-      </div>
+    <Page>
+      <PageHeader title="Видеоархив" icon={IconPlayerPlay} />
 
       <div className="flex flex-wrap items-center gap-2">
         <Select value={activeCam} onValueChange={setCamId}>
@@ -506,6 +504,6 @@ export default function ArchivePage(): React.JSX.Element {
           </div>
         </section>
       )}
-    </main>
+    </Page>
   )
 }

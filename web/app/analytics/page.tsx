@@ -3,6 +3,7 @@
 import type * as React from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { Page, PageHeader } from '@/components/ui/page'
 import { IconChartHistogram } from '@tabler/icons-react'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -252,18 +253,14 @@ export default function AnalyticsPage(): React.JSX.Element {
   }, [peak])
 
   return (
-    <main className="space-y-4 p-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <IconChartHistogram className="h-5 w-5 text-brand" stroke={1.75} />
-        <h1 className="font-display text-lg font-semibold tracking-tight">Аналитика</h1>
-        <div className="ml-auto">
-          <ToggleGroup type="single" value={period} onValueChange={(v) => v && setPeriod(v as Period)}>
-            <ToggleGroupItem value="day">Сегодня</ToggleGroupItem>
-            <ToggleGroupItem value="week">7 дней</ToggleGroupItem>
-            <ToggleGroupItem value="month">30 дней</ToggleGroupItem>
-          </ToggleGroup>
-        </div>
-      </div>
+    <Page>
+      <PageHeader title="Аналитика" icon={IconChartHistogram}>
+        <ToggleGroup type="single" value={period} onValueChange={(v) => v && setPeriod(v as Period)}>
+          <ToggleGroupItem value="day">Сегодня</ToggleGroupItem>
+          <ToggleGroupItem value="week">7 дней</ToggleGroupItem>
+          <ToggleGroupItem value="month">30 дней</ToggleGroupItem>
+        </ToggleGroup>
+      </PageHeader>
 
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
         <StatCard label="Событий за период" value={totals.total}
@@ -432,6 +429,6 @@ export default function AnalyticsPage(): React.JSX.Element {
             </div>
           )}
       </section>
-    </main>
+    </Page>
   )
 }

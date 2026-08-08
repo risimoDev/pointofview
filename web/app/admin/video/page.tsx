@@ -8,6 +8,7 @@ import { EventType, Severity } from '@shared/events.schema'
 import { getCameras, getSites, simulateEvent, uploadVideoCamera } from '@/lib/api'
 import { eventTypeLabels, severityLabels } from '@/lib/labels'
 import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page'
 import { Label } from '@/components/ui/label'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -82,11 +83,8 @@ export default function VideoTestPage(): React.JSX.Element {
 
   return (
     <main className="space-y-6">
-      <div className="flex items-center gap-2">
-        <IconPlayerPlay className="h-5 w-5 text-brand" stroke={1.75} />
-        <h1 className="font-display text-lg font-semibold tracking-tight">Видео-тесты</h1>
-      </div>
-      <p className="text-sm text-muted-foreground">
+      <PageHeader title="Видео-тесты" icon={IconPlayerPlay} />
+      <p className="max-w-3xl text-sm text-muted-foreground">
         Загрузи видеофайл — сервер сохранит его и создаст камеру-источник из видеофайла,
         которую реальный анализатор (YOLO) прогонит на GPU. Ниже — симулятор событий для
         проверки конвейера без видео.

@@ -15,6 +15,7 @@ import {
 } from '@/lib/api'
 import { PermissionCodes, RoleDefaultPerms } from '@shared/events.schema'
 import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -393,12 +394,7 @@ export default function OrgPage(): React.JSX.Element {
 
   return (
     <main className="space-y-8">
-      <div className="flex items-center gap-2">
-        <IconUsersGroup className="h-5 w-5 text-brand" stroke={1.75} />
-        <h1 className="font-display text-lg font-semibold tracking-tight">
-          Организация и доступы
-        </h1>
-      </div>
+      <PageHeader title="Организация и доступы" icon={IconUsersGroup} />
 
       {/* Users */}
       <section className="space-y-3">

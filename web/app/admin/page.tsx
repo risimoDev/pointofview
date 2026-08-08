@@ -5,6 +5,7 @@ import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { IconActivityHeartbeat, IconRefresh } from '@tabler/icons-react'
 import { getHealth, getDeadLetter, replayDeadLetter } from '@/lib/api'
 import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page'
 import { cn } from '@/lib/utils'
 
 function StatusDot({ ok }: { ok: boolean }): React.JSX.Element {
@@ -37,13 +38,10 @@ export default function DiagnosticsPage(): React.JSX.Element {
 
   return (
     <main className="space-y-6">
-      <div className="flex items-center gap-2">
-        <IconActivityHeartbeat className="h-5 w-5 text-brand" stroke={1.75} />
-        <h1 className="font-display text-lg font-semibold tracking-tight">Диагностика</h1>
+      <PageHeader title="Диагностика" icon={IconActivityHeartbeat}>
         <Button
           size="sm"
           variant="ghost"
-          className="ml-auto"
           onClick={() => {
             void health.refetch()
             void dl.refetch()
@@ -52,7 +50,7 @@ export default function DiagnosticsPage(): React.JSX.Element {
           <IconRefresh className="mr-1 h-4 w-4" stroke={1.75} />
           Обновить
         </Button>
-      </div>
+      </PageHeader>
 
       {/* Services */}
       <section className="space-y-2">

@@ -8,6 +8,7 @@ import { IconVideo, IconVectorTriangle, IconTrash } from '@tabler/icons-react'
 import { getCameras, getSites, createCamera, updateCamera, deleteCamera, errorMessage } from '@/lib/api'
 import type { Camera } from '@shared/events.schema'
 import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -127,10 +128,7 @@ export default function AdminCamerasPage(): React.JSX.Element {
 
   return (
     <main className="space-y-6">
-      <div className="flex items-center gap-2">
-        <IconVideo className="h-5 w-5 text-brand" stroke={1.75} />
-        <h1 className="font-display text-lg font-semibold tracking-tight">Камеры</h1>
-      </div>
+      <PageHeader title="Камеры" icon={IconVideo} />
 
       <div className="overflow-hidden rounded-lg border border-border/70">
         {cams.data?.map((c) => (

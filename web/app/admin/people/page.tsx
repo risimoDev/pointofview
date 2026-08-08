@@ -12,6 +12,7 @@ import {
   type Person,
 } from '@/lib/api'
 import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page'
 import { Input } from '@/components/ui/input'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -302,11 +303,8 @@ export default function PeoplePage(): React.JSX.Element {
 
   return (
     <main className="space-y-6">
-      <div className="flex items-center gap-2">
-        <IconUsers className="h-5 w-5 text-brand" stroke={1.75} />
-        <h1 className="font-display text-lg font-semibold tracking-tight">Люди</h1>
-      </div>
-      <p className="text-sm text-muted-foreground">
+      <PageHeader title="Люди" icon={IconUsers} />
+      <p className="max-w-3xl text-sm text-muted-foreground">
         Посетители различаются по внешнему виду (одежда, силуэт) — без биометрии.
         Сотрудники — по нескольким образцам одежды и, если загрузить фото, по лицу:
         так система узнаёт сотрудника даже после переодевания и не путает его с посетителем.
@@ -320,7 +318,7 @@ export default function PeoplePage(): React.JSX.Element {
         </h2>
         <AddStaffForm onChanged={onChanged} />
         {staff.length === 0 && (
-          <p className="text-sm text-muted-foreground">
+          <p className="max-w-3xl text-sm text-muted-foreground">
             Пока никого. Добавь сотрудника по имени выше — или найди его в списке
             «замеченных» ниже и нажми «Это сотрудник».
           </p>
@@ -392,7 +390,7 @@ export default function PeoplePage(): React.JSX.Element {
           Замеченные люди ({visitors.length})
         </h2>
         {visitors.length === 0 && (
-          <p className="text-sm text-muted-foreground">
+          <p className="max-w-3xl text-sm text-muted-foreground">
             Список пуст. Он наполняется, когда включена функция «Сквозная идентификация»
             и анализатор видит людей на камерах.
           </p>

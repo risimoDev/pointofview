@@ -10,6 +10,7 @@ import {
 } from '@/lib/api'
 import { eventTypeLabels, labelOf } from '@/lib/labels'
 import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page'
 import { cn } from '@/lib/utils'
 
 // Стадия 1 обучения из панели: курирование датасета ложных срабатываний.
@@ -57,11 +58,8 @@ export default function TrainingPage(): React.JSX.Element {
 
   return (
     <main className="space-y-4">
-      <div className="flex items-center gap-2">
-        <IconSchool className="h-5 w-5 text-brand" stroke={1.75} />
-        <h1 className="font-display text-lg font-semibold tracking-tight">Обучение моделей</h1>
-      </div>
-      <p className="text-sm text-muted-foreground">
+      <PageHeader title="Обучение моделей" icon={IconSchool} />
+      <p className="max-w-3xl text-sm text-muted-foreground">
         Датасет собирается сам: каждая пометка «ложное» на странице «События»
         сохраняет кадр сюда. Здесь набор чистится перед дообучением — удалите
         кадры, где разметка ошибочна (событие на кадре всё-таки есть) или кадр
@@ -78,7 +76,7 @@ export default function TrainingPage(): React.JSX.Element {
           <p className="text-sm text-red-400">{errorMessage(summary.error)}</p>
         )}
         {summary.data && summary.data.length === 0 && (
-          <p className="text-sm text-muted-foreground">
+          <p className="max-w-3xl text-sm text-muted-foreground">
             Пока пусто. Кадры появятся после пометок «ложное» на «Событиях».
           </p>
         )}
@@ -135,7 +133,7 @@ export default function TrainingPage(): React.JSX.Element {
             {note && <span className="text-xs text-brand">{note}</span>}
           </div>
           {items.data && items.data.length === 0 && (
-            <p className="text-sm text-muted-foreground">Кадров нет.</p>
+            <p className="max-w-3xl text-sm text-muted-foreground">Кадров нет.</p>
           )}
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
             {items.data?.map((it: TrainingItem) => {

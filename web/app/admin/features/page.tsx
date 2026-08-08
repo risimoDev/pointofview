@@ -12,6 +12,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
@@ -410,11 +411,8 @@ export default function AdminFeaturesPage(): React.JSX.Element {
 
   return (
     <main className="space-y-4">
-      <div className="flex items-center gap-2">
-        <IconAdjustmentsHorizontal className="h-5 w-5 text-brand" stroke={1.75} />
-        <h1 className="font-display text-lg font-semibold tracking-tight">Функции</h1>
-      </div>
-      <p className="text-sm text-muted-foreground">
+      <PageHeader title="Функции ИИ" icon={IconAdjustmentsHorizontal} />
+      <p className="max-w-3xl text-sm text-muted-foreground">
         Включение плагинов и пороги срабатывания. Изменения сразу уходят в Redis
         (<span className="font-mono text-xs">features:{'{tenant}'}</span>) и подхватываются анализатором.
       </p>
@@ -437,7 +435,7 @@ export default function AdminFeaturesPage(): React.JSX.Element {
         {/* cards mount only after the list loads: FeatureCard seeds its local
             state from `current` once, so mounting early froze every toggle
             at «Выключено» regardless of the DB state */}
-        {!features.data && <p className="text-sm text-muted-foreground">Загрузка…</p>}
+        {!features.data && <p className="max-w-3xl text-sm text-muted-foreground">Загрузка…</p>}
         {features.data && Object.entries(FEATURE_META).map(([feature, meta]) => (
           <FeatureCard
             key={`${feature}:${isSuper ? 's' : 'a'}`}

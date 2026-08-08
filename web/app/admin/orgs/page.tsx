@@ -6,6 +6,7 @@ import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { IconBuildingSkyscraper, IconCopy, IconLogin2 } from '@tabler/icons-react'
 import { getOrgs, createOrg, enterOrg } from '@/lib/api'
 import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -43,11 +44,8 @@ export default function OrgsPage(): React.JSX.Element {
 
   return (
     <main className="space-y-6">
-      <div className="flex items-center gap-2">
-        <IconBuildingSkyscraper className="h-5 w-5 text-brand" stroke={1.75} />
-        <h1 className="font-display text-lg font-semibold tracking-tight">Организации</h1>
-      </div>
-      <p className="text-sm text-muted-foreground">
+      <PageHeader title="Организации" icon={IconBuildingSkyscraper} />
+      <p className="max-w-3xl text-sm text-muted-foreground">
         Все предприятия на платформе. «Войти» открывает организацию с правами
         владельца — для настройки и помощи (действие пишется в журнал).
       </p>

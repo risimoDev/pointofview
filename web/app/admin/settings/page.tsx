@@ -9,6 +9,7 @@ import {
   type ServerSetting, type SystemInfo,
 } from '@/lib/api'
 import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
@@ -161,10 +162,7 @@ export default function AdminSettingsPage(): React.JSX.Element {
 
   return (
     <main className="space-y-6">
-      <div className="flex items-center gap-2">
-        <IconSettings className="h-5 w-5 text-brand" stroke={1.75} />
-        <h1 className="font-display text-lg font-semibold tracking-tight">Настройки сервера</h1>
-      </div>
+      <PageHeader title="Настройки сервера" icon={IconSettings} />
 
       {/* System panel */}
       <section className="space-y-2">

@@ -10,6 +10,7 @@ import {
   type AlertRule, type AlertRuleInput,
 } from '@/lib/api'
 import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -246,11 +247,8 @@ export default function AdminAlertsPage(): React.JSX.Element {
 
   return (
     <main className="space-y-6">
-      <div className="flex items-center gap-2">
-        <IconBell className="h-5 w-5 text-brand" stroke={1.75} />
-        <h1 className="font-display text-lg font-semibold tracking-tight">Правила уведомлений</h1>
-      </div>
-      <p className="text-sm text-muted-foreground">
+      <PageHeader title="Правила уведомлений" icon={IconBell} />
+      <p className="max-w-3xl text-sm text-muted-foreground">
         Событие выбранного типа рассылается в Telegram и/или на webhook. Дубликаты гасятся паузой
         на пару (правило, человек) — один и тот же посетитель на всех камерах считается одним.
         Критичные события уходят сразу; остальные копятся и приходят одной сводкой

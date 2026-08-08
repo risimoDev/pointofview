@@ -6,6 +6,7 @@ import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { IconTool, IconRefresh, IconTrash, IconDatabase } from '@tabler/icons-react'
 import { getAudit, getTimescale, resync, clearDeadLetter } from '@/lib/api'
 import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page'
 
 function Stat({ label, value }: { label: string; value: React.ReactNode }): React.JSX.Element {
   return (
@@ -38,10 +39,7 @@ export default function MaintenancePage(): React.JSX.Element {
 
   return (
     <main className="space-y-6">
-      <div className="flex items-center gap-2">
-        <IconTool className="h-5 w-5 text-brand" stroke={1.75} />
-        <h1 className="font-display text-lg font-semibold tracking-tight">Обслуживание</h1>
-      </div>
+      <PageHeader title="Обслуживание" icon={IconTool} />
 
       {/* Actions */}
       <section className="space-y-2">
@@ -78,7 +76,7 @@ export default function MaintenancePage(): React.JSX.Element {
       <section className="space-y-2">
         <h2 className="text-sm font-medium text-muted-foreground">Аудит-лог</h2>
         {audit.data && audit.data.length === 0 && (
-          <p className="text-sm text-muted-foreground">
+          <p className="max-w-3xl text-sm text-muted-foreground">
             Пусто. (Запись в audit_log пока не подключена — таблица готова.)
           </p>
         )}
